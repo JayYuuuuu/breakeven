@@ -555,6 +555,7 @@
     let analysisResults = []; // 分析结果
     let systemParams = {}; // 系统参数
     let nextRowId = 1; // 行ID计数器
+    let calculationRowMap = []; // 与 collectedProducts 对应的行ID映射（保持与分析结果顺序一致）
     
     // 测试平台佣金率函数
     console.log('=== 模块加载时的测试 ===');
@@ -860,25 +861,36 @@
       autoCalculate();
     }
 
-    // 添加空行
+    // 添加空行（插入到表格顶部，处理"暂无数据"占位行）
     function addEmptyRow() {
+      const tbody = document.getElementById('productsTableBody');
       const row = createProductRow();
-      document.getElementById('productsTableBody').appendChild(row);
-      showMessage('已添加新的商品行', 'info');
-      
-      // 延迟更新表格状态，确保DOM完全更新后再隐藏提示
-      setTimeout(() => {
-        updateTableStatus();
-        console.log('空行添加后，延迟更新表格状态');
-      }, 50);
-      
-      // 自动保存到localStorage
+
+      // 如果存在“暂无数据”占位行，先移除它
+      const noDataRow = tbody.querySelector('#no-data-row') || tbody.querySelector('tr td[colspan="16"]')?.parentElement;
+      if (noDataRow) {
+        noDataRow.remove();
+      }
+
+      // 找到第一个真实数据行（id以 row- 开头），将新行插入其前面；否则直接添加
+      const firstDataRow = tbody.querySelector('tr[id^="row-"]');
+      if (firstDataRow) {
+        tbody.insertBefore(row, firstDataRow);
+      } else {
+        tbody.appendChild(row);
+      }
+
+      showMessage('已在表格顶部添加新的商品行', 'info');
+
+      // 立即更新表格状态，确保占位状态正确
+      updateTableStatus();
+
+      // 持久化
       saveToLocalStorage();
-      
-      // 触发自动计算（虽然空行没有数据，但确保计算状态正确）
-      setTimeout(() => {
-        autoCalculate();
-      }, 100);
+
+      // 触发自动计算（即使是空行，也保证计算状态一致）
+      clearTimeout(window.autoCalcTimer);
+      window.autoCalcTimer = setTimeout(autoCalculate, 100);
     }
     
     // 删除行
@@ -1158,6 +1170,8 @@
       const collectedProducts = [];
       
       console.log('开始收集表格数据，找到行数:', rows.length);
+      // 重置结果行映射，每次重新收集数据时重建映射
+      calculationRowMap = [];
       
       rows.forEach((row, index) => {
         const rowId = row.id.replace('row-', '');
@@ -1262,6 +1276,8 @@
         }
         
         collectedProducts.push(product);
+        // 记录该分析项对应的表格行ID（用于结果回填定位）
+        calculationRowMap.push(row.id);
         console.log(`第${index + 1}行 - 验证通过，已添加到收集列表`);
       });
       
@@ -1294,22 +1310,27 @@
     // 更新计算结果
     function updateCalculationResults() {
       console.log('开始更新计算结果，分析结果数量:', analysisResults.length);
-      
-      // 获取所有商品行（排除表头和其他非数据行）
-      const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
-      console.log('找到的商品行数量:', rows.length);
-      
+
+      // 先清空所有行的旧结果，防止错位残留
+      clearAllResults();
+
+      const map = Array.isArray(calculationRowMap) ? calculationRowMap : [];
+      console.log('用于结果回填的行映射:', map);
+
       analysisResults.forEach((result, index) => {
-        console.log(`处理第${index}个结果:`, result.name);
-        
-        if (index >= rows.length) {
-          console.log(`索引${index}超出行数范围`);
+        const rowId = map[index];
+        if (!rowId) {
+          console.warn(`找不到索引 ${index} 对应的行ID，跳过回填`);
           return;
         }
-        
-        const row = rows[index];
-        console.log(`处理行:`, row.id);
-        
+        const row = document.getElementById(rowId);
+        if (!row) {
+          console.warn(`未找到行元素: ${rowId}，跳过回填`);
+          return;
+        }
+
+        console.log(`回填第 ${index} 个结果到行 ${row.id}（${result.name}）`);
+
         // 获取所有计算结果单元格
         const adCostCell = row.cells[10]; // 保本广告费列
         const adRateEffectiveCell = row.cells[11]; // 保本广告占比(有效)列
@@ -1321,7 +1342,7 @@
           console.log('未找到所有必需的单元格');
           return;
         }
-        
+
         // 查找单元格内的calc-result div元素
         const adCostDiv = adCostCell.querySelector('.calc-result');
         const adRateEffectiveDiv = adRateEffectiveCell.querySelector('.calc-result');
@@ -1333,137 +1354,116 @@
           console.log('未找到所有必需的calc-result div元素');
           return;
         }
-        
+
         // 更新保本广告费显示
         if (result.singleAnalysis) {
           // 单一价格模式
           adCostDiv.innerHTML = result.singleAnalysis.adCostBreakEven.toFixed(2);
           adCostDiv.className = 'calc-result single';
-          console.log(`单一价格保本广告费: ${result.singleAnalysis.adCostBreakEven.toFixed(2)}`);
         } else if (result.tierAnalysis.length > 0) {
           // 多档价格模式
           const isSinglePriceMultiCost = result.singlePrice && result.tierAnalysis.every(tier => tier.price === result.singlePrice);
-          
           if (isSinglePriceMultiCost) {
-            adCostDiv.innerHTML = result.tierAnalysis.map((tier, index) => 
-              `<div class="result-item" title="第${index + 1}档进货价: ${tier.cost}元">${tier.adCostBreakEven.toFixed(2)}</div>`
+            adCostDiv.innerHTML = result.tierAnalysis.map((tier, i) => 
+              `<div class="result-item" title="第${i + 1}档进货价: ${tier.cost}元">${tier.adCostBreakEven.toFixed(2)}</div>`
             ).join('');
           } else {
             adCostDiv.innerHTML = result.tierAnalysis.map(tier => 
               `<div class="result-item">${tier.adCostBreakEven.toFixed(2)}</div>`
             ).join('');
           }
-          
           adCostDiv.className = 'calc-result multi';
-          console.log(`多档价格保本广告费: ${result.tierAnalysis.map(t => t.adCostBreakEven.toFixed(2)).join(', ')}`);
         } else {
           adCostDiv.innerHTML = '-';
           adCostDiv.className = 'calc-result';
         }
-        
-        // 更新保本广告占比(有效)显示
+
+        // 更新保本广告占比(有效)
         if (result.singleAnalysis) {
-          // 单一价格模式
           adRateEffectiveDiv.innerHTML = (result.singleAnalysis.adRateBE_effective * 100).toFixed(2) + '%';
           adRateEffectiveDiv.className = 'calc-result single';
-          console.log(`单一价格广告占比: ${(result.singleAnalysis.adRateBE_effective * 100).toFixed(2)}%`);
         } else if (result.tierAnalysis.length > 0) {
-          // 多档价格模式 - 只显示广告占比值
-          console.log(`处理多档价格广告占比，档位数量: ${result.tierAnalysis.length}`);
-          console.log(`多档价格广告占比数据:`, result.tierAnalysis.map(t => t.adRateBE_effective));
-          
-          // 检查是否为单一售价+多档进货价模式
           const isSinglePriceMultiCost = result.singlePrice && result.tierAnalysis.every(tier => tier.price === result.singlePrice);
-          
           if (isSinglePriceMultiCost) {
-            console.log(`检测到单一售价+多档进货价模式: 售价${result.singlePrice}元, ${result.tierAnalysis.length}档进货价`);
-            adRateEffectiveDiv.innerHTML = result.tierAnalysis.map((tier, index) => 
-              `<div class="result-item" title="第${index + 1}档进货价: ${tier.cost}元">${(tier.adRateBE_effective * 100).toFixed(2)}%</div>`
+            adRateEffectiveDiv.innerHTML = result.tierAnalysis.map((tier, i) => 
+              `<div class="result-item" title="第${i + 1}档进货价: ${tier.cost}元">${(tier.adRateBE_effective * 100).toFixed(2)}%</div>`
             ).join('');
           } else {
             adRateEffectiveDiv.innerHTML = result.tierAnalysis.map(tier => 
               `<div class="result-item">${(tier.adRateBE_effective * 100).toFixed(2)}%</div>`
             ).join('');
           }
-          
           adRateEffectiveDiv.className = 'calc-result multi';
-          console.log(`多档价格广告占比: ${result.tierAnalysis.map(t => (t.adRateBE_effective * 100).toFixed(2) + '%').join(', ')}`);
         } else {
           adRateEffectiveDiv.innerHTML = '-';
           adRateEffectiveDiv.className = 'calc-result';
         }
-        
-        // 更新保本广告占比(GMV)显示
+
+        // 更新保本广告占比(GMV)
         if (result.singleAnalysis) {
           adRateGmvDiv.innerHTML = (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2) + '%';
           adRateGmvDiv.className = 'calc-result single';
         } else if (result.tierAnalysis.length > 0) {
           const isSinglePriceMultiCost = result.singlePrice && result.tierAnalysis.every(tier => tier.price === result.singlePrice);
-          
           if (isSinglePriceMultiCost) {
-            adRateGmvDiv.innerHTML = result.tierAnalysis.map((tier, index) => 
-              `<div class="result-item" title="第${index + 1}档进货价: ${tier.cost}元">${(tier.adRateBE_gmv * 100).toFixed(2)}%</div>`
+            adRateGmvDiv.innerHTML = result.tierAnalysis.map((tier, i) => 
+              `<div class="result-item" title="第${i + 1}档进货价: ${tier.cost}元">${(tier.adRateBE_gmv * 100).toFixed(2)}%</div>`
             ).join('');
           } else {
             adRateGmvDiv.innerHTML = result.tierAnalysis.map(tier => 
               `<div class="result-item">${(tier.adRateBE_gmv * 100).toFixed(2)}%</div>`
             ).join('');
           }
-          
           adRateGmvDiv.className = 'calc-result multi';
         } else {
           adRateGmvDiv.innerHTML = '-';
           adRateGmvDiv.className = 'calc-result';
         }
-        
-        // 更新保本ROI(有效)显示
+
+        // 更新保本ROI(有效)
         if (result.singleAnalysis) {
           roiEffectiveDiv.innerHTML = result.singleAnalysis.ROI_BE_effective.toFixed(2);
           roiEffectiveDiv.className = 'calc-result single';
         } else if (result.tierAnalysis.length > 0) {
           const isSinglePriceMultiCost = result.singlePrice && result.tierAnalysis.every(tier => tier.price === result.singlePrice);
-          
           if (isSinglePriceMultiCost) {
-            roiEffectiveDiv.innerHTML = result.tierAnalysis.map((tier, index) => 
-              `<div class="result-item" title="第${index + 1}档进货价: ${tier.cost}元">${tier.ROI_BE_effective.toFixed(2)}</div>`
+            roiEffectiveDiv.innerHTML = result.tierAnalysis.map((tier, i) => 
+              `<div class="result-item" title="第${i + 1}档进货价: ${tier.cost}元">${tier.ROI_BE_effective.toFixed(2)}</div>`
             ).join('');
           } else {
             roiEffectiveDiv.innerHTML = result.tierAnalysis.map(tier => 
               `<div class="result-item">${tier.ROI_BE_effective.toFixed(2)}</div>`
             ).join('');
           }
-          
           roiEffectiveDiv.className = 'calc-result multi';
         } else {
           roiEffectiveDiv.innerHTML = '-';
           roiEffectiveDiv.className = 'calc-result';
         }
-        
-        // 更新保本ROI(GMV)显示
+
+        // 更新保本ROI(GMV)
         if (result.singleAnalysis) {
           roiGmvDiv.innerHTML = result.singleAnalysis.ROI_BE_gmv.toFixed(2);
           roiGmvDiv.className = 'calc-result single';
         } else if (result.tierAnalysis.length > 0) {
           const isSinglePriceMultiCost = result.singlePrice && result.tierAnalysis.every(tier => tier.price === result.singlePrice);
-          
           if (isSinglePriceMultiCost) {
-            roiGmvDiv.innerHTML = result.tierAnalysis.map((tier, index) => 
-              `<div class="result-item" title="第${index + 1}档进货价: ${tier.cost}元">${tier.ROI_BE_gmv.toFixed(2)}</div>`
+            roiGmvDiv.innerHTML = result.tierAnalysis.map((tier, i) => 
+              `<div class="result-item" title="第${i + 1}档进货价: ${tier.cost}元">${tier.ROI_BE_gmv.toFixed(2)}</div>`
             ).join('');
           } else {
             roiGmvDiv.innerHTML = result.tierAnalysis.map(tier => 
               `<div class="result-item">${tier.ROI_BE_gmv.toFixed(2)}</div>`
             ).join('');
           }
-          
           roiGmvDiv.className = 'calc-result multi';
         } else {
           roiGmvDiv.innerHTML = '-';
           roiGmvDiv.className = 'calc-result';
         }
       });
-      
-      console.log('计算结果更新完成');
+
+      console.log('计算结果更新完成（基于行映射回填）');
     }
 
     // 下载CSV模板
