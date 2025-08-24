@@ -843,7 +843,8 @@
     // 导入计算引擎和示例数据
     import {
       analyzeProducts, parseProductFromRow, validateProduct,
-      generateCSVTemplate, parseCSV, exportAnalysisToCSV
+      generateCSVTemplate, parseCSV, exportAnalysisToCSV,
+      getPlatformRate
     } from './engine.js';
     
     import {
@@ -1067,30 +1068,15 @@
       return row;
     }
 
-    // 渲染商品表格
-    function renderProductsTable() {
-      const tbody = $('productsTableBody');
-      tbody.innerHTML = '';
-      
-      // 检查表格中是否已有数据行
-      const existingRows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
-      
-      if (existingRows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
-        return;
-      }
-      
-      // 如果已有数据行，不需要重新渲染，因为数据是通过DOM操作直接添加的
-      console.log('表格中已有数据行，无需重新渲染');
-    }
+    // 表格渲染已统一到 updateTableStatus() + #no-data-row 机制
     
     // 更新表格状态，显示或隐藏"暂无商品数据"提示
     function updateTableStatus() {
       const tbody = $('productsTableBody');
       const existingRows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
       
-      // 更精确地查找提示行 - 使用更具体的选择器
-      const noDataRow = tbody.querySelector('tr td[colspan="16"][style*="text-align: center"]');
+      // 使用 #no-data-row 机制查找提示行
+      const noDataRow = tbody.querySelector('#no-data-row');
       
       console.log('=== updateTableStatus 函数执行 ===');
       console.log('现有数据行数量:', existingRows.length);
@@ -1100,7 +1086,7 @@
         // 没有数据行，显示提示
         if (!noDataRow) {
           console.log('显示"暂无商品数据"提示');
-          tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+          tbody.innerHTML = '<tr id="no-data-row"><td colspan="16" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         } else {
           console.log('提示行已存在，无需重复添加');
         }
@@ -1108,7 +1094,7 @@
         // 有数据行，隐藏提示
         if (noDataRow) {
           console.log('隐藏"暂无商品数据"提示');
-          noDataRow.parentElement.remove();
+          noDataRow.remove();
         } else {
           console.log('提示行不存在，无需移除');
         }
@@ -1180,7 +1166,7 @@
       const row = createProductRow();
 
       // 如果存在"暂无数据"占位行，先移除它
-      const noDataRow = tbody.querySelector('#no-data-row') || tbody.querySelector('tr td[colspan="16"]')?.parentElement;
+      const noDataRow = tbody.querySelector('#no-data-row');
       if (noDataRow) {
         noDataRow.remove();
       }
@@ -1217,34 +1203,7 @@
       }, 200);
     }
     
-    // 删除行
-    window.deleteRow = function(rowId) {
-      const row = document.getElementById(`row-${rowId}`);
-      if (row) {
-        row.remove();
-        showMessage('商品行已删除', 'info');
-        
-        // 更新表格状态，如果删除后没有数据行则显示提示
-        updateTableStatus();
-        
-        // 自动保存到localStorage，确保删除操作持久化
-        saveToLocalStorage();
-        
-        // 触发自动计算
-        autoCalculate();
-        
-        // 行删除完成后，重新应用当前的筛选条件
-        setTimeout(() => {
-          if (hasActiveFilters()) {
-            applyFilters();
-          }
-          if (hasActiveSort()) {
-            performSort();
-          }
-          updateFilterStatus();
-        }, 100);
-      }
-    };
+    // 删除行功能已统一到 window.removeRow 函数
     
     // 清空所有数据
     function clearAllData() {
@@ -1254,9 +1213,9 @@
         products = [];
         analysisResults = [];
         
-        // 直接清空表格并显示提示，不需要调用renderProductsTable
+        // 直接清空表格并显示提示，使用 #no-data-row 机制
         const tableBody = document.getElementById('productsTableBody');
-        tableBody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+        tableBody.innerHTML = '<tr id="no-data-row"><td colspan="16" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         
         showMessage('所有数据已清空', 'success');
         // 清空localStorage
@@ -1355,12 +1314,13 @@
       const container = button.parentElement.parentElement;
       button.parentElement.remove();
       
-      // 如果没有多档售价了，显示加号按钮并启用单一售价和单一进货价
+      // 如果没有多档售价了，显示加号按钮并启用单一售价
+      // 注意：单一进货价保持当前状态，支持"单一售价+多档进货价"模式
       const tierInputs = container.querySelectorAll('.tier-price-input');
       if (tierInputs.length === 0) {
         container.innerHTML = '<button class="add-tier-btn" onclick="window.addTierPrice(' + rowId + ')">+</button>';
         
-        // 启用单一售价输入框
+        // 启用单一售价输入框（支持"单一售价+多档进货价"模式）
         const singlePriceInput = document.querySelector(`[data-row-id="${rowId}"].single-price`);
         if (singlePriceInput) {
           singlePriceInput.disabled = false;
@@ -1423,19 +1383,8 @@
         }
       }
       
-      // 禁用单一售价输入框（多档进货价必须对应多档售价）
-      const singlePriceInput = document.querySelector(`[data-row-id="${rowId}"].single-price`);
-      if (singlePriceInput) {
-        singlePriceInput.disabled = true;
-        // 显示禁用提示信息
-        let disabledMsg = singlePriceInput.nextElementSibling;
-        if (!disabledMsg || !disabledMsg.textContent.includes('已启用多档进货价')) {
-          disabledMsg = document.createElement('div');
-          disabledMsg.style.cssText = 'font-size: 10px; color: var(--muted); margin-top: 2px;';
-          disabledMsg.textContent = '已启用多档进货价';
-          singlePriceInput.parentNode.insertBefore(disabledMsg, singlePriceInput.nextSibling);
-        }
-      }
+      // 注意：单一售价输入框保持启用状态，支持"单一售价+多档进货价"模式
+      // 只有多档售价输入框会被禁用，因为"多档售价必须对应多档进货价"
       
       // 添加新的加号按钮
       const newAddBtn = document.createElement('button');
@@ -1455,7 +1404,8 @@
       const container = button.parentElement.parentElement;
       button.parentElement.remove();
       
-      // 如果没有多档进货价了，显示加号按钮并启用单一进货价和单一售价
+      // 如果没有多档进货价了，显示加号按钮并启用单一进货价
+      // 注意：单一售价保持当前状态，支持"单一售价+多档进货价"模式
       const tierInputs = container.querySelectorAll('.tier-cost-input');
       if (tierInputs.length === 0) {
         container.innerHTML = '<button class="add-tier-btn" onclick="window.addTierCost(' + rowId + ')">+</button>';
@@ -1471,7 +1421,7 @@
           }
         }
         
-        // 启用单一售价输入框
+        // 启用单一售价输入框（支持"单一售价+多档进货价"模式）
         const singlePriceInput = document.querySelector(`[data-row-id="${rowId}"].single-price`);
         if (singlePriceInput) {
           singlePriceInput.disabled = false;
@@ -1490,6 +1440,7 @@
       autoCalculate();
     };
 
+    // 删除行（统一的行删除函数）
     window.removeRow = function(rowId) {
       const row = document.getElementById(`row-${rowId}`);
       if (row) {
@@ -1872,8 +1823,9 @@
     // - 主推款：是否为主推产品（是/否）
     // - 含税售价P：单一定价模式下的售价
     // - 含税售价（多档）：多档定价模式下的售价列表（用逗号分隔）
-    // - 退货率：退货百分比（如：2.5 表示2.5%）
+    // - 单一进货价：单一定价模式下的进货价
     // - 进货价（多档）：多档定价模式下的进货价列表（用逗号分隔）
+    // - 退货率：退货百分比（如：2.5 表示2.5%）
     // 
     // 🚫 非必需字段（导入后自动生成）：
     // - 保本广告费：根据成本和售价自动计算
@@ -1901,16 +1853,16 @@
     // 📊 导入模板示例：
     // 
     // 单一定价模式：
-    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 退货率 | 进货价（多档） |
-    // | iPhone 15 | IP15-128G | 淘宝 | 是 | 7999.00 | | 2.5 | |
+    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 单一进货价 | 进货价（多档） | 退货率 |
+    // | iPhone 15 | IP15-128G | 淘宝 | 是 | 7999.00 | | 6500.00 | | 2.5 |
     // 
     // 多档定价模式：
-    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 退货率 | 进货价（多档） |
-    // | iPhone 15 | IP15-128G | 淘宝 | 是 | | 7999,8999,9999 | 2.5 | 6500,7200,8000 |
+    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 单一进货价 | 进货价（多档） | 退货率 |
+    // | iPhone 15 | IP15-128G | 淘宝 | 是 | | 7999,8999,9999 | | 6500,7200,8000 | 2.5 |
     // 
     // 单一售价+多档进货价模式（新支持）：
-    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 退货率 | 进货价（多档） |
-    // | 德绒背心 | HYX2140 | 淘宝 | 是 | 79.00 | | 9.14% | 24.30,30.30,33.80 |
+    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 单一进货价 | 进货价（多档） | 退货率 |
+    // | 德绒背心 | HYX2140 | 淘宝 | 是 | 79.00 | | | 24.30,30.30,33.80 | 9.14% |
     // 
     // 🎯 多档价格格式说明：
     // - 支持多种分隔符：逗号(,)、分号(;)、冒号(:)、空格等
@@ -1932,8 +1884,8 @@
     // 📊 导入 vs 导出格式对比：
     // 
     // 🔽 导入格式（一行多档）：
-    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价（多档） | 进货价（多档） |
-    // | 摇粒绒马甲 | HYXB50001 | 淘宝 | 否 | 59.80,65.80,69.80 | 27.00,29.50,32.00 |
+    // | 商品名称 | 货号 | 平台 | 主推款 | 含税售价P | 含税售价（多档） | 单一进货价 | 进货价（多档） | 退货率 |
+    // | 摇粒绒马甲 | HYXB50001 | 淘宝 | 否 | | 59.80,65.80,69.80 | | 27.00,29.50,32.00 | 2.5 |
     // 
     // 🔼 导出格式（多行展示）：
     // | 商品名称 | 货号 | 平台 | 主推款 | 售价模式 | 售价 | 进货价 | 保本ROI |
@@ -1993,8 +1945,8 @@
           
           // 验证表头
           console.log('=== 开始验证表头 ===');
-          const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '退货率', '进货价（多档）'];
-          console.log('📋 必需的表头字段（仅此8个）:', requiredHeaders);
+          const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
+          console.log('📋 必需的表头字段（仅此9个）:', requiredHeaders);
           console.log('💡 注意：其他字段如保本ROI、广告占比等会在导入后自动计算，无需包含');
           
           const firstRow = parsedData[0];
@@ -2012,7 +1964,7 @@
             return;
           }
           
-          console.log('✅ 表头验证通过 - 包含所有8个必需字段');
+          console.log('✅ 表头验证通过 - 包含所有9个必需字段');
           
           // 检测重复数据
           console.log('=== 开始检测重复数据 ===');
@@ -2254,8 +2206,12 @@
       
       const hasTierPrices = tierPrices.length > 0;
       const hasTierCosts = tierCosts.length > 0;
+      const hasSinglePrice = !hasTierPrices; // 如果没有多档售价，则有单一售价
+      const hasSingleCost = !hasTierCosts; // 如果没有多档进货价，则有单一进货价
       console.log('是否有多档售价:', hasTierPrices);
       console.log('是否有多档进货价:', hasTierCosts);
+      console.log('是否有单一售价:', hasSinglePrice);
+      console.log('是否有单一进货价:', hasSingleCost);
       
       // 验证多档价格数据一致性
       if (hasTierPrices && hasTierCosts && tierPrices.length !== tierCosts.length) {
@@ -2331,7 +2287,7 @@
         </td>
         <td>
           <input type="number" class="table-input single-cost" placeholder="0.00" step="0.01" 
-                 value="${data['进货价（多档）'] || ''}" 
+                 value="${data['单一进货价'] || ''}" 
                  ${hasTierPrices || hasTierCosts ? 'disabled' : ''} data-row-id="${rowId}">
           ${hasTierPrices || hasTierCosts ? '<div style="font-size: 10px; color: var(--muted); margin-top: 2px;">已启用多档价格</div>' : ''}
         </td>
@@ -3431,7 +3387,6 @@
 
     // 初始化
     initSystemParams();
-    renderProductsTable();
     addInputListeners(); // 初始化时添加监听器
     loadFromLocalStorage(); // 加载保存的数据
 
@@ -3486,8 +3441,8 @@
           
           // 验证表头
           console.log('=== 开始验证表头 ===');
-          const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '退货率', '进货价（多档）'];
-          console.log('📋 必需的表头字段（仅此8个）:', requiredHeaders);
+          const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
+          console.log('📋 必需的表头字段（仅此9个）:', requiredHeaders);
           console.log('💡 注意：其他字段如保本ROI、广告占比等会在导入后自动计算，无需包含');
           
           console.log('Excel文件中的表头:', headers);
@@ -3503,7 +3458,7 @@
             return;
           }
           
-          console.log('✅ 表头验证通过 - 包含所有8个必需字段');
+          console.log('✅ 表头验证通过 - 包含所有9个必需字段');
           
           // 转换数据格式
           console.log('=== 开始转换数据格式 ===');
@@ -3603,68 +3558,7 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // 平台佣金率映射
-    console.log('=== 定义 getPlatformRate 函数 ===');
-    function getPlatformRate(platform) {
-      console.log(`=== getPlatformRate 函数调用 ===`);
-      console.log(`传入的平台参数: "${platform}"`);
-      console.log(`平台参数类型: ${typeof platform}`);
-      console.log(`平台参数长度: ${platform ? platform.length : 0}`);
-      
-      // 临时测试：直接返回硬编码值
-      if (platform === '淘宝') {
-        console.log('检测到淘宝平台，直接返回0');
-        return 0;
-      }
-      
-      const platformRates = {
-        '淘宝': 0,      // 淘宝佣金0%
-        '天猫': 0.055,  // 天猫佣金5.5%
-        '抖音': 0.05,   // 抖音佣金5%
-        '京东': 0.05,   // 京东佣金5%（默认）
-        '拼多多': 0.05, // 拼多多佣金5%（默认）
-        '小红书': 0.05  // 小红书佣金5%（默认）
-      };
-      
-      console.log(`平台佣金率映射表:`, platformRates);
-      console.log(`查询的平台是否存在: ${platform in platformRates}`);
-      console.log(`直接访问结果: platformRates['${platform}'] = ${platformRates[platform]}`);
-      
-      const rate = platformRates[platform] || 0.05; // 默认5%
-      console.log(`最终返回的佣金率: ${rate * 100}%`);
-      console.log(`=== getPlatformRate 函数结束 ===`);
-      return rate;
-    }
-    
-    // 获取商品的平台佣金率
-    function getProductPlatformRate(product) {
-      return getPlatformRate(product.platform);
-    }
-    
-
-
-
-    
-    // 测试平台佣金率设置
-    function testPlatformRates() {
-      console.log('=== 测试平台佣金率设置 ===');
-      const platforms = ['淘宝', '天猫', '京东', '拼多多', '抖音', '小红书'];
-      platforms.forEach(platform => {
-        const rate = getPlatformRate(platform);
-        console.log(`平台: ${platform}, 佣金率: ${rate * 100}%`);
-      });
-      console.log('=== 测试完成 ===');
-    }
-    
-    // 页面加载完成后执行测试
-    setTimeout(testPlatformRates, 1000);
-    
-    // 立即测试函数定义
-    console.log('=== 立即测试 getPlatformRate 函数 ===');
-    console.log('函数定义:', getPlatformRate.toString());
-    console.log('测试淘宝平台:', getPlatformRate('淘宝'));
-    console.log('测试天猫平台:', getPlatformRate('天猫'));
-    console.log('=== 立即测试完成 ===');
+    // 平台佣金率函数已从 engine.js 导入
 
     // 测试多档价格格式解析
     function testMultiTierFormat() {

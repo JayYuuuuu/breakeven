@@ -742,3 +742,21 @@ export function exportAnalysisToCSV(analysisResults) {
 
   return rows.map(row => row.join(',')).join('\n');
 }
+
+/**
+ * 获取平台佣金率
+ * @param {string} platform - 平台名称
+ * @returns {number} 佣金率（小数，如 0.055 表示 5.5%）
+ */
+export function getPlatformRate(platform) {
+  const platformRates = {
+    '淘宝': 0,      // 淘宝佣金0%
+    '天猫': 0.055,  // 天猫佣金5.5%
+    '抖音': 0.05,   // 抖音佣金5%
+    '京东': 0.05,   // 京东佣金5%（默认）
+    '拼多多': 0.05, // 拼多多佣金5%（默认）
+    '小红书': 0.05  // 小红书佣金5%（默认）
+  };
+  
+  return platformRates[platform] || 0.05; // 默认5%
+}
