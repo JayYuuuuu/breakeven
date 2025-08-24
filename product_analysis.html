@@ -420,25 +420,59 @@
       margin-bottom: 20px;
     }
     
-    .filter-controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    
-    .filter-group {
+    /* 一行筛选条 */
+    .filter-row {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
     }
     
-    .filter-group label {
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    
+    .filter-chip .muted {
       font-size: 12px;
       color: var(--muted);
-      display: block;
-      margin: 0 0 4px 2px;
+      white-space: nowrap;
     }
+    
+    .filter-chip .input {
+      height: 32px;
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+    
+    .filter-chip .btn.small {
+      height: 32px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    
+    .filter-chip .sep {
+      color: var(--muted);
+      margin: 0 4px;
+      font-size: 12px;
+    }
+    
+    /* 关键控件宽度控制 */
+    #searchInput { width: 180px; }
+    #platformFilter { width: 100px; }
+    #returnRateMin, #returnRateMax { width: 70px; }
+    #sortColumn { width: 120px; }
+    #valueFilterColumn { width: 120px; }
+    #valueFilterMin, #valueFilterMax { width: 70px; }
     
     .filter-actions {
       display: flex;
@@ -488,15 +522,17 @@
     
     /* 移动端适配 */
     @media (max-width: 768px) {
-      .filter-controls {
-        grid-template-columns: 1fr;
+      .filter-row {
+        flex-direction: column;
+        align-items: stretch;
         gap: 12px;
+        white-space: normal;
+        overflow-x: visible;
       }
       
-      .filter-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+      .filter-chip {
+        justify-content: space-between;
+        width: 100%;
       }
       
       .filter-actions {
@@ -506,7 +542,7 @@
       }
       
       .filter-status {
-        margin-left: 0;
+        margin-right: 0;
         text-align: center;
       }
       
@@ -531,13 +567,7 @@
         padding: 12px;
       }
       
-      .filter-group label {
-        min-width: auto;
-        font-size: 11px;
-      }
-      
-      .filter-group .input {
-        font-size: 12px;
+      .filter-chip .input {
         padding: 8px 10px;
       }
     }
@@ -642,17 +672,7 @@
           <label class="switch"><input type="radio" name="goodsMode" value="cannotReturn"> 进货不可退（分摊）</label>
         </div>
         
-        <div class="tooltray">
-          <span class="tag">数据管理</span>
-          <button class="btn secondary" id="addRow">添加商品行</button>
-          <button class="btn secondary" id="insertExamples">插入示例</button>
-          <button class="btn secondary" id="importFile">导入文件</button>
-        </div>
-        
-        <div class="tooltray" style="margin-top: 16px;">
-          <span class="tag">分析操作</span>
-          <button class="btn" id="analyze">开始分析</button>
-        </div>
+
       </div>
     </section>
 
@@ -669,19 +689,20 @@
         <div class="search-filter-container">
           <h3>搜索和筛选</h3>
           <div class="search-filter-content">
-            <!-- 搜索框 -->
-            <div class="search-box">
-              <input type="text" id="searchInput" class="input" placeholder="搜索商品名称或货号..." style="max-width: 300px;">
-              <button class="btn secondary small" id="clearSearch">清除搜索</button>
-            </div>
-            
-            <!-- 筛选条件 -->
-            <div class="filter-controls">
+            <!-- 一行筛选条 -->
+            <div class="filter-row">
+              <!-- 搜索框 -->
+              <div class="filter-chip">
+                <span class="muted">搜索</span>
+                <input type="text" id="searchInput" class="input" placeholder="商品名称或货号...">
+                <button class="btn secondary small" id="clearSearch">清除</button>
+              </div>
+              
               <!-- 平台筛选 -->
-              <div class="filter-group">
-                <label>平台筛选</label>
-                <select id="platformFilter" class="input" style="width: 120px;">
-                  <option value="">全部平台</option>
+              <div class="filter-chip">
+                <span class="muted">平台</span>
+                <select id="platformFilter" class="input">
+                  <option value="">全部</option>
                   <option value="淘宝">淘宝</option>
                   <option value="天猫">天猫</option>
                   <option value="京东">京东</option>
@@ -692,58 +713,51 @@
               </div>
               
               <!-- 退货率区间筛选 -->
-              <div class="filter-group">
-                <label>退货率区间</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <input type="number" id="returnRateMin" class="input" placeholder="最小值" step="0.01" style="width: 80px;">
-                  <span style="color: var(--muted);">-</span>
-                  <input type="number" id="returnRateMax" class="input" placeholder="最大值" step="0.01" style="width: 80px;">
-                  <span style="color: var(--muted);">%</span>
-                </div>
+              <div class="filter-chip">
+                <span class="muted">退货率%</span>
+                <input type="number" id="returnRateMin" class="input" placeholder="最小" step="0.01">
+                <span class="sep">-</span>
+                <input type="number" id="returnRateMax" class="input" placeholder="最大" step="0.01">
               </div>
               
               <!-- 主推款筛选 -->
-              <div class="filter-group">
-                <label>主推款</label>
-                <select id="mainProductFilter" class="input" style="width: 100px;">
+              <div class="filter-chip">
+                <span class="muted">主推款</span>
+                <select id="mainProductFilter" class="input">
                   <option value="">全部</option>
-                  <option value="true">主推款</option>
-                  <option value="false">非主推款</option>
+                  <option value="true">主推</option>
+                  <option value="false">非主推</option>
                 </select>
               </div>
               
               <!-- 排序功能 -->
-              <div class="filter-group">
-                <label>排序</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <select id="sortColumn" class="input" style="width: 140px;">
-                    <option value="">默认排序</option>
-                    <option value="adCostBreakEven">保本广告费</option>
-                    <option value="adRateBE_effective">保本广告占比(有效)</option>
-                    <option value="adRateBE_gmv">保本广告占比(GMV)</option>
-                    <option value="ROI_BE_effective">保本ROI(有效)</option>
-                    <option value="ROI_BE_gmv">保本ROI(GMV)</option>
-                  </select>
-                  <button id="sortDirection" class="btn secondary small" data-direction="asc">↑</button>
-                </div>
+              <div class="filter-chip">
+                <span class="muted">排序</span>
+                <select id="sortColumn" class="input">
+                  <option value="">默认</option>
+                  <option value="adCostBreakEven">保本广告费</option>
+                  <option value="adRateBE_effective">广告占比(有效)</option>
+                  <option value="adRateBE_gmv">广告占比(GMV)</option>
+                  <option value="ROI_BE_effective">ROI(有效)</option>
+                  <option value="ROI_BE_gmv">ROI(GMV)</option>
+                </select>
+                <button id="sortDirection" class="btn secondary small" data-direction="asc" title="切换升/降序">↑</button>
               </div>
               
               <!-- 数值区间筛选 -->
-              <div class="filter-group">
-                <label>数值区间筛选</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <select id="valueFilterColumn" class="input" style="width: 140px;">
-                    <option value="">选择列</option>
-                    <option value="adCostBreakEven">保本广告费</option>
-                    <option value="adRateBE_effective">保本广告占比(有效)</option>
-                    <option value="adRateBE_gmv">保本广告占比(GMV)</option>
-                    <option value="ROI_BE_effective">保本ROI(有效)</option>
-                    <option value="ROI_BE_gmv">保本ROI(GMV)</option>
-                  </select>
-                  <input type="number" id="valueFilterMin" class="input" placeholder="最小值" step="0.01" style="width: 80px;">
-                  <span style="color: var(--muted);">-</span>
-                  <input type="number" id="valueFilterMax" class="input" placeholder="最大值" step="0.01" style="width: 80px;">
-                </div>
+              <div class="filter-chip">
+                <span class="muted">区间</span>
+                <select id="valueFilterColumn" class="input">
+                  <option value="">选择列</option>
+                  <option value="adCostBreakEven">保本广告费</option>
+                  <option value="adRateBE_effective">广告占比(有效)</option>
+                  <option value="adRateBE_gmv">广告占比(GMV)</option>
+                  <option value="ROI_BE_effective">ROI(有效)</option>
+                  <option value="ROI_BE_gmv">ROI(GMV)</option>
+                </select>
+                <input type="number" id="valueFilterMin" class="input" placeholder="最小" step="0.01">
+                <span class="sep">-</span>
+                <input type="number" id="valueFilterMax" class="input" placeholder="最大" step="0.01">
               </div>
             </div>
             
@@ -764,8 +778,18 @@
               <button class="btn secondary small" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;5%)</button>
               <button class="btn secondary small" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;10%)</button>
               <button class="btn secondary small" onclick="quickFilter('roi', 'low')">低ROI(&lt;2.2)</button>
+              <button class="btn secondary small" onclick="quickFilter('roi', 'high')">高ROI(&gt;3.5)</button>
             </div>
           </div>
+        </div>
+        
+        <!-- 数据管理和分析操作按钮 -->
+        <div class="tooltray" style="margin-bottom: 16px;">
+          <span class="tag">数据管理</span>
+          <button class="btn secondary" id="addRow">添加商品行</button>
+          <button class="btn secondary" id="insertExamples">插入示例</button>
+          <button class="btn secondary" id="importFile">导入文件</button>
+          <button class="btn" id="analyze">开始分析</button>
         </div>
         
         <div class="products-table-container">
@@ -2597,6 +2621,11 @@
           rows.forEach(row => {
             let shouldShow = true;
             
+            // 获取行对应的分析结果
+            const rowId = row.id.replace('row-', '');
+            const resultIndex = calculationRowMap.indexOf(row.id);
+            const result = resultIndex !== -1 ? analysisResults[resultIndex] : null;
+            
             // 平台筛选
             if (platformFilter && row.querySelector('.platform-select').value !== platformFilter) {
               shouldShow = false;
@@ -2619,40 +2648,33 @@
             }
             
             // 数值区间筛选
-            if (valueFilterColumn && (isFinite(valueFilterMin) || isFinite(valueFilterMax))) {
-              const rowId = row.id.replace('row-', '');
-              const resultIndex = calculationRowMap.indexOf(row.id);
+            if (valueFilterColumn && (isFinite(valueFilterMin) || isFinite(valueFilterMax)) && result) {
+              let shouldShowThisRow = false;
               
-              if (resultIndex !== -1 && analysisResults[resultIndex]) {
-                const result = analysisResults[resultIndex];
-                let value = null;
-                
-                // 获取对应的数值
-                if (valueFilterColumn === 'adCostBreakEven') {
-                  value = result.singleAnalysis ? result.singleAnalysis.adCostBreakEven : 
-                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].adCostBreakEven : null);
-                } else if (valueFilterColumn === 'adRateBE_effective') {
-                  value = result.singleAnalysis ? result.singleAnalysis.adRateBE_effective * 100 : 
-                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].adRateBE_effective * 100 : null);
-                } else if (valueFilterColumn === 'adRateBE_gmv') {
-                  value = result.singleAnalysis ? result.singleAnalysis.adRateBE_gmv * 100 : 
-                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].adRateBE_gmv * 100 : null);
-                } else if (valueFilterColumn === 'ROI_BE_effective') {
-                  value = result.singleAnalysis ? result.singleAnalysis.ROI_BE_effective : 
-                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].ROI_BE_effective : null);
-                } else if (valueFilterColumn === 'ROI_BE_gmv') {
-                  value = result.singleAnalysis ? result.singleAnalysis.ROI_BE_gmv : 
-                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].ROI_BE_gmv : null);
-                }
-                
+              // 对于多档数据，检查任意一档是否满足条件
+              if (result.singleAnalysis) {
+                // 单一价格模式
+                const value = getValueFromResult(result, valueFilterColumn);
                 if (value !== null) {
-                  if (isFinite(valueFilterMin) && value < valueFilterMin) {
-                    shouldShow = false;
-                  }
-                  if (isFinite(valueFilterMax) && value > valueFilterMax) {
-                    shouldShow = false;
+                  shouldShowThisRow = checkValueInRange(value, valueFilterMin, valueFilterMax);
+                }
+              } else if (result.tierAnalysis.length > 0) {
+                // 多档价格模式 - 检查任意一档是否满足条件
+                for (let i = 0; i < result.tierAnalysis.length; i++) {
+                  const tierResult = {
+                    ...result,
+                    singleAnalysis: result.tierAnalysis[i]
+                  };
+                  const value = getValueFromResult(result, valueFilterColumn);
+                  if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
+                    shouldShowThisRow = true;
+                    break; // 只要有一档满足条件就可以
                   }
                 }
+              }
+              
+              if (!shouldShowThisRow) {
+                shouldShow = false;
               }
             }
             
@@ -3749,6 +3771,10 @@
             document.getElementById('valueFilterColumn').value = 'ROI_BE_effective';
             document.getElementById('valueFilterMin').value = '';
             document.getElementById('valueFilterMax').value = '2.2';
+          } else if (value === 'high') {
+            document.getElementById('valueFilterColumn').value = 'ROI_BE_effective';
+            document.getElementById('valueFilterMin').value = '3.5';
+            document.getElementById('valueFilterMax').value = '';
           }
           break;
       }
@@ -3769,7 +3795,11 @@
           filterName = value === 'low' ? '低退货率(<5%)' : '高退货率(>10%)';
           break;
         case 'roi':
-          filterName = '低ROI(<2.2)';
+          if (value === 'low') {
+            filterName = '低ROI(<2.2)';
+          } else if (value === 'high') {
+            filterName = '高ROI(>3.5)';
+          }
           break;
       }
       
@@ -3786,6 +3816,17 @@
         'ROI_BE_gmv': '保本ROI(GMV)'
       };
       return columnNames[column] || column;
+    }
+    
+    // 检查数值是否在指定范围内
+    function checkValueInRange(value, min, max) {
+      if (isFinite(min) && value < min) {
+        return false;
+      }
+      if (isFinite(max) && value > max) {
+        return false;
+      }
+      return true;
     }
 
 
