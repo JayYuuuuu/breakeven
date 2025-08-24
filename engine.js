@@ -571,8 +571,8 @@ export function parseProductFromRow(rowData) {
   }
 
   // 解析单一进货价
-  if (rowData['进货价（多档）'] && !isNaN(parseFloat(rowData['进货价（多档）']))) {
-    product.singleCost = parseFloat(rowData['进货价（多档）']);
+  if (rowData['单一进货价'] && !isNaN(parseFloat(rowData['单一进货价']))) {
+    product.singleCost = parseFloat(rowData['单一进货价']);
   }
 
   // 解析多档进货价
@@ -654,8 +654,8 @@ export function validateProduct(product) {
  * @returns {string} CSV模板内容
  */
 export function generateCSVTemplate() {
-  const headers = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '退货率', '进货价（多档）'];
-  const example = ['示例商品', 'SKU001', '淘宝', '是', '79.8', '25,26,27', '12', '38,39,40'];
+  const headers = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
+  const example = ['示例商品', 'SKU001', '淘宝', '是', '79.8', '', '38.5', '25,26,27', '12'];
   
   return [headers.join(','), example.join(',')].join('\n');
 }
