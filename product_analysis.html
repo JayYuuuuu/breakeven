@@ -390,6 +390,158 @@
       }
     }
     
+    /* 搜索和筛选功能样式 - 延用系统风格 */
+    .search-filter-container {
+      background: var(--card);
+      border: 1px solid #d2d2d7;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      margin-bottom: 24px;
+    }
+    
+    .search-filter-container h3 {
+      font-size: 16px;
+      margin: 0;
+      padding: 14px 16px;
+      border-bottom: 1px solid #e5e5ea;
+      background: linear-gradient(180deg, #fafafa, #ffffff);
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+    }
+    
+    .search-filter-content {
+      padding: 16px;
+    }
+    
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .filter-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .filter-group label {
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin: 0 0 4px 2px;
+    }
+    
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+    
+    .filter-status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-right: auto;
+      align-self: center;
+    }
+    
+    /* 筛选后的行样式 */
+    .products-table tr.filtered-out {
+      display: none;
+    }
+    
+    .products-table tr.highlight-match {
+      background-color: #fff3cd;
+    }
+    
+    /* 排序指示器样式 */
+    .sort-indicator {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 12px;
+      color: var(--accent);
+    }
+    
+    /* 筛选指示器样式 */
+    .filter-indicator {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 14px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+      .filter-controls {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      
+      .filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      
+      .filter-status {
+        margin-left: 0;
+        text-align: center;
+      }
+      
+      .search-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      
+      .quick-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      
+      .quick-filters .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .search-filter-container {
+        padding: 12px;
+      }
+      
+      .filter-group label {
+        min-width: auto;
+        font-size: 11px;
+      }
+      
+      .filter-group .input {
+        font-size: 12px;
+        padding: 8px 10px;
+      }
+    }
+    
     @media (max-width: 768px) {
       .params-grid {
         grid-template-columns: 1fr;
@@ -420,6 +572,24 @@
         font-size: 13px;
         padding: 10px 12px;
       }
+    }
+    
+    /* 快捷筛选按钮样式 - 延用系统风格 */
+    .quick-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      padding-top: 16px;
+      border-top: 1px solid #e5e5ea;
+      margin-top: 16px;
+    }
+    
+    .quick-filter-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-right: auto;
+      align-self: center;
     }
   </style>
 </head>
@@ -488,8 +658,116 @@
 
     <!-- 商品数据表格 -->
     <section class="card">
-      <h2>商品数据</h2>
+      <h2>
+        商品数据
+        <span id="filterIndicator" class="filter-indicator" style="display: none;" title="当前有活跃的筛选条件">
+          🔍
+        </span>
+      </h2>
       <div class="content">
+        <!-- 搜索和筛选功能区域 -->
+        <div class="search-filter-container">
+          <h3>搜索和筛选</h3>
+          <div class="search-filter-content">
+            <!-- 搜索框 -->
+            <div class="search-box">
+              <input type="text" id="searchInput" class="input" placeholder="搜索商品名称或货号..." style="max-width: 300px;">
+              <button class="btn secondary small" id="clearSearch">清除搜索</button>
+            </div>
+            
+            <!-- 筛选条件 -->
+            <div class="filter-controls">
+              <!-- 平台筛选 -->
+              <div class="filter-group">
+                <label>平台筛选</label>
+                <select id="platformFilter" class="input" style="width: 120px;">
+                  <option value="">全部平台</option>
+                  <option value="淘宝">淘宝</option>
+                  <option value="天猫">天猫</option>
+                  <option value="京东">京东</option>
+                  <option value="拼多多">拼多多</option>
+                  <option value="抖音">抖音</option>
+                  <option value="小红书">小红书</option>
+                </select>
+              </div>
+              
+              <!-- 退货率区间筛选 -->
+              <div class="filter-group">
+                <label>退货率区间</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="number" id="returnRateMin" class="input" placeholder="最小值" step="0.01" style="width: 80px;">
+                  <span style="color: var(--muted);">-</span>
+                  <input type="number" id="returnRateMax" class="input" placeholder="最大值" step="0.01" style="width: 80px;">
+                  <span style="color: var(--muted);">%</span>
+                </div>
+              </div>
+              
+              <!-- 主推款筛选 -->
+              <div class="filter-group">
+                <label>主推款</label>
+                <select id="mainProductFilter" class="input" style="width: 100px;">
+                  <option value="">全部</option>
+                  <option value="true">主推款</option>
+                  <option value="false">非主推款</option>
+                </select>
+              </div>
+              
+              <!-- 排序功能 -->
+              <div class="filter-group">
+                <label>排序</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <select id="sortColumn" class="input" style="width: 140px;">
+                    <option value="">默认排序</option>
+                    <option value="adCostBreakEven">保本广告费</option>
+                    <option value="adRateBE_effective">保本广告占比(有效)</option>
+                    <option value="adRateBE_gmv">保本广告占比(GMV)</option>
+                    <option value="ROI_BE_effective">保本ROI(有效)</option>
+                    <option value="ROI_BE_gmv">保本ROI(GMV)</option>
+                  </select>
+                  <button id="sortDirection" class="btn secondary small" data-direction="asc">↑</button>
+                </div>
+              </div>
+              
+              <!-- 数值区间筛选 -->
+              <div class="filter-group">
+                <label>数值区间筛选</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <select id="valueFilterColumn" class="input" style="width: 140px;">
+                    <option value="">选择列</option>
+                    <option value="adCostBreakEven">保本广告费</option>
+                    <option value="adRateBE_effective">保本广告占比(有效)</option>
+                    <option value="adRateBE_gmv">保本广告占比(GMV)</option>
+                    <option value="ROI_BE_effective">保本ROI(有效)</option>
+                    <option value="ROI_BE_gmv">保本ROI(GMV)</option>
+                  </select>
+                  <input type="number" id="valueFilterMin" class="input" placeholder="最小值" step="0.01" style="width: 80px;">
+                  <span style="color: var(--muted);">-</span>
+                  <input type="number" id="valueFilterMax" class="input" placeholder="最大值" step="0.01" style="width: 80px;">
+                </div>
+              </div>
+            </div>
+            
+            <!-- 筛选操作按钮 -->
+            <div class="filter-actions">
+              <span class="filter-status" id="filterStatus">显示全部数据</span>
+              <button class="btn secondary" id="applyFilters">应用筛选</button>
+              <button class="btn secondary" id="clearFilters">清除筛选</button>
+              <button class="btn secondary" id="resetSort">重置排序</button>
+              <button class="btn" id="exportFilteredResults" style="display: none;">导出筛选结果</button>
+            </div>
+            
+            <!-- 快捷筛选按钮 -->
+            <div class="quick-filters">
+              <span class="quick-filter-label">快捷筛选</span>
+              <button class="btn secondary small" onclick="quickFilter('main', 'true')">只看主推款</button>
+              <button class="btn secondary small" onclick="quickFilter('platform', '淘宝')">只看淘宝</button>
+              <button class="btn secondary small" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;5%)</button>
+              <button class="btn secondary small" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;10%)</button>
+              <button class="btn secondary small" onclick="quickFilter('roi', 'low')">低ROI(&lt;2.2)</button>
+            </div>
+          </div>
+        </div>
+        
         <div class="products-table-container">
           <table class="products-table" id="productsTable">
             <thead>
@@ -859,6 +1137,17 @@
       
       // 触发自动计算
       autoCalculate();
+      
+      // 示例数据添加完成后，重新应用当前的筛选条件
+      setTimeout(() => {
+        if (hasActiveFilters()) {
+          applyFilters();
+        }
+        if (hasActiveSort()) {
+          performSort();
+        }
+        updateFilterStatus();
+      }, 200);
     }
 
     // 添加空行（插入到表格顶部，处理"暂无数据"占位行）
@@ -866,7 +1155,7 @@
       const tbody = document.getElementById('productsTableBody');
       const row = createProductRow();
 
-      // 如果存在“暂无数据”占位行，先移除它
+      // 如果存在"暂无数据"占位行，先移除它
       const noDataRow = tbody.querySelector('#no-data-row') || tbody.querySelector('tr td[colspan="16"]')?.parentElement;
       if (noDataRow) {
         noDataRow.remove();
@@ -891,6 +1180,17 @@
       // 触发自动计算（即使是空行，也保证计算状态一致）
       clearTimeout(window.autoCalcTimer);
       window.autoCalcTimer = setTimeout(autoCalculate, 100);
+      
+      // 空行添加完成后，重新应用当前的筛选条件
+      setTimeout(() => {
+        if (hasActiveFilters()) {
+          applyFilters();
+        }
+        if (hasActiveSort()) {
+          performSort();
+        }
+        updateFilterStatus();
+      }, 200);
     }
     
     // 删除行
@@ -908,6 +1208,17 @@
         
         // 触发自动计算
         autoCalculate();
+        
+        // 行删除完成后，重新应用当前的筛选条件
+        setTimeout(() => {
+          if (hasActiveFilters()) {
+            applyFilters();
+          }
+          if (hasActiveSort()) {
+            performSort();
+          }
+          updateFilterStatus();
+        }, 100);
       }
     };
     
@@ -936,6 +1247,14 @@
         setTimeout(() => {
           autoCalculate();
         }, 100);
+        
+        // 清空数据后，重置筛选状态
+        setTimeout(() => {
+          clearFilters();
+          clearSearch();
+          resetSort();
+          updateFilterStatus();
+        }, 150);
       } else {
         console.log('用户取消了清空操作');
       }
@@ -1161,6 +1480,17 @@
         
         // 触发自动计算
         autoCalculate();
+        
+        // 行删除完成后，重新应用当前的筛选条件
+        setTimeout(() => {
+          if (hasActiveFilters()) {
+            applyFilters();
+          }
+          if (hasActiveSort()) {
+            performSort();
+          }
+          updateFilterStatus();
+        }, 100);
       }
     };
 
@@ -1464,6 +1794,37 @@
       });
 
       console.log('计算结果更新完成（基于行映射回填）');
+      
+      // 计算结果更新后，重新应用当前的筛选条件
+      setTimeout(() => {
+        if (hasActiveFilters()) {
+          applyFilters();
+        }
+        if (hasActiveSort()) {
+          performSort();
+        }
+        updateFilterStatus();
+      }, 100);
+    }
+    
+    // 检查是否有活跃的筛选条件
+    function hasActiveFilters() {
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      const platformFilter = document.getElementById('platformFilter').value;
+      const returnRateMin = document.getElementById('returnRateMin').value;
+      const returnRateMax = document.getElementById('returnRateMax').value;
+      const mainProductFilter = document.getElementById('mainProductFilter').value;
+      const valueFilterColumn = document.getElementById('valueFilterColumn').value;
+      const valueFilterMin = document.getElementById('valueFilterMin').value;
+      const valueFilterMax = document.getElementById('valueFilterMax').value;
+      
+      return searchTerm || platformFilter || returnRateMin || returnRateMax || 
+             mainProductFilter || (valueFilterColumn && (valueFilterMin || valueFilterMax));
+    }
+    
+    // 检查是否有活跃的排序
+    function hasActiveSort() {
+      return document.getElementById('sortColumn').value !== '';
     }
 
     // 下载CSV模板
@@ -1797,6 +2158,17 @@
       }
       
       console.log('✅ 数据导入到表格完成');
+      
+      // 数据导入完成后，重新应用当前的筛选条件
+      setTimeout(() => {
+        if (hasActiveFilters()) {
+          applyFilters();
+        }
+        if (hasActiveSort()) {
+          performSort();
+        }
+        updateFilterStatus();
+      }, 200);
     }
     
     // 导入结果总结
@@ -2144,6 +2516,558 @@
     document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
     document.getElementById('deleteSelected').addEventListener('click', deleteSelectedRows);
     
+    // 搜索和筛选功能的事件监听器
+    document.getElementById('searchInput').addEventListener('input', debounce(performSearch, 300));
+    document.getElementById('clearSearch').addEventListener('click', clearSearch);
+    document.getElementById('applyFilters').addEventListener('click', applyFilters);
+    document.getElementById('clearFilters').addEventListener('click', clearFilters);
+    document.getElementById('resetSort').addEventListener('click', resetSort);
+    document.getElementById('sortDirection').addEventListener('click', toggleSortDirection);
+    document.getElementById('exportFilteredResults').addEventListener('click', exportFilteredResults);
+    
+    // 防抖函数
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+    
+    // 搜索功能
+    function performSearch() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+      
+      rows.forEach(row => {
+        const name = row.querySelector('.product-name')?.value.toLowerCase() || '';
+        const sku = row.querySelector('.product-sku')?.value.toLowerCase() || '';
+        
+        if (searchTerm === '' || name.includes(searchTerm) || sku.includes(searchTerm)) {
+          row.classList.remove('filtered-out');
+          if (searchTerm !== '') {
+            row.classList.add('highlight-match');
+          } else {
+            row.classList.remove('highlight-match');
+          }
+        } else {
+          row.classList.add('filtered-out');
+          row.classList.remove('highlight-match');
+        }
+      });
+      
+      updateFilterStatus();
+    }
+    
+    // 清除搜索
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+      rows.forEach(row => {
+        row.classList.remove('filtered-out', 'highlight-match');
+      });
+      updateFilterStatus();
+    }
+    
+    // 应用筛选
+    function applyFilters() {
+      // 显示加载状态
+      const applyBtn = document.getElementById('applyFilters');
+      const originalText = applyBtn.textContent;
+      applyBtn.textContent = '筛选中...';
+      applyBtn.disabled = true;
+      
+      // 使用setTimeout让UI更新
+      setTimeout(() => {
+        try {
+          const platformFilter = document.getElementById('platformFilter').value;
+          const returnRateMin = parseFloat(document.getElementById('returnRateMin').value) || 0;
+          const returnRateMax = parseFloat(document.getElementById('returnRateMax').value) || 100;
+          const mainProductFilter = document.getElementById('mainProductFilter').value;
+          const valueFilterColumn = document.getElementById('valueFilterColumn').value;
+          const valueFilterMin = parseFloat(document.getElementById('valueFilterMin').value);
+          const valueFilterMax = parseFloat(document.getElementById('valueFilterMax').value);
+          
+          const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+          
+          rows.forEach(row => {
+            let shouldShow = true;
+            
+            // 平台筛选
+            if (platformFilter && row.querySelector('.platform-select').value !== platformFilter) {
+              shouldShow = false;
+            }
+            
+            // 退货率区间筛选
+            const returnRate = parseFloat(row.querySelector('.return-rate').value) || 0;
+            if (returnRate < returnRateMin || returnRate > returnRateMax) {
+              shouldShow = false;
+            }
+            
+            // 主推款筛选
+            if (mainProductFilter !== '') {
+              const isMain = row.querySelector('.main-toggle').classList.contains('active');
+              if (mainProductFilter === 'true' && !isMain) {
+                shouldShow = false;
+              } else if (mainProductFilter === 'false' && isMain) {
+                shouldShow = false;
+              }
+            }
+            
+            // 数值区间筛选
+            if (valueFilterColumn && (isFinite(valueFilterMin) || isFinite(valueFilterMax))) {
+              const rowId = row.id.replace('row-', '');
+              const resultIndex = calculationRowMap.indexOf(row.id);
+              
+              if (resultIndex !== -1 && analysisResults[resultIndex]) {
+                const result = analysisResults[resultIndex];
+                let value = null;
+                
+                // 获取对应的数值
+                if (valueFilterColumn === 'adCostBreakEven') {
+                  value = result.singleAnalysis ? result.singleAnalysis.adCostBreakEven : 
+                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].adCostBreakEven : null);
+                } else if (valueFilterColumn === 'adRateBE_effective') {
+                  value = result.singleAnalysis ? result.singleAnalysis.adRateBE_effective * 100 : 
+                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].adRateBE_effective * 100 : null);
+                } else if (valueFilterColumn === 'adRateBE_gmv') {
+                  value = result.singleAnalysis ? result.singleAnalysis.adRateBE_gmv * 100 : 
+                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].adRateBE_gmv * 100 : null);
+                } else if (valueFilterColumn === 'ROI_BE_effective') {
+                  value = result.singleAnalysis ? result.singleAnalysis.ROI_BE_effective : 
+                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].ROI_BE_effective : null);
+                } else if (valueFilterColumn === 'ROI_BE_gmv') {
+                  value = result.singleAnalysis ? result.singleAnalysis.ROI_BE_gmv : 
+                         (result.tierAnalysis.length > 0 ? result.tierAnalysis[0].ROI_BE_gmv : null);
+                }
+                
+                if (value !== null) {
+                  if (isFinite(valueFilterMin) && value < valueFilterMin) {
+                    shouldShow = false;
+                  }
+                  if (isFinite(valueFilterMax) && value > valueFilterMax) {
+                    shouldShow = false;
+                  }
+                }
+              }
+            }
+            
+            if (shouldShow) {
+              row.classList.remove('filtered-out');
+            } else {
+              row.classList.add('filtered-out');
+            }
+          });
+          
+          updateFilterStatus();
+          
+        } catch (error) {
+          console.error('筛选过程中出错:', error);
+          showMessage('筛选过程中出错: ' + error.message, 'error');
+        } finally {
+          // 恢复按钮状态
+          applyBtn.textContent = originalText;
+          applyBtn.disabled = false;
+        }
+      }, 10);
+    }
+    
+    // 清除筛选
+    function clearFilters() {
+      // 重置筛选控件
+      document.getElementById('platformFilter').value = '';
+      document.getElementById('returnRateMin').value = '';
+      document.getElementById('returnRateMax').value = '';
+      document.getElementById('mainProductFilter').value = '';
+      document.getElementById('valueFilterColumn').value = '';
+      document.getElementById('valueFilterMin').value = '';
+      document.getElementById('valueFilterMax').value = '';
+      
+      // 显示所有行
+      const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+      rows.forEach(row => {
+        row.classList.remove('filtered-out');
+      });
+      
+      updateFilterStatus();
+    }
+    
+    // 排序功能
+    function performSort() {
+      const sortColumn = document.getElementById('sortColumn').value;
+      const sortDirection = document.getElementById('sortDirection').getAttribute('data-direction');
+      
+      if (!sortColumn) {
+        resetSort();
+        return;
+      }
+      
+      // 显示加载状态
+      const sortBtn = document.getElementById('sortDirection');
+      const originalText = sortBtn.textContent;
+      sortBtn.textContent = sortDirection === 'asc' ? '排序中...' : '排序中...';
+      sortBtn.disabled = true;
+      
+      // 使用setTimeout让UI更新
+      setTimeout(() => {
+        try {
+          const tableBody = document.getElementById('productsTableBody');
+          const rows = Array.from(tableBody.querySelectorAll('tr[id^="row-"]'));
+          
+          // 过滤掉隐藏的行
+          const visibleRows = rows.filter(row => !row.classList.contains('filtered-out'));
+          
+          if (visibleRows.length === 0) {
+            sortBtn.textContent = originalText;
+            sortBtn.disabled = false;
+            return;
+          }
+          
+          // 排序行
+          visibleRows.sort((a, b) => {
+            const rowIdA = a.id.replace('row-', '');
+            const rowIdB = b.id.replace('row-', '');
+            const resultIndexA = calculationRowMap.indexOf(a.id);
+            const resultIndexB = calculationRowMap.indexOf(b.id);
+            
+            let valueA = null;
+            let valueB = null;
+            
+            // 获取对应的数值
+            if (resultIndexA !== -1 && analysisResults[resultIndexA]) {
+              const resultA = analysisResults[resultIndexA];
+              valueA = getValueFromResult(resultA, sortColumn);
+            }
+            
+            if (resultIndexB !== -1 && analysisResults[resultIndexB]) {
+              const resultB = analysisResults[resultIndexB];
+              valueB = getValueFromResult(resultB, sortColumn);
+            }
+            
+            // 处理无效值
+            if (valueA === null && valueB === null) return 0;
+            if (valueA === null) return 1;
+            if (valueB === null) return -1;
+            
+            // 排序
+            let comparison = 0;
+            if (valueA < valueB) comparison = -1;
+            else if (valueA > valueB) comparison = 1;
+            
+            return sortDirection === 'asc' ? comparison : -comparison;
+          });
+          
+          // 重新排列行
+          visibleRows.forEach(row => {
+            tableBody.appendChild(row);
+          });
+          
+          updateFilterStatus();
+          
+        } catch (error) {
+          console.error('排序过程中出错:', error);
+          showMessage('排序过程中出错: ' + error.message, 'error');
+        } finally {
+          // 恢复按钮状态
+          sortBtn.textContent = originalText;
+          sortBtn.disabled = false;
+        }
+      }, 10);
+    }
+    
+    // 从分析结果中获取指定列的值
+    function getValueFromResult(result, column) {
+      if (result.singleAnalysis) {
+        // 单一价格模式
+        switch (column) {
+          case 'adCostBreakEven':
+            return result.singleAnalysis.adCostBreakEven;
+          case 'adRateBE_effective':
+            return result.singleAnalysis.adRateBE_effective * 100;
+          case 'adRateBE_gmv':
+            return result.singleAnalysis.adRateBE_gmv * 100;
+          case 'ROI_BE_effective':
+            return result.singleAnalysis.ROI_BE_effective;
+          case 'ROI_BE_gmv':
+            return result.singleAnalysis.ROI_BE_gmv;
+          default:
+            return null;
+        }
+      } else if (result.tierAnalysis.length > 0) {
+        // 多档价格模式 - 使用第一档的值进行排序
+        const firstTier = result.tierAnalysis[0];
+        switch (column) {
+          case 'adCostBreakEven':
+            return firstTier.adCostBreakEven;
+          case 'adRateBE_effective':
+            return firstTier.adRateBE_effective * 100;
+          case 'adRateBE_gmv':
+            return firstTier.adRateBE_gmv * 100;
+          case 'ROI_BE_effective':
+            return firstTier.ROI_BE_effective;
+          case 'ROI_BE_gmv':
+            return firstTier.ROI_BE_gmv;
+          default:
+            return null;
+        }
+      }
+      return null;
+    }
+    
+    // 切换排序方向
+    function toggleSortDirection() {
+      const button = document.getElementById('sortDirection');
+      const currentDirection = button.getAttribute('data-direction');
+      const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+      
+      button.setAttribute('data-direction', newDirection);
+      button.textContent = newDirection === 'asc' ? '↑' : '↓';
+      
+      performSort();
+    }
+    
+    // 重置排序
+    function resetSort() {
+      document.getElementById('sortColumn').value = '';
+      document.getElementById('sortDirection').setAttribute('data-direction', 'asc');
+      document.getElementById('sortDirection').textContent = '↑';
+      
+      // 恢复原始顺序
+      const tableBody = document.getElementById('productsTableBody');
+      const rows = Array.from(tableBody.querySelectorAll('tr[id^="row-"]'));
+      
+      // 按行ID排序恢复原始顺序
+      rows.sort((a, b) => {
+        const rowIdA = parseInt(a.id.replace('row-', ''));
+        const rowIdB = parseInt(b.id.replace('row-', ''));
+        return rowIdA - rowIdB;
+      });
+      
+      // 重新排列行
+      rows.forEach(row => {
+        tableBody.appendChild(row);
+      });
+      
+      updateFilterStatus();
+    }
+    
+    // 更新筛选状态显示
+    function updateFilterStatus() {
+      const totalRows = document.querySelectorAll('#productsTableBody tr[id^="row-"]').length;
+      const visibleRows = document.querySelectorAll('#productsTableBody tr[id^="row-"]:not(.filtered-out)').length;
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      const platformFilter = document.getElementById('platformFilter').value;
+      const returnRateMin = document.getElementById('returnRateMin').value;
+      const returnRateMax = document.getElementById('returnRateMax').value;
+      const mainProductFilter = document.getElementById('mainProductFilter').value;
+      const valueFilterColumn = document.getElementById('valueFilterColumn').value;
+      const valueFilterMin = document.getElementById('valueFilterMin').value;
+      const valueFilterMax = document.getElementById('valueFilterMax').value;
+      
+      let statusText = `显示 ${visibleRows}/${totalRows} 行数据`;
+      let hasFilters = false;
+      let filterDetails = [];
+      
+      if (searchTerm) {
+        filterDetails.push(`搜索: "${searchTerm}"`);
+        hasFilters = true;
+      }
+      
+      if (platformFilter) {
+        filterDetails.push(`平台: ${platformFilter}`);
+        hasFilters = true;
+      }
+      
+      if (returnRateMin || returnRateMax) {
+        const minText = returnRateMin ? returnRateMin : '0';
+        const maxText = returnRateMax ? returnRateMax : '100';
+        filterDetails.push(`退货率: ${minText}%-${maxText}%`);
+        hasFilters = true;
+      }
+      
+      if (mainProductFilter) {
+        const mainText = mainProductFilter === 'true' ? '主推款' : '非主推款';
+        filterDetails.push(`${mainText}`);
+        hasFilters = true;
+      }
+      
+      if (valueFilterColumn && (valueFilterMin || valueFilterMax)) {
+        const minText = valueFilterMin ? valueFilterMin : '不限';
+        const maxText = valueFilterMax ? valueFilterMax : '不限';
+        const columnName = getColumnDisplayName(valueFilterColumn);
+        filterDetails.push(`${columnName}: ${minText}-${maxText}`);
+        hasFilters = true;
+      }
+      
+      if (hasFilters) {
+        statusText += ` | 筛选条件: ${filterDetails.join(', ')}`;
+        
+        // 添加筛选后的统计信息
+        if (visibleRows > 0) {
+          const stats = getFilteredStats();
+          if (stats.platforms.length > 0) {
+            statusText += ` | 平台分布: ${stats.platforms.join(', ')}`;
+          }
+          if (stats.mainProductCount > 0) {
+            statusText += ` | 主推款: ${stats.mainProductCount}个`;
+          }
+          if (stats.avgReturnRate !== null) {
+            statusText += ` | 平均退货率: ${stats.avgReturnRate.toFixed(2)}%`;
+          }
+        }
+      }
+      
+      document.getElementById('filterStatus').textContent = statusText;
+      
+      // 更新筛选指示器
+      const filterIndicator = document.getElementById('filterIndicator');
+      if (filterIndicator) {
+        if (hasFilters) {
+          filterIndicator.style.display = 'inline-block';
+        } else {
+          filterIndicator.style.display = 'none';
+        }
+      }
+      
+      // 控制导出筛选结果按钮的显示
+      const exportFilteredBtn = document.getElementById('exportFilteredResults');
+      if (exportFilteredBtn) {
+        if (hasFilters && visibleRows < totalRows) {
+          exportFilteredBtn.style.display = 'inline-block';
+        } else {
+          exportFilteredBtn.style.display = 'none';
+        }
+      }
+    }
+    
+    // 获取筛选后的统计信息
+    function getFilteredStats() {
+      const visibleRows = document.querySelectorAll('#productsTableBody tr[id^="row-"]:not(.filtered-out)');
+      const stats = {
+        platforms: [],
+        mainProductCount: 0,
+        avgReturnRate: null
+      };
+      
+      if (visibleRows.length === 0) return stats;
+      
+      const platformCounts = {};
+      const returnRates = [];
+      let mainProductCount = 0;
+      
+      visibleRows.forEach(row => {
+        // 统计平台
+        const platform = row.querySelector('.platform-select').value;
+        platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+        
+        // 统计主推款
+        if (row.querySelector('.main-toggle').classList.contains('active')) {
+          mainProductCount++;
+        }
+        
+        // 统计退货率
+        const returnRate = parseFloat(row.querySelector('.return-rate').value);
+        if (isFinite(returnRate)) {
+          returnRates.push(returnRate);
+        }
+      });
+      
+      // 生成平台分布信息
+      stats.platforms = Object.entries(platformCounts)
+        .map(([platform, count]) => `${platform}(${count})`)
+        .sort();
+      
+      // 统计主推款数量
+      stats.mainProductCount = mainProductCount;
+      
+      // 计算平均退货率
+      if (returnRates.length > 0) {
+        const sum = returnRates.reduce((acc, rate) => acc + rate, 0);
+        stats.avgReturnRate = sum / returnRates.length;
+      }
+      
+      return stats;
+    }
+    
+    // 导出筛选结果
+    function exportFilteredResults() {
+      const visibleRows = document.querySelectorAll('#productsTableBody tr[id^="row-"]:not(.filtered-out)');
+      
+      if (visibleRows.length === 0) {
+        showMessage('没有可导出的筛选结果', 'error');
+        return;
+      }
+      
+      // 收集筛选后的数据
+      const filteredData = [];
+      visibleRows.forEach(row => {
+        const rowId = row.id.replace('row-', '');
+        const resultIndex = calculationRowMap.indexOf(row.id);
+        
+        if (resultIndex !== -1 && analysisResults[resultIndex]) {
+          const result = analysisResults[resultIndex];
+          const rowData = {
+            '商品名称': result.name,
+            '货号': result.sku,
+            '平台': result.platform,
+            '主推款': result.isMain ? '是' : '否',
+            '退货率(%)': (result.returnRate * 100).toFixed(2)
+          };
+          
+          // 添加计算结果
+          if (result.singleAnalysis) {
+            rowData['保本广告费'] = result.singleAnalysis.adCostBreakEven.toFixed(2);
+            rowData['保本广告占比(有效)(%)'] = (result.singleAnalysis.adRateBE_effective * 100).toFixed(2);
+            rowData['保本广告占比(GMV)(%)'] = (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2);
+            rowData['保本ROI(有效)'] = result.singleAnalysis.ROI_BE_effective.toFixed(2);
+            rowData['保本ROI(GMV)'] = result.singleAnalysis.ROI_BE_gmv.toFixed(2);
+          } else if (result.tierAnalysis.length > 0) {
+            // 多档价格模式，导出第一档的结果
+            const firstTier = result.tierAnalysis[0];
+            rowData['保本广告费'] = firstTier.adCostBreakEven.toFixed(2);
+            rowData['保本广告占比(有效)(%)'] = (firstTier.adRateBE_effective * 100).toFixed(2);
+            rowData['保本广告占比(GMV)(%)'] = (firstTier.adRateBE_gmv * 100).toFixed(2);
+            rowData['保本ROI(有效)'] = firstTier.ROI_BE_effective.toFixed(2);
+            rowData['保本ROI(GMV)'] = firstTier.ROI_BE_gmv.toFixed(2);
+          }
+          
+          filteredData.push(rowData);
+        }
+      });
+      
+      // 生成CSV内容
+      if (filteredData.length > 0) {
+        const headers = Object.keys(filteredData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...filteredData.map(row => headers.map(header => `"${row[header]}"`).join(','))
+        ].join('\n');
+        
+        // 下载文件
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `筛选结果_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        
+        showMessage(`已导出 ${filteredData.length} 行筛选结果`, 'success');
+      }
+    }
+
+    // 监听筛选控件变化，自动应用筛选
+    document.getElementById('platformFilter').addEventListener('change', applyFilters);
+    document.getElementById('returnRateMin').addEventListener('input', debounce(applyFilters, 300));
+    document.getElementById('returnRateMax').addEventListener('input', debounce(applyFilters, 300));
+    document.getElementById('mainProductFilter').addEventListener('change', applyFilters);
+    document.getElementById('valueFilterColumn').addEventListener('change', applyFilters);
+    document.getElementById('valueFilterMin').addEventListener('input', debounce(applyFilters, 300));
+    document.getElementById('valueFilterMax').addEventListener('input', debounce(applyFilters, 300));
+    document.getElementById('sortColumn').addEventListener('change', performSort);
+    
     // 调试：确认事件监听器绑定
     console.log('=== 事件监听器绑定状态 ===');
     console.log('exportResults 按钮:', document.getElementById('exportResults'));
@@ -2298,6 +3222,17 @@
           setTimeout(() => {
             autoCalculate();
           }, 100); // 延迟100ms确保DOM完全渲染
+          
+          // 数据加载完成后，重新应用当前的筛选条件
+          setTimeout(() => {
+            if (hasActiveFilters()) {
+              applyFilters();
+            }
+            if (hasActiveSort()) {
+              performSort();
+            }
+            updateFilterStatus();
+          }, 200);
           
           return true;
         }
@@ -2785,6 +3720,75 @@
       console.log('\n✅ 单一售价+多档进货价模式测试完成');
       console.log('💡 每档都会使用相同的售价，但不同的进货价进行计算');
     }
+
+    // 快捷筛选功能
+    window.quickFilter = function(type, value) {
+      console.log(`快捷筛选: ${type} = ${value}`);
+      
+      // 清除之前的筛选
+      clearFilters();
+      
+      switch (type) {
+        case 'main':
+          document.getElementById('mainProductFilter').value = value;
+          break;
+        case 'platform':
+          document.getElementById('platformFilter').value = value;
+          break;
+        case 'returnRate':
+          if (value === 'low') {
+            document.getElementById('returnRateMin').value = '0';
+            document.getElementById('returnRateMax').value = '5';
+          } else if (value === 'high') {
+            document.getElementById('returnRateMin').value = '10';
+            document.getElementById('returnRateMax').value = '100';
+          }
+          break;
+        case 'roi':
+          if (value === 'low') {
+            document.getElementById('valueFilterColumn').value = 'ROI_BE_effective';
+            document.getElementById('valueFilterMin').value = '';
+            document.getElementById('valueFilterMax').value = '2.2';
+          }
+          break;
+      }
+      
+      // 应用筛选
+      applyFilters();
+      
+      // 显示快捷筛选提示
+      let filterName = '';
+      switch (type) {
+        case 'main':
+          filterName = '主推款';
+          break;
+        case 'platform':
+          filterName = value;
+          break;
+        case 'returnRate':
+          filterName = value === 'low' ? '低退货率(<5%)' : '高退货率(>10%)';
+          break;
+        case 'roi':
+          filterName = '低ROI(<2.2)';
+          break;
+      }
+      
+      showMessage(`已应用快捷筛选: ${filterName}`, 'info');
+    };
+
+    // 获取列的显示名称
+    function getColumnDisplayName(column) {
+      const columnNames = {
+        'adCostBreakEven': '保本广告费',
+        'adRateBE_effective': '保本广告占比(有效)',
+        'adRateBE_gmv': '保本广告占比(GMV)',
+        'ROI_BE_effective': '保本ROI(有效)',
+        'ROI_BE_gmv': '保本ROI(GMV)'
+      };
+      return columnNames[column] || column;
+    }
+
+
   </script>
 </body>
 </html>
