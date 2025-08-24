@@ -222,6 +222,7 @@
             <button class="btn" id="openCostSim">成本价推演</button>
             <button class="btn" id="openValueSim">数值分析</button>
             <button class="icon-btn" id="resetDefaults">恢复默认值</button>
+            <button class="btn" id="openProductAnalysis">商品分析</button>
             <!-- 未来功能按钮占位：
             <button class="icon-btn" disabled>毛利敏感度</button>
             <button class="icon-btn" disabled>多SKU对比</button>
@@ -661,17 +662,25 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     © 2025 Breakeven Calculator · 使用仅作测算参考，实际以贵司财务/税务规则为准。
   </footer>
 
-  <script>
-    const $ = (id)=>document.getElementById(id);
-    const fmt = (n, p=2)=> isFinite(n) ? n.toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
-    const pct = (n, p=2)=> isFinite(n) ? (n*100).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) + '%' : '—';
+  <script type="module">
+    // 导入纯函数计算引擎
+    import {
+      computeBase, profitGivenAd, adRateToAmount, adAmountToRates,
+      solveSellingPrice, solveCostPrice, taxBurdenGiven, valueAnalysis,
+      profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent
+    } from './engine.js';
 
-    function valNum(id){
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n, p = 2) => formatNumber(n, p);
+    const pct = (n, p = 2) => formatPercent(n, p);
+
+    function valNum(id) {
       const el = $(id);
       const v = parseFloat(el.value);
       return isFinite(v) ? v : 0;
     }
-    function valRate(id){ // percent to decimal
+    
+    function valRate(id) { // percent to decimal
       return valNum(id) / 100;
     }
 
@@ -879,35 +888,30 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     document.querySelectorAll('input[name="adMode"]').forEach(el=>el.addEventListener('change', updateAdMode));
 
     function compute(){
-      // Inputs
-      const sellingPrice = valNum('sellingPrice');
-      const returnRate = valRate('returnRate');
-      const costPrice = valNum('costPrice');
-      const inputTaxRate = valRate('inputTaxRate');
-      const outputTaxRate = valRate('outputTaxRate');
-      const platformRate = valRate('platformRate');
-      const shippingCost = valNum('shippingCost');
-      const shippingInsurance = valNum('shippingInsurance');
-      const otherCost = valNum('otherCost');
-      const salesTaxRate = valRate('salesTaxRate');
-      const serviceVATRate = valRate('serviceVATRate');
-      const goodsMode = document.querySelector('input[name="goodsMode"]:checked').value;
+      // 读取输入参数
+      const params = {
+        sellingPrice: valNum('sellingPrice'),
+        returnRate: valRate('returnRate'),
+        costPrice: valNum('costPrice'),
+        inputTaxRate: valRate('inputTaxRate'),
+        outputTaxRate: valRate('outputTaxRate'),
+        platformRate: valRate('platformRate'),
+        shippingCost: valNum('shippingCost'),
+        shippingInsurance: valNum('shippingInsurance'),
+        otherCost: valNum('otherCost'),
+        salesTaxRate: valRate('salesTaxRate'),
+        serviceVATRate: valRate('serviceVATRate'),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+      };
 
-      const r = Math.max(0, 1 - returnRate); // 有效比例
-      const Rev = sellingPrice * r;           // 有效含税营收
+      // 调用纯函数计算基础结果
+      const base = computeBase(params);
+      const r = base.r;
+      const Rev = base.Rev;
 
       // 成本（采用“出货基准单”口径）：
       // 进货可退 → 仅在成交时耗用（× r）；不可退 → 出货即耗用（× 1）
-      const goodsCost = costPrice * (1 + inputTaxRate) * (goodsMode==='canReturn' ? r : 1);
-      // 发货即发生的固定成本：不随 r 放大/缩小（因为以出货为基准件）
-      const othersCost = (shippingCost + shippingInsurance + otherCost);
-      // 佣金：只在成交时发生（× r）
-      const commission = sellingPrice * platformRate * r;
 
-      // 税额（以出货基准单计）：
-      const VAT_out = Rev / (1 + salesTaxRate) * salesTaxRate;
-      const VAT_in_goods = costPrice * outputTaxRate * (goodsMode==='canReturn' ? r : 1); // 进货抵扣：可退×r，不可退×1
-      const VAT_in_comm  = commission / (1 + serviceVATRate) * serviceVATRate;             // 佣金抵扣（佣金已含 r）
 
       // 给定广告（可选；按出货基准单计）
       const adMode = document.querySelector('input[name="adMode"]:checked').value;
@@ -922,15 +926,15 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       let adRateBaseValue = Rev; // 默认：有效营收（售价 × r）
       let adRateBaseLabel = '有效营收（售价 × r）';
       if (adRateBasis === 'gmv') {
-        adRateBaseValue = sellingPrice;         // GMV：含税售价
+        adRateBaseValue = params.sellingPrice;  // GMV：含税售价
         adRateBaseLabel = 'GMV（含税售价）';
       }
 
-      if(adMode === 'rate'){
+      if (adMode === 'rate') {
         const adRate = valRate('adRate');
-        adCostGiven = adRateBaseValue * adRate; // 按所选口径换算
-      }else{
-        adCostGiven = valNum('adCost');         // 金额直填
+        adCostGiven = adRateToAmount(params, adRate, adRateBasis);
+      } else {
+        adCostGiven = valNum('adCost');
       }
 
       // === 等价占比（另一口径）的实时显示 ===
@@ -954,61 +958,60 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         $('adRateEquivTarget').textContent = targetLabel;
         $('adRateEquiv').textContent = isFinite(eqRate) ? pct(eqRate, 2) : '—';
       })();
-      const VAT_in_ad_given = (adCostGiven) / (1 + serviceVATRate) * serviceVATRate; // 广告抵扣（价内还原）
 
+      // 计算给定广告费下的利润
       let Profit = NaN;
-      if(adCostGiven > 0){
-        Profit = Rev
-          - (goodsCost + othersCost + commission + adCostGiven)
-          - (VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad_given);
+      let VAT_in_ad_given = 0;
+      if (adCostGiven > 0) {
+        const profitResult = profitGivenAd(params, { adCost: adCostGiven });
+        Profit = profitResult.profit;
+        VAT_in_ad_given = profitResult.VAT_in_ad;
       }
 
+      // 保本广告费计算已通过 computeBase() 完成
       // 保本广告费（解 Profit=0；出货基准单口径）
-      const A = Rev
-        - (goodsCost + othersCost + commission)
-        - VAT_out
-        + VAT_in_goods + VAT_in_comm;
-      const adCostBreakEven = (1 + serviceVATRate) * A;
-      const adRateBreakEven = adCostBreakEven / Rev; // 有效营收口径
-      const ROIBreakEven = adRateBreakEven>0 ? 1 / adRateBreakEven : NaN;
+      const A = base.A;
+      const adCostBreakEven = base.adCostBreakEven;
+      const adRateBreakEven = base.adRateBE_effective; // 有效营收口径
+      const ROIBreakEven = base.ROI_BE_effective;
 
       // GMV-based metrics (platform ROI denominator = 售价)
-      const adRateBreakEvenGMV = sellingPrice > 0 ? adCostBreakEven / sellingPrice : NaN;
-      const ROIBreakEvenGMV = adRateBreakEvenGMV > 0 ? 1 / adRateBreakEvenGMV : NaN;
+      const adRateBreakEvenGMV = base.adRateBE_gmv;
+      const ROIBreakEvenGMV = base.ROI_BE_gmv;
 
       // Render KPI
-      $('kpiAdRate').textContent = pct(adRateBreakEven, 2);
-      $('kpiROI').textContent = isFinite(ROIBreakEven) ? fmt(ROIBreakEven, 2) : '—';
-      $('kpiProfit').textContent = isFinite(Profit) ? (Profit>=0?'+':'') + fmt(Profit, 2) + ' 元' : '—';
-      $('kpiProfit').className = 'value ' + (isFinite(Profit) ? (Profit>0?'good':(Profit<0?'bad':'')) : '');
-      const profitMargin = isFinite(Profit) && Rev>0 ? Profit/Rev : NaN;
-      $('kpiProfitMargin').textContent = isFinite(profitMargin) ? pct(profitMargin,2) : '—';
+      $('kpiAdRate').textContent = pct(base.adRateBE_effective, 2);
+      $('kpiROI').textContent = isFinite(base.ROI_BE_effective) ? fmt(base.ROI_BE_effective, 2) : '—';
+      $('kpiProfit').textContent = isFinite(Profit) ? (Profit >= 0 ? '+' : '') + fmt(Profit, 2) + ' 元' : '—';
+      $('kpiProfit').className = 'value ' + (isFinite(Profit) ? (Profit > 0 ? 'good' : (Profit < 0 ? 'bad' : '')) : '');
+      const profitMargin = isFinite(Profit) && Rev > 0 ? Profit / Rev : NaN;
+      $('kpiProfitMargin').textContent = isFinite(profitMargin) ? pct(profitMargin, 2) : '—';
 
-      $('kpiAdRateGMV').textContent = pct(adRateBreakEvenGMV, 2);
-      $('kpiROIGMV').textContent = isFinite(ROIBreakEvenGMV) ? fmt(ROIBreakEvenGMV, 2) : '—';
-      $('kpiAdCost').textContent = isFinite(adCostBreakEven) ? fmt(adCostBreakEven, 2) + ' 元' : '—';
+      $('kpiAdRateGMV').textContent = pct(base.adRateBE_gmv, 2);
+      $('kpiROIGMV').textContent = isFinite(base.ROI_BE_gmv) ? fmt(base.ROI_BE_gmv, 2) : '—';
+      $('kpiAdCost').textContent = isFinite(base.adCostBreakEven) ? fmt(base.adCostBreakEven, 2) + ' 元' : '—';
 
       // Details table
       const rows = [
         ['有效比例 r', pct(r,2), ''],
         ['有效含税营收（售价 × r）', fmt(Rev), '元'],
-        ['GMV（含税售价）', fmt(sellingPrice), '元/单'],
+        ['GMV（含税售价）', fmt(params.sellingPrice), '元/单'],
         ['— 口径提示：GMV 用于平台ROI分母', '', ''],
-        ['进货成本（可退×r，不可退×1）', fmt(goodsCost), '元'],
-        ['其它固定成本（发货即发生）', fmt(othersCost), '元'],
-        ['平台佣金（× r）', fmt(commission), '元'],
-        ['广告费（给定）', isFinite(adCostGiven)?fmt(adCostGiven):'—', '元'],
-        ['— 占比口径基数', adMode==='rate' ? `${adRateBaseLabel} = ${fmt(adRateBaseValue)}` : '—', ''],
-        ['销项税（价内）', fmt(VAT_out), '元'],
-        ['进货抵扣（VAT_in_goods）', fmt(VAT_in_goods), '元'],
-        ['佣金抵扣（VAT_in_comm）', fmt(VAT_in_comm), '元'],
-        ['广告抵扣（给定）', isFinite(Profit)?fmt(VAT_in_ad_given):'—', '元'],
-        ['A（用于解保本广告）', fmt(A), '元'],
-        ['保本广告费', fmt(adCostBreakEven), '元'],
-        ['保本广告占比（有效营收口径）', pct(adRateBreakEven,2), ''],
-        ['保本 ROI（有效营收口径）', isFinite(ROIBreakEven)?fmt(ROIBreakEven,2):'—', ''],
-        ['保本广告占比（GMV 口径）', pct(adRateBreakEvenGMV,2), ''],
-        ['保本 ROI（GMV 口径）', isFinite(ROIBreakEvenGMV)?fmt(ROIBreakEvenGMV,2):'—', '']
+        ['进货成本（可退×r，不可退×1）', fmt(base.goodsCost), '元'],
+        ['其它固定成本（发货即发生）', fmt(base.othersCost), '元'],
+        ['平台佣金（× r）', fmt(base.commission), '元'],
+        ['广告费（给定）', isFinite(adCostGiven) ? fmt(adCostGiven) : '—', '元'],
+        ['— 占比口径基数', adMode === 'rate' ? `${adRateBaseLabel} = ${fmt(adRateBaseValue)}` : '—', ''],
+        ['销项税（价内）', fmt(base.VAT_out), '元'],
+        ['进货抵扣（VAT_in_goods）', fmt(base.VAT_in_goods), '元'],
+        ['佣金抵扣（VAT_in_comm）', fmt(base.VAT_in_comm), '元'],
+        ['广告抵扣（给定）', isFinite(Profit) ? fmt(VAT_in_ad_given) : '—', '元'],
+        ['A（用于解保本广告）', fmt(base.A), '元'],
+        ['保本广告费', fmt(base.adCostBreakEven), '元'],
+        ['保本广告占比（有效营收口径）', pct(base.adRateBE_effective, 2), ''],
+        ['保本 ROI（有效营收口径）', isFinite(base.ROI_BE_effective) ? fmt(base.ROI_BE_effective, 2) : '—', ''],
+        ['保本广告占比（GMV 口径）', pct(base.adRateBE_gmv, 2), ''],
+        ['保本 ROI（GMV 口径）', isFinite(base.ROI_BE_gmv) ? fmt(base.ROI_BE_gmv, 2) : '—', '']
       ];
       const tbody = $('detailRows');
       tbody.innerHTML = rows.map(([k,v,u])=>`<tr><td>${k}</td><td>${v}</td><td>${u}</td></tr>`).join('');
@@ -1017,35 +1020,9 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     let SIM_MARK_BREAK_EVEN = false;
     // -------- 利润率推演 --------
     // ===== 到手价推演（反推售价） =====
-    function parseListPercents(text){
-      return String(text).split(/[,，\s]+/).map(s=>parseFloat(s)).filter(v=>isFinite(v)).map(v=>Math.max(-999, Math.min(999, v)));
-    }
+    // parseListPercents 函数已移至 engine.js
 
-    function solveSellingPrice(params, r, a, basis, m){
-      // params fields same as main compute
-      const { costPrice, inputTaxRate, outputTaxRate, platformRate, shippingCost, shippingInsurance, otherCost, salesTaxRate, serviceVATRate, goodsMode } = params;
-      // Precompute constants under given r
-      const G = costPrice * (1 + inputTaxRate) * (goodsMode==='canReturn' ? r : 1); // goodsCost 常量部分
-      const O = (shippingCost + shippingInsurance + otherCost);
-      const Vg = costPrice * outputTaxRate * (goodsMode==='canReturn' ? r : 1);
-      const t = salesTaxRate;   // 销项税率
-      const s = serviceVATRate; // 服务费税率（佣金/广告）
-      const p = platformRate;   // 平台佣金率
-
-      // 公式推导：
-      // 有效口径： S = (Vg - G - O) / [ r * ( m - 1 + t/(1+t) + (a+p)/(1+s) ) ]
-      // GMV 口径： S = (Vg - G - O) / [ r * ( m - 1 + t/(1+t) + p/(1+s) ) + a/(1+s) ]
-      const numerator = (Vg - G - O);
-      let denom;
-      if(basis==='effective'){
-        denom = r * ( m - 1 + (t/(1+t)) + ( (a + p) / (1 + s) ) );
-      }else{ // gmv
-        denom = r * ( m - 1 + (t/(1+t)) + ( p / (1 + s) ) ) + ( a / (1 + s) );
-      }
-      if(!isFinite(numerator) || !isFinite(denom) || Math.abs(denom) < 1e-9){ return NaN; }
-      const S = numerator / denom; // 售价（含税）
-      return S>0 && isFinite(S) ? S : NaN;
-    }
+    // solveSellingPrice 函数已移至 engine.js
 
     function renderPriceSim(){
       const params = {
@@ -1078,9 +1055,9 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const head = `<tr><th>广告占比%</th>${margins.map(()=>'<th>所需售价</th>').join('')}</tr>`;
         const rows = rates.map(pct=>{
           const a = pct/100; // 占比小数
-          const cols = margins.map(m=>{
+          const cols = margins.map(m => {
             const S = solveSellingPrice(params, r, a, basis, m);
-            return isFinite(S) ? fmt(S,2) : '—';
+            return isFinite(S) ? fmt(S, 2) : '—';
           });
           return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
         }).join('');
@@ -1097,20 +1074,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       $('priceSimWrap').innerHTML = html || '<div class="muted">请先设置参数后推演。</div>';
     }
     // ===== 税费推演：在不同广告占比 & 退货率下，实际税负占比（净税/售价） =====
-    function taxBurdenGiven(params, a, r, basis){
-      const { sellingPrice, costPrice, inputTaxRate, outputTaxRate, platformRate, shippingCost, shippingInsurance, otherCost, salesTaxRate, serviceVATRate, goodsMode } = params;
-      const Rev = sellingPrice * r;
-      const commission = sellingPrice * platformRate * r;
-      const VAT_out = Rev / (1 + salesTaxRate) * salesTaxRate;
-      const VAT_in_goods = costPrice * outputTaxRate * (goodsMode==='canReturn' ? r : 1);
-      const VAT_in_comm  = commission / (1 + serviceVATRate) * serviceVATRate;
-      const base = (basis==='gmv') ? sellingPrice : Rev;        // 用于把占比换成金额
-      const adCost = base * a;
-      const VAT_in_ad  = adCost / (1 + serviceVATRate) * serviceVATRate;
-      const netTax = VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad; // 净应纳税额
-      const shareGMV = sellingPrice>0 ? (netTax / sellingPrice) : NaN;  // 对售价（GMV）的占比
-      return { netTax, shareGMV };
-    }
+    // taxBurdenGiven 函数已移至 engine.js
 
     function renderTaxSim(){
       const params = {
@@ -1158,38 +1122,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     }
 
     // ===== 成本价推演：在不同广告占比 & 利润率 & 退货率下，反推进货价 =====
-    function solveCostPrice(params, r, a, basis, m){
-      const { sellingPrice, inputTaxRate, outputTaxRate, platformRate, shippingCost, shippingInsurance, otherCost, salesTaxRate, serviceVATRate, goodsMode } = params;
-      const S = sellingPrice;
-      const t = salesTaxRate;   // 销项税率
-      const s = serviceVATRate; // 服务费税率
-      const p = platformRate;   // 佣金率
-
-      const Rev = S * r;                                    // 有效含税营收
-      const commission = S * p * r;                         // 佣金金额
-      const VAT_out = Rev / (1 + t) * t;                    // 销项税
-      const VAT_in_comm = commission / (1 + s) * s;         // 佣金进项
-
-      // 广告占比口径 → 广告金额
-      const base = (basis==='gmv') ? S : Rev;
-      const adCost = base * a;
-      const VAT_in_ad = adCost / (1 + s) * s;               // 广告进项
-
-      const othersCost = (shippingCost + shippingInsurance + otherCost); // 发货即发生
-
-      // 与 costPrice 相关的两项：goodsCost 与 VAT_in_goods
-      const factorR = (goodsMode==='canReturn') ? r : 1;    // 可退：×r；不可退：×1
-      const k = (1 + inputTaxRate) * factorR;               // goodsCost = costPrice * k
-      const g = (outputTaxRate) * factorR;                  // VAT_in_goods = costPrice * g
-
-      // Profit = Rev - othersCost - commission - adCost - VAT_out + VAT_in_comm + VAT_in_ad + costPrice*(g - k)
-      // 目标：Profit = m * Rev  ⇒  costPrice = (m*Rev - B) / (g - k)
-      const B = Rev - othersCost - commission - adCost - VAT_out + VAT_in_comm + VAT_in_ad;
-      const denom = (g - k);
-      if (Math.abs(denom) < 1e-12) return NaN; // 避免除零
-      const cp = (m * Rev - B) / denom;
-      return (cp>0 && isFinite(cp)) ? cp : NaN;
-    }
+    // solveCostPrice 函数已移至 engine.js
 
     function renderCostSim(){
       const params = {
@@ -1241,32 +1174,9 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     }
 
     function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
-    function parseScenarioRates(text){
-      return String(text).split(/[,，\s]+/).map(s=>parseFloat(s)).filter(v=>isFinite(v)).map(v=>clamp(v,0,99.999));
-    }
+    // parseScenarioRates 函数已移至 engine.js
 
-    function profitGivenAdRateAndR(params, adRateDecimal, r, basis){
-      const { sellingPrice, costPrice, inputTaxRate, outputTaxRate, platformRate, shippingCost, shippingInsurance, otherCost, salesTaxRate, serviceVATRate, goodsMode } = params;
-
-      const Rev = sellingPrice * r;
-      const goodsCost = costPrice * (1 + inputTaxRate) * (goodsMode==='canReturn' ? r : 1);
-      const othersCost = (shippingCost + shippingInsurance + otherCost);
-      const commission = sellingPrice * platformRate * r;
-
-      const VAT_out = Rev / (1 + salesTaxRate) * salesTaxRate;
-      const VAT_in_goods = costPrice * outputTaxRate * (goodsMode==='canReturn' ? r : 1);
-      const VAT_in_comm  = commission / (1 + serviceVATRate) * serviceVATRate;
-
-      // 广告占比口径 → 金额
-      const base = (basis==='gmv') ? sellingPrice : Rev;
-      const adCostGiven = base * adRateDecimal;
-      const VAT_in_ad_given = adCostGiven / (1 + serviceVATRate) * serviceVATRate;
-
-      const Profit = Rev - (goodsCost + othersCost + commission + adCostGiven)
-        - (VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad_given);
-      const Margin = (Rev>0) ? (Profit/Rev) : NaN;
-      return { Profit, Margin, adCostGiven };
-    }
+    // profitGivenAdRateAndR 函数已移至 engine.js
 
     function renderSimChart(xVals, series, legends){
       const svg = document.getElementById('simChart');
@@ -1392,7 +1302,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       const rateTo = Math.max(rateFrom, parseFloat(document.getElementById('simRateTo').value) || 0);
       const rateStep = Math.max(0.1, parseFloat(document.getElementById('simRateStep').value) || 1);
       const basis = document.querySelector('input[name="simBasis"]:checked').value;
-      const rScenariosPct = parseScenarioRates(document.getElementById('simReturnScenarios').value);
+      const rScenariosPct = parseListPercents(document.getElementById('simReturnScenarios').value);
       const rScenarios = rScenariosPct.map(p=> Math.max(0, 1 - p/100));
 
       // x-axis values (percent list)
@@ -1406,21 +1316,16 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const values = [];
         xVals.forEach(pctVal=>{
           const res = profitGivenAdRateAndR(params, pctVal/100, r, basis);
-          values.push(res.Margin);
+          values.push(res.margin);
         });
         // compute breakeven ad rate for this r
-        // First compute A(r) and X(r) using same rules as main compute()
-        const Rev = params.sellingPrice * r;
-        const goodsCost = params.costPrice * (1 + params.inputTaxRate) * (params.goodsMode==='canReturn' ? r : 1);
-        const othersCost = (params.shippingCost + params.shippingInsurance + params.otherCost);
-        const commission = params.sellingPrice * params.platformRate * r;
-        const VAT_out = Rev / (1 + params.salesTaxRate) * params.salesTaxRate;
-        const VAT_in_goods = params.costPrice * params.outputTaxRate * (params.goodsMode==='canReturn' ? r : 1);
-        const VAT_in_comm  = commission / (1 + params.serviceVATRate) * params.serviceVATRate;
-        const A = Rev - (goodsCost + othersCost + commission) - VAT_out + VAT_in_goods + VAT_in_comm;
-        const X = (1 + params.serviceVATRate) * A;
-        const base = (basis==='gmv') ? params.sellingPrice : Rev;
-        const rateBE = base>0 ? (X / base) : NaN; // 小数
+        // 使用 engine.js 中的函数计算
+        const tempParams = { ...params, returnRate: 1 - r };
+        const tempBase = computeBase(tempParams);
+        const Rev = tempBase.Rev;
+        const X = tempBase.adCostBreakEven;
+        const base = (basis === 'gmv') ? params.sellingPrice : Rev;
+        const rateBE = base > 0 ? (X / base) : NaN; // 小数
         let idxBE = null;
         if (isFinite(rateBE)) {
           // find nearest index on xVals
@@ -1488,6 +1393,11 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     
     // 添加恢复默认值按钮事件监听
     document.getElementById('resetDefaults').addEventListener('click', resetToDefaults);
+    
+    // 商品分析页面跳转
+    document.getElementById('openProductAnalysis').addEventListener('click', () => {
+      window.open('./product_analysis.html', '_blank');
+    });
 
     // first-time restore
     loadState();
