@@ -85,7 +85,8 @@
       background:var(--muted); box-shadow: 0 2px 8px rgba(110,110,115,0.24);
     }
     .btn.small{
-      padding: 6px 12px; font-size: 12px;
+      padding: 4px 8px; font-size: 11px;
+      min-width: 40px;
     }
     
     /* 清除筛选按钮高亮样式 */
@@ -98,6 +99,310 @@
     .btn#clearFilters.active:hover {
       background: var(--accent-2) !important;
       box-shadow: 0 2px 8px rgba(10,132,255,0.3) !important;
+    }
+    
+    /* 分析面板样式 */
+    .analysis-panel-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .analysis-panel {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .analysis-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e5ea;
+      background: linear-gradient(180deg, #fafafa, #ffffff);
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+    }
+    
+    .analysis-panel-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    
+    .close-btn:hover {
+      background: #f0f0f0;
+      color: var(--ink);
+    }
+    
+    .analysis-panel-content {
+      padding: 24px;
+    }
+    
+    .tier-selector {
+      background: #f8f8f8;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      border: 1px solid #e5e5ea;
+    }
+    
+    .tier-selector label {
+      font-weight: 600;
+      margin-right: 12px;
+    }
+    
+    .tier-selector select {
+      padding: 8px 12px;
+      border: 1px solid #d2d2d7;
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+      min-width: 120px;
+    }
+    
+    .basic-info, .target-analysis, .extended-analysis {
+      margin-bottom: 32px;
+    }
+    
+    .basic-info h4, .target-analysis h4, .extended-analysis h4 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 8px;
+    }
+    
+    .extended-analysis h5 {
+      margin: 20px 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .info-item .label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    
+    .info-item span:last-child {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    
+    .input-group .conversion-preview {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+    
+    .input-group label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      min-width: 120px;
+    }
+    
+    .input-group input, .input-group select {
+      padding: 8px 12px;
+      border: 1px solid #d2d2d7;
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+      min-width: 120px;
+    }
+    
+    .input-group input:focus, .input-group select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+    }
+    
+    .input-group .hint {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+    
+    .input-group input[type="number"] {
+      min-width: 100px;
+    }
+    
+    .input-group input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+    }
+    
+    .conversion-preview {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 500;
+      margin-left: 8px;
+      display: none;
+      background: rgba(0,122,255,0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,122,255,0.2);
+    }
+    
+    /* 分析和操作列样式优化 */
+    .products-table th:last-child,
+    .products-table th:nth-last-child(2) {
+      text-align: center;
+      padding: 8px 4px;
+    }
+    
+    .products-table td:last-child,
+    .products-table td:nth-last-child(2) {
+      text-align: center;
+      padding: 8px 4px;
+      vertical-align: middle;
+    }
+    
+    .products-table td:last-child .btn,
+    .products-table td:nth-last-child(2) .btn {
+      width: 100%;
+      max-width: 45px;
+      margin: 0 auto;
+    }
+    
+    .result-buttons {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    
+    .target-results, .value-results {
+      background: #f8f8f8;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e5ea;
+      margin-top: 16px;
+    }
+    
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e5ea;
+    }
+    
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    
+    .result-item .label {
+      font-weight: 500;
+      color: var(--ink);
+    }
+    
+    .result-item span:last-child {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 16px;
+    }
+    
+    .tax-analysis, .value-analysis {
+      background: #fafafa;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e5ea;
+      margin-bottom: 20px;
+    }
+    
+    .tax-analysis h5, .value-analysis h5 {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .analysis-panel {
+        width: 95%;
+        margin: 20px;
+      }
+      
+      .analysis-panel-content {
+        padding: 16px;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .input-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .input-group label {
+        min-width: auto;
+      }
+      
+      .result-buttons {
+        flex-direction: column;
+      }
     }
     
     /* 功能按钮托盘 */
@@ -306,8 +611,6 @@
       padding: 8px;
       font-size: 12px;
       font-weight: 600;
-      text-align: center;
-      min-width: 60px;
     }
     
     .calc-result.single {
@@ -510,6 +813,40 @@
       background-color: #fff3cd;
     }
     
+    /* 筛选高亮样式 */
+    .products-table .calc-result.highlight-match,
+    .products-table .table-input.highlight-match,
+    .products-table .platform-select.highlight-match,
+    .products-table .main-toggle.highlight-match {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .products-table .calc-result.highlight-match::before {
+      content: "✓ ";
+      color: #28a745;
+      font-weight: bold;
+    }
+    
+    /* 高亮动画效果 */
+    @keyframes highlightPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .products-table .calc-result.highlight-match,
+    .products-table .table-input.highlight-match,
+    .products-table .platform-select.highlight-match,
+    .products-table .main-toggle.highlight-match {
+      animation: highlightPulse 0.6s ease-in-out;
+    }
+    
     /* 排序指示器样式 */
     .sort-indicator {
       display: inline-block;
@@ -638,7 +975,7 @@
 <body>
   <header>
     <h1>商品分析</h1>
-    <div class="sub">批量分析商品保本ROI和保本广告占比，支持单一价格和多档价格模式</div>
+            <div class="sub">批量分析商品保本ROI和保本广告，支持单一价格和多档价格模式</div>
   </header>
 
   <main>
@@ -748,8 +1085,8 @@
                 <select id="sortColumn" class="input">
                   <option value="">默认</option>
                   <option value="adCostBreakEven">保本广告费</option>
-                  <option value="adRateBE_effective">广告占比(有效)</option>
-                  <option value="adRateBE_gmv">广告占比(GMV)</option>
+                  <option value="adRateBE_effective">广告(有效)</option>
+                  <option value="adRateBE_gmv">广告(GMV)</option>
                   <option value="ROI_BE_effective">ROI(有效)</option>
                   <option value="ROI_BE_gmv">ROI(GMV)</option>
                 </select>
@@ -762,8 +1099,8 @@
                 <select id="valueFilterColumn" class="input">
                   <option value="">选择列</option>
                   <option value="adCostBreakEven">保本广告费</option>
-                  <option value="adRateBE_effective">广告占比(有效)</option>
-                  <option value="adRateBE_gmv">广告占比(GMV)</option>
+                  <option value="adRateBE_effective">广告(有效)</option>
+                  <option value="adRateBE_gmv">广告(GMV)</option>
                   <option value="ROI_BE_effective">ROI(有效)</option>
                   <option value="ROI_BE_gmv">ROI(GMV)</option>
                 </select>
@@ -791,7 +1128,7 @@
               <button class="btn secondary small" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;=15%)</button>
               <button class="btn secondary small" onclick="quickFilter('roi', 'low')">低ROI(&lt;2.2)</button>
               <button class="btn secondary small" onclick="quickFilter('roi', 'high')">高ROI(&gt;3.5)</button>
-              <button class="btn secondary small" onclick="quickFilter('adRate', 'low')">保本广告占比(&lt;=20%)</button>
+              <button class="btn secondary small" onclick="quickFilter('adRate', 'low')">保本广告(&lt;=20%)</button>
               <button class="btn secondary small" onclick="quickFilter('adCost', 'low')">保本广告费(&lt;10)</button>
               <button class="btn secondary small" onclick="quickFilter('nanData', 'show')">显示NaN数据</button>
             </div>
@@ -825,11 +1162,12 @@
                 <th>进货价（多档）</th>
                 <th>退货率（%）</th>
                 <th>保本广告费</th>
-                <th>保本广告占比(有效)</th>
-                <th>保本广告占比(GMV)</th>
+                <th>保本广告(有效)</th>
+                <th>保本广告(GMV)</th>
                 <th>保本ROI(有效)</th>
                 <th>保本ROI(GMV)</th>
-                <th style="width: 60px;">操作</th>
+                <th style="width: 50px;">分析</th>
+                <th style="width: 50px;">操作</th>
               </tr>
             </thead>
             <tbody id="productsTableBody">
@@ -855,12 +1193,195 @@
   <!-- 消息提示区域 - 固定定位，不占用页面空间 -->
   <div id="messageArea" class="message-area"></div>
 
+  <!-- 分析面板模态框 -->
+  <div id="analysisPanel" class="analysis-panel-overlay" style="display: none;">
+    <div class="analysis-panel">
+      <div class="analysis-panel-header">
+        <h3>商品分析/推演面板</h3>
+        <button class="close-btn" onclick="window.closeAnalysisPanel()">×</button>
+      </div>
+      
+      <div class="analysis-panel-content">
+        <!-- 档位选择器（多档数据时显示） -->
+        <div id="tierSelector" class="tier-selector" style="display: none;">
+          <label>选择档位：</label>
+          <select id="tierSelect" onchange="window.onTierChange()">
+            <!-- 动态生成档位选项 -->
+          </select>
+        </div>
+        
+        <!-- 基础信息显示 -->
+        <div class="basic-info">
+          <h4>基础信息</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">商品名称：</span>
+              <span id="analysisProductName">—</span>
+            </div>
+            <div class="info-item">
+              <span class="label">货号：</span>
+              <span id="analysisSku">—</span>
+            </div>
+            <div class="info-item">
+              <span class="label">平台：</span>
+              <span id="analysisPlatform">—</span>
+            </div>
+            <div class="info-item">
+              <span class="label">售价：</span>
+              <span id="analysisPrice">—</span>
+            </div>
+            <div class="info-item">
+              <span class="label">进货价：</span>
+              <span id="analysisCost">—</span>
+            </div>
+            <div class="info-item">
+              <span class="label">退货率：</span>
+              <span id="analysisReturnRate">—</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 目标推演区域 -->
+        <div class="target-analysis">
+          <h4>目标推演</h4>
+          <div class="input-group">
+            <label>有效率 (r)：</label>
+            <input type="number" id="targetR" step="0.01" min="0" max="1" placeholder="0.88">
+            <span class="hint">= 1 - 退货率</span>
+          </div>
+          <div class="input-group">
+            <label>广告占比 (a)：</label>
+            <input type="number" id="targetA" step="0.01" min="0" max="100" placeholder="25" 
+                   onchange="window.convertToDecimal(this, 'targetA')" 
+                   oninput="window.previewConversion(this, 'targetA')">
+            <span class="hint">直接输入百分比，如25表示25%，系统自动转换</span>
+            <span id="targetAPreview" class="conversion-preview"></span>
+          </div>
+          <div class="input-group">
+            <label>口径：</label>
+            <select id="targetBasis">
+              <option value="effective">有效营收</option>
+              <option value="gmv">GMV</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>目标利润率 (m)：</label>
+            <input type="number" id="targetM" step="0.01" min="-100" max="100" placeholder="15" 
+                   onchange="window.convertToDecimal(this, 'targetM')" 
+                   oninput="window.previewConversion(this, 'targetM')">
+            <span class="hint">直接输入百分比，如15表示15%，系统自动转换</span>
+            <span id="targetMPreview" class="conversion-preview"></span>
+          </div>
+          
+          <div class="result-buttons">
+            <button class="btn" onclick="window.calculateTargetPrice()">计算所需售价</button>
+            <button class="btn secondary" onclick="window.calculateTargetCost()">计算可接受进货价</button>
+          </div>
+          
+          <div class="target-results">
+            <div class="result-item">
+              <span class="label">所需售价：</span>
+              <span id="targetPriceResult">—</span>
+            </div>
+            <div class="result-item">
+              <span class="label">可接受进货价：</span>
+              <span id="targetCostResult">—</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 扩展分析区域 -->
+        <div class="extended-analysis">
+          <h4>扩展分析</h4>
+          
+          <!-- 税负分析 -->
+          <div class="tax-analysis">
+            <h5>税负分析</h5>
+                      <div class="input-group">
+            <label>广告占比：</label>
+            <input type="number" id="taxAdRate" step="0.01" min="0" max="100" placeholder="25" 
+                   onchange="window.convertToDecimal(this, 'taxAdRate')" 
+                   oninput="window.previewConversion(this, 'taxAdRate')">
+            <span class="hint">直接输入百分比，如25表示25%</span>
+            <span id="taxAdRatePreview" class="conversion-preview"></span>
+          </div>
+            <div class="input-group">
+              <label>有效率：</label>
+              <input type="number" id="taxR" step="0.01" min="0" max="1" placeholder="0.88">
+            </div>
+            <div class="input-group">
+              <label>口径：</label>
+              <select id="taxBasis">
+                <option value="effective">有效营收</option>
+                <option value="gmv">GMV</option>
+              </select>
+            </div>
+            <button class="btn secondary" onclick="window.calculateTaxBurden()">计算税负</button>
+            <div class="result-item">
+              <span class="label">净税负占比：</span>
+              <span id="taxResult">—</span>
+            </div>
+          </div>
+          
+          <!-- 投放三角分析 -->
+          <div class="value-analysis">
+            <h5>投放三角分析</h5>
+            <div class="input-group">
+              <label>口径：</label>
+              <select id="valueBasis">
+                <option value="effective">有效营收</option>
+                <option value="gmv">GMV</option>
+              </select>
+            </div>
+                      <div class="input-group">
+            <label>转化率 (CVR)：</label>
+            <input type="number" id="valueCvr" step="0.01" min="0" max="100" placeholder="2" 
+                   onchange="window.convertToDecimal(this, 'valueCvr')" 
+                   oninput="window.previewConversion(this, 'valueCvr')">
+            <span class="hint">直接输入百分比，如2表示2%，系统自动转换</span>
+            <span id="valueCvrPreview" class="conversion-preview"></span>
+          </div>
+            <div class="input-group">
+              <label>CPC：</label>
+              <input type="number" id="valueCpc" step="0.01" min="0" placeholder="2.5">
+            </div>
+            <div class="input-group">
+              <label>客单价 (AOV)：</label>
+              <input type="number" id="valueAov" step="0.01" min="0" placeholder="79.8">
+            </div>
+            <button class="btn secondary" onclick="window.calculateValueAnalysis()">计算临界值</button>
+            
+            <div class="value-results">
+              <div class="result-item">
+                <span class="label">保本ROI：</span>
+                <span id="valueRoiResult">—</span>
+              </div>
+              <div class="result-item">
+                <span class="label">CPC临界值：</span>
+                <span id="valueCpcResult">—</span>
+              </div>
+              <div class="result-item">
+                <span class="label">CVR临界值：</span>
+                <span id="valueCvrResult">—</span>
+              </div>
+              <div class="result-item">
+                <span class="label">客单价临界值：</span>
+                <span id="valueAovResult">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     // 导入计算引擎和示例数据
     import {
       analyzeProducts, parseProductFromRow, validateProduct,
       generateCSVTemplate, parseCSV, exportAnalysisToCSV,
-      getPlatformRate
+      getPlatformRate, solveSellingPrice, solveCostPrice,
+      taxBurdenGiven, valueAnalysis
     } from './engine.js';
     
     import {
@@ -1076,6 +1597,9 @@
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
+                <td>
+          <button class="btn secondary small" onclick="window.openAnalysisPanel(${rowId})">分析</button>
+        </td>
         <td>
           <button class="btn secondary small" onclick="window.removeRow(${rowId})">删除</button>
         </td>
@@ -1083,7 +1607,7 @@
       
       return row;
     }
-
+    
     // 表格渲染已统一到 updateTableStatus() + #no-data-row 机制
     
     // 更新表格状态，显示或隐藏"暂无商品数据"提示
@@ -1102,7 +1626,7 @@
         // 没有数据行，显示提示
         if (!noDataRow) {
           console.log('显示"暂无商品数据"提示');
-          tbody.innerHTML = '<tr id="no-data-row"><td colspan="16" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+          tbody.innerHTML = '<tr id="no-data-row"><td colspan="17" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         } else {
           console.log('提示行已存在，无需重复添加');
         }
@@ -1658,8 +2182,8 @@
 
         // 获取所有计算结果单元格
         const adCostCell = row.cells[10]; // 保本广告费列
-        const adRateEffectiveCell = row.cells[11]; // 保本广告占比(有效)列
-        const adRateGmvCell = row.cells[12]; // 保本广告占比(GMV)列
+        const adRateEffectiveCell = row.cells[11]; // 保本广告(有效)列
+        const adRateGmvCell = row.cells[12]; // 保本广告(GMV)列
         const roiEffectiveCell = row.cells[13]; // 保本ROI(有效)列
         const roiGmvCell = row.cells[14]; // 保本ROI(GMV)列
         
@@ -1703,7 +2227,7 @@
           adCostDiv.className = 'calc-result';
         }
 
-        // 更新保本广告占比(有效)
+        // 更新保本广告(有效)
         if (result.singleAnalysis) {
           adRateEffectiveDiv.innerHTML = (result.singleAnalysis.adRateBE_effective * 100).toFixed(2) + '%';
           adRateEffectiveDiv.className = 'calc-result single';
@@ -1724,7 +2248,7 @@
           adRateEffectiveDiv.className = 'calc-result';
         }
 
-        // 更新保本广告占比(GMV)
+        // 更新保本广告(GMV)
         if (result.singleAnalysis) {
           adRateGmvDiv.innerHTML = (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2) + '%';
           adRateGmvDiv.className = 'calc-result single';
@@ -1849,8 +2373,8 @@
     // 
     // 🚫 非必需字段（导入后自动生成）：
     // - 保本广告费：根据成本和售价自动计算
-    // - 保本广告占比(有效)：基于有效销售额的广告占比
-    // - 保本广告占比(GMV)：基于GMV的广告占比
+            // - 保本广告(有效)：基于有效销售额的广告比例
+        // - 保本广告(GMV)：基于GMV的广告比例
     // - 保本ROI(有效)：基于有效销售额的投资回报率
     // - 保本ROI(GMV)：基于GMV的投资回报率
     // - 售价模式：根据是否有多档价格自动判断（单一/多档）
@@ -1967,7 +2491,7 @@
           console.log('=== 开始验证表头 ===');
           const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
           console.log('📋 必需的表头字段（仅此9个）:', requiredHeaders);
-          console.log('💡 注意：其他字段如保本ROI、广告占比等会在导入后自动计算，无需包含');
+          console.log('💡 注意：其他字段如保本ROI、广告比例等会在导入后自动计算，无需包含');
           
           const firstRow = parsedData[0];
           console.log('第一行数据（表头）:', firstRow);
@@ -2123,8 +2647,8 @@
       if (successCount > 0) {
         console.log('💡 导入完成提示：以下字段将在数据导入后自动生成');
         console.log('   - 保本广告费：基于成本和售价计算');
-        console.log('   - 保本广告占比(有效)：基于有效销售额计算');
-        console.log('   - 保本广告占比(GMV)：基于GMV计算');
+        console.log('   - 保本广告(有效)：基于有效销售额计算');
+        console.log('   - 保本广告(GMV)：基于GMV计算');
         console.log('   - 保本ROI(有效)：基于有效销售额计算');
         console.log('   - 保本ROI(GMV)：基于GMV计算');
         console.log('   - 售价模式：根据多档价格自动判断');
@@ -2343,6 +2867,9 @@
         </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
+        </td>
+        <td>
+          <button class="btn secondary small" onclick="window.openAnalysisPanel(${rowId})">分析</button>
         </td>
         <td>
           <button class="btn secondary small" onclick="window.removeRow(${rowId})">删除</button>
@@ -2595,6 +3122,13 @@
           
           const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
           
+          // 清除之前的高亮
+          rows.forEach(row => {
+            row.querySelectorAll('.calc-result, .table-input, .platform-select, .main-toggle').forEach(cell => {
+              cell.classList.remove('highlight-match');
+            });
+          });
+          
           rows.forEach(row => {
             let shouldShow = true;
             
@@ -2674,6 +3208,8 @@
             
             if (shouldShow) {
               row.classList.remove('filtered-out');
+              // 高亮符合筛选条件的数值
+              highlightMatchingValues(row, result, valueFilterColumn, valueFilterMin, valueFilterMax);
             } else {
               row.classList.add('filtered-out');
             }
@@ -2692,6 +3228,112 @@
       }, 10);
     }
     
+    // 高亮符合筛选条件的数值
+    function highlightMatchingValues(row, result, valueFilterColumn, valueFilterMin, valueFilterMax) {
+      // 获取筛选条件
+      const platformFilter = document.getElementById('platformFilter').value;
+      const returnRateMin = parseFloat(document.getElementById('returnRateMin').value) || 0;
+      const returnRateMax = parseFloat(document.getElementById('returnRateMax').value) || 100;
+      const mainProductFilter = document.getElementById('mainProductFilter').value;
+      
+      // 高亮平台筛选
+      if (platformFilter) {
+        const platformCell = row.querySelector('.platform-select');
+        if (platformCell && platformCell.value === platformFilter) {
+          platformCell.classList.add('highlight-match');
+        }
+      }
+      
+      // 高亮退货率筛选
+      if (returnRateMin > 0 || returnRateMax < 100) {
+        const returnRateCell = row.querySelector('.return-rate');
+        if (returnRateCell) {
+          const returnRate = parseFloat(returnRateCell.value) || 0;
+          if (returnRate >= returnRateMin && returnRate <= returnRateMax) {
+            returnRateCell.classList.add('highlight-match');
+          }
+        }
+      }
+      
+      // 高亮主推款筛选
+      if (mainProductFilter !== '') {
+        const mainToggle = row.querySelector('.main-toggle');
+        if (mainToggle) {
+          const isMain = mainToggle.classList.contains('active');
+          if ((mainProductFilter === 'true' && isMain) || (mainProductFilter === 'false' && !isMain)) {
+            mainToggle.classList.add('highlight-match');
+          }
+        }
+      }
+      
+      // 高亮数值筛选
+      if (valueFilterColumn && result) {
+        // 获取对应的数值单元格
+        const valueCell = getValueCellByColumn(row, valueFilterColumn);
+        if (!valueCell) return;
+        
+        // 检查是否为NaN数据筛选
+        const isNaNFilter = valueFilterMin === 'NaN' || valueFilterMax === 'NaN';
+        
+        if (isNaNFilter) {
+          // NaN数据筛选 - 高亮NaN值
+          if (result.singleAnalysis) {
+            const value = getValueFromResult(result, valueFilterColumn);
+            if (value === null || isNaN(value)) {
+              valueCell.classList.add('highlight-match');
+            }
+          } else if (result.tierAnalysis.length > 0) {
+            // 多档价格模式 - 检查任意一档是否为NaN
+            for (let i = 0; i < result.tierAnalysis.length; i++) {
+              const value = getValueFromResult(result, valueFilterColumn);
+              if (value === null || isNaN(value)) {
+                valueCell.classList.add('highlight-match');
+                break;
+              }
+            }
+          }
+        } else if (isFinite(valueFilterMin) || isFinite(valueFilterMax)) {
+          // 正常数值区间筛选 - 高亮符合条件的值
+          if (result.singleAnalysis) {
+            const value = getValueFromResult(result, valueFilterColumn);
+            if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
+              valueCell.classList.add('highlight-match');
+            }
+          } else if (result.tierAnalysis.length > 0) {
+            // 多档价格模式 - 检查任意一档是否满足条件
+            for (let i = 0; i < result.tierAnalysis.length; i++) {
+              const value = getValueFromResult(result, valueFilterColumn);
+              if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
+                valueCell.classList.add('highlight-match');
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // 根据列名获取对应的数值单元格
+    function getValueCellByColumn(row, columnName) {
+      const columnMap = {
+        'adCostBreakEven': 10,      // 保本广告费列
+        'adRateBE_effective': 11,   // 保本广告(有效)列
+        'adRateBE_gmv': 12,         // 保本广告(GMV)列
+        'ROI_BE_effective': 13,     // 保本ROI(有效)列
+        'ROI_BE_gmv': 14            // 保本ROI(GMV)列
+      };
+      
+      const columnIndex = columnMap[columnName];
+      if (columnIndex === undefined) return null;
+      
+      const cells = row.cells;
+      if (cells.length > columnIndex) {
+        return cells[columnIndex].querySelector('.calc-result');
+      }
+      
+      return null;
+    }
+    
     // 清除筛选
     function clearFilters() {
       // 重置筛选控件
@@ -2703,10 +3345,14 @@
       document.getElementById('valueFilterMin').value = '';
       document.getElementById('valueFilterMax').value = '';
       
-      // 显示所有行
+      // 显示所有行并清除高亮
       const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
       rows.forEach(row => {
         row.classList.remove('filtered-out');
+        // 清除所有高亮
+        row.querySelectorAll('.calc-result, .table-input, .platform-select, .main-toggle').forEach(cell => {
+          cell.classList.remove('highlight-match');
+        });
       });
       
       updateFilterStatus();
@@ -2936,7 +3582,7 @@
           statusText += ` | 平均退货率: ${stats.avgReturnRate.toFixed(2)}%`;
         }
         if (stats.avgAdRateEffective !== null) {
-          statusText += ` | 平均保本广告占比(有效): ${stats.avgAdRateEffective.toFixed(2)}%`;
+          statusText += ` | 平均保本广告(有效): ${stats.avgAdRateEffective.toFixed(2)}%`;
         }
         if (stats.avgROIEffective !== null) {
           statusText += ` | 平均保本ROI(有效): ${stats.avgROIEffective.toFixed(2)}`;
@@ -3011,7 +3657,7 @@
           returnRates.push(returnRate);
         }
         
-        // 统计保本广告占比(有效)和ROI(有效)
+        // 统计保本广告(有效)和ROI(有效)
         const rowId = row.id.replace('row-', '');
         const resultIndex = calculationRowMap.indexOf(row.id);
         if (resultIndex !== -1 && analysisResults[resultIndex]) {
@@ -3052,7 +3698,7 @@
         stats.avgReturnRate = sum / returnRates.length;
       }
       
-      // 计算平均保本广告占比(有效)
+              // 计算平均保本广告(有效)
       if (adRatesEffective.length > 0) {
         const sum = adRatesEffective.reduce((acc, rate) => acc + rate, 0);
         stats.avgAdRateEffective = sum / adRatesEffective.length;
@@ -3095,16 +3741,16 @@
           // 添加计算结果
           if (result.singleAnalysis) {
             rowData['保本广告费'] = result.singleAnalysis.adCostBreakEven.toFixed(2);
-            rowData['保本广告占比(有效)(%)'] = (result.singleAnalysis.adRateBE_effective * 100).toFixed(2);
-            rowData['保本广告占比(GMV)(%)'] = (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2);
+            rowData['保本广告(有效)(%)'] = (result.singleAnalysis.adRateBE_effective * 100).toFixed(2);
+            rowData['保本广告(GMV)(%)'] = (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2);
             rowData['保本ROI(有效)'] = result.singleAnalysis.ROI_BE_effective.toFixed(2);
             rowData['保本ROI(GMV)'] = result.singleAnalysis.ROI_BE_gmv.toFixed(2);
           } else if (result.tierAnalysis.length > 0) {
             // 多档价格模式，导出第一档的结果
             const firstTier = result.tierAnalysis[0];
             rowData['保本广告费'] = firstTier.adCostBreakEven.toFixed(2);
-            rowData['保本广告占比(有效)(%)'] = (firstTier.adRateBE_effective * 100).toFixed(2);
-            rowData['保本广告占比(GMV)(%)'] = (firstTier.adRateBE_gmv * 100).toFixed(2);
+            rowData['保本广告(有效)(%)'] = (firstTier.adRateBE_effective * 100).toFixed(2);
+            rowData['保本广告(GMV)(%)'] = (firstTier.adRateBE_gmv * 100).toFixed(2);
             rowData['保本ROI(有效)'] = firstTier.ROI_BE_effective.toFixed(2);
             rowData['保本ROI(GMV)'] = firstTier.ROI_BE_gmv.toFixed(2);
           }
@@ -3153,7 +3799,7 @@
     document.querySelectorAll('input[type="number"], input[name="goodsMode"]').forEach(el => {
       el.addEventListener('change', () => {
         updateSystemParams();
-        // 触发自动计算，确保系统参数变化后保本ROI和广告占比实时更新
+        // 触发自动计算，确保系统参数变化后保本ROI和广告比例实时更新
         setTimeout(() => {
           autoCalculate();
         }, 100);
@@ -3292,7 +3938,7 @@
             console.log('localStorage数据恢复后，延迟更新表格状态');
           }, 50);
           
-          // 触发自动计算，确保保本ROI和广告占比实时更新
+          // 触发自动计算，确保保本ROI和广告比例实时更新
           setTimeout(() => {
             autoCalculate();
           }, 100); // 延迟100ms确保DOM完全渲染
@@ -3410,6 +4056,9 @@
         </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
+        </td>
+        <td>
+          <button class="btn secondary small" onclick="window.openAnalysisPanel(${rowId})">分析</button>
         </td>
         <td>
           <button class="btn secondary small" onclick="window.removeRow(${rowId})">删除</button>
@@ -3539,7 +4188,7 @@
           console.log('=== 开始验证表头 ===');
           const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
           console.log('📋 必需的表头字段（仅此9个）:', requiredHeaders);
-          console.log('💡 注意：其他字段如保本ROI、广告占比等会在导入后自动计算，无需包含');
+          console.log('💡 注意：其他字段如保本ROI、广告比例等会在导入后自动计算，无需包含');
           
           console.log('Excel文件中的表头:', headers);
           
@@ -3816,7 +4465,7 @@
           break;
         case 'adRate':
           if (value === 'low') {
-            filterName = '低广告占比(<=20%)';
+            filterName = '低广告(<=20%)';
           }
           break;
         case 'adCost':
@@ -3838,8 +4487,8 @@
     function getColumnDisplayName(column) {
       const columnNames = {
         'adCostBreakEven': '保本广告费',
-        'adRateBE_effective': '保本广告占比(有效)',
-        'adRateBE_gmv': '保本广告占比(GMV)',
+              'adRateBE_effective': '保本广告(有效)',
+      'adRateBE_gmv': '保本广告(GMV)',
         'ROI_BE_effective': '保本ROI(有效)',
         'ROI_BE_gmv': '保本ROI(GMV)'
       };
@@ -3856,6 +4505,497 @@
       }
       return true;
     }
+
+    // 分析面板相关函数
+    
+    // 全局变量
+    let currentAnalysisRowId = null;
+    let currentAnalysisData = null;
+    let currentTierIndex = 0;
+    
+    // 自动换算函数：将用户输入的百分比数值转换为小数
+    window.convertToDecimal = function(inputElement, fieldId) {
+      let inputValue = inputElement.value.trim();
+      
+      // 支持多种输入格式
+      if (inputValue.includes('%')) {
+        // 如果用户输入了百分号，直接提取数字并转换
+        inputValue = inputValue.replace('%', '');
+      }
+      
+      const value = parseFloat(inputValue);
+      if (isFinite(value)) {
+        // 如果输入的是百分比数值（大于1），则转换为小数
+        if (value > 1) {
+          const decimalValue = value / 100;
+          inputElement.value = decimalValue.toFixed(4);
+          
+          // 显示转换提示
+          showMessage(`已自动转换：${value}% → ${(decimalValue * 100).toFixed(2)}%`, 'info');
+          
+          console.log(`字段 ${fieldId}: ${value}% 已转换为 ${decimalValue.toFixed(4)}`);
+        } else if (value === 0) {
+          // 如果输入的是0，保持原值
+          inputElement.value = '0';
+          console.log(`字段 ${fieldId}: 保持原值 0`);
+        } else {
+          // 如果输入的是小数（0-1之间），保持原值
+          inputElement.value = value.toFixed(4);
+          console.log(`字段 ${fieldId}: 保持原值 ${value}`);
+        }
+      } else {
+        // 如果输入无效，清空输入框
+        inputElement.value = '';
+        console.log(`字段 ${fieldId}: 输入无效，已清空`);
+      }
+      
+      // 清空预览
+      clearConversionPreview(fieldId);
+    };
+    
+    // 实时预览转换函数
+    window.previewConversion = function(inputElement, fieldId) {
+      let inputValue = inputElement.value.trim();
+      
+      // 支持多种输入格式
+      if (inputValue.includes('%')) {
+        inputValue = inputValue.replace('%', '');
+      }
+      
+      const value = parseFloat(inputValue);
+      if (isFinite(value) && value > 1) {
+        // 显示实时预览
+        const decimalValue = value / 100;
+        const previewElement = document.getElementById(fieldId + 'Preview');
+        if (previewElement) {
+          previewElement.textContent = `(${decimalValue.toFixed(4)})`;
+          previewElement.style.display = 'inline';
+        }
+      } else {
+        // 清空预览
+        clearConversionPreview(fieldId);
+      }
+    };
+    
+    // 清空转换预览
+    function clearConversionPreview(fieldId) {
+      const previewElement = document.getElementById(fieldId + 'Preview');
+      if (previewElement) {
+        previewElement.textContent = '';
+        previewElement.style.display = 'none';
+      }
+    }
+    
+    // 打开分析面板
+    window.openAnalysisPanel = function(rowId) {
+      console.log('打开分析面板，行ID:', rowId);
+      
+      // 获取行数据
+      const row = document.getElementById(`row-${rowId}`);
+      if (!row) {
+        showMessage('无法找到指定行数据', 'error');
+        return;
+      }
+      
+      // 收集行数据
+      const rowData = collectRowData(row);
+      if (!rowData) {
+        showMessage('行数据不完整，无法进行分析', 'error');
+        return;
+      }
+      
+      // 设置全局变量
+      currentAnalysisRowId = rowId;
+      currentAnalysisData = rowData;
+      currentTierIndex = 0;
+      
+      // 更新面板内容
+      updateAnalysisPanelContent();
+      
+      // 显示面板
+      document.getElementById('analysisPanel').style.display = 'flex';
+      
+              console.log('分析面板已打开');
+    };
+    
+    // 关闭分析面板
+    window.closeAnalysisPanel = function() {
+      document.getElementById('analysisPanel').style.display = 'none';
+      currentAnalysisRowId = null;
+      currentAnalysisData = null;
+      currentTierIndex = 0;
+      console.log('分析面板已关闭');
+    };
+    
+    // 收集行数据
+    function collectRowData(row) {
+      try {
+        const name = row.querySelector('.product-name')?.value?.trim() || '';
+        const sku = row.querySelector('.product-sku')?.value?.trim() || '';
+        const platform = row.querySelector('.platform-select')?.value || '';
+        const isMain = row.querySelector('.main-toggle')?.classList.contains('active') || false;
+        const returnRate = parseFloat(row.querySelector('.return-rate')?.value || '0') / 100; // 转换为小数
+        
+        // 检查价格模式
+        const singlePrice = parseFloat(row.querySelector('.single-price')?.value || '0');
+        const singleCost = parseFloat(row.querySelector('.single-cost')?.value || '0');
+        const tierPrices = Array.from(row.querySelectorAll('.tier-price-input')).map(input => parseFloat(input.value || '0')).filter(v => v > 0);
+        const tierCosts = Array.from(row.querySelectorAll('.tier-cost-input')).map(input => parseFloat(input.value || '0')).filter(v => v > 0);
+        
+        // 验证数据完整性
+        if (!name || !sku || !platform) {
+          return null;
+        }
+        
+        // 确定价格模式
+        let priceMode = 'single';
+        let price = 0;
+        let cost = 0;
+        
+        if (tierPrices.length > 0 && tierCosts.length > 0) {
+          // 多档价格模式
+          priceMode = 'tier';
+          price = tierPrices[0] || 0;
+          cost = tierCosts[0] || 0;
+        } else if (tierCosts.length > 0 && singlePrice > 0) {
+          // 单一售价+多档进货价模式
+          priceMode = 'singlePriceMultiCost';
+          price = singlePrice;
+          cost = tierCosts[0] || 0;
+        } else if (singlePrice > 0 && singleCost > 0) {
+          // 单一价格模式
+          priceMode = 'single';
+          price = singlePrice;
+          cost = singleCost;
+        } else {
+          return null;
+        }
+        
+        if (price <= 0 || cost <= 0) {
+          return null;
+        }
+        
+        return {
+          name,
+          sku,
+          platform,
+          isMain,
+          returnRate,
+          priceMode,
+          price,
+          cost,
+          tierPrices,
+          tierCosts,
+          singlePrice,
+          singleCost
+        };
+        
+      } catch (error) {
+        console.error('收集行数据失败:', error);
+        return null;
+      }
+    }
+    
+    // 更新分析面板内容
+    function updateAnalysisPanelContent() {
+      if (!currentAnalysisData) return;
+      
+      const data = currentAnalysisData;
+      
+      // 更新基础信息
+      document.getElementById('analysisProductName').textContent = data.name;
+      document.getElementById('analysisSku').textContent = data.sku;
+      document.getElementById('analysisPlatform').textContent = data.platform;
+      document.getElementById('analysisPrice').textContent = `¥${data.price.toFixed(2)}`;
+      document.getElementById('analysisCost').textContent = `¥${data.cost.toFixed(2)}`;
+      document.getElementById('analysisReturnRate').textContent = `${(data.returnRate * 100).toFixed(2)}%`;
+      
+      // 处理档位选择器
+      const tierSelector = document.getElementById('tierSelector');
+      const tierSelect = document.getElementById('tierSelect');
+      
+      if (data.priceMode === 'tier' && data.tierPrices.length > 1) {
+        // 多档价格模式，显示档位选择器
+        tierSelector.style.display = 'block';
+        tierSelect.innerHTML = data.tierPrices.map((price, index) => 
+          `<option value="${index}">档位${index + 1}: ¥${price.toFixed(2)} / ¥${data.tierCosts[index].toFixed(2)}</option>`
+        ).join('');
+        tierSelect.value = '0';
+      } else if (data.priceMode === 'singlePriceMultiCost' && data.tierCosts.length > 1) {
+        // 单一售价+多档进货价模式，显示档位选择器
+        tierSelector.style.display = 'block';
+        tierSelect.innerHTML = data.tierCosts.map((cost, index) => 
+          `<option value="${index}">档位${index + 1}: ¥${data.singlePrice.toFixed(2)} / ¥${cost.toFixed(2)}</option>`
+        ).join('');
+        tierSelect.value = '0';
+      } else {
+        // 单一价格模式，隐藏档位选择器
+        tierSelector.style.display = 'none';
+      }
+      
+      // 设置默认值
+      const effectiveRate = 1 - data.returnRate;
+      document.getElementById('targetR').value = effectiveRate.toFixed(4);
+      document.getElementById('taxR').value = effectiveRate.toFixed(4);
+      
+      // 清空结果
+      clearAnalysisResults();
+    }
+    
+    // 档位变化处理
+    window.onTierChange = function() {
+      const tierIndex = parseInt(document.getElementById('tierSelect').value);
+      currentTierIndex = tierIndex;
+      
+      if (currentAnalysisData) {
+        if (currentAnalysisData.priceMode === 'tier') {
+          currentAnalysisData.price = currentAnalysisData.tierPrices[tierIndex];
+          currentAnalysisData.cost = currentAnalysisData.tierCosts[tierIndex];
+        } else if (currentAnalysisData.priceMode === 'singlePriceMultiCost') {
+          currentAnalysisData.cost = currentAnalysisData.tierCosts[tierIndex];
+        }
+        
+        // 更新显示
+        document.getElementById('analysisPrice').textContent = `¥${currentAnalysisData.price.toFixed(2)}`;
+        document.getElementById('analysisCost').textContent = `¥${currentAnalysisData.cost.toFixed(2)}`;
+        
+        // 清空结果
+        clearAnalysisResults();
+      }
+    };
+    
+    // 清空分析结果
+    function clearAnalysisResults() {
+      document.getElementById('targetPriceResult').textContent = '—';
+      document.getElementById('targetCostResult').textContent = '—';
+      document.getElementById('taxResult').textContent = '—';
+      document.getElementById('valueRoiResult').textContent = '—';
+      document.getElementById('valueCpcResult').textContent = '—';
+      document.getElementById('valueCvrResult').textContent = '—';
+      document.getElementById('valueAovResult').textContent = '—';
+    }
+    
+    // 计算所需售价
+    window.calculateTargetPrice = function() {
+      if (!currentAnalysisData) return;
+      
+      try {
+        const r = parseFloat(document.getElementById('targetR').value);
+        const a = parseFloat(document.getElementById('targetA').value);
+        const basis = document.getElementById('targetBasis').value;
+        const m = parseFloat(document.getElementById('targetM').value);
+        
+        if (!isFinite(r) || !isFinite(a) || !isFinite(m)) {
+          showMessage('请填写所有必要的参数', 'error');
+          return;
+        }
+        
+        // 构建参数对象
+        const params = {
+          sellingPrice: currentAnalysisData.price,
+          returnRate: currentAnalysisData.returnRate,
+          costPrice: currentAnalysisData.cost,
+          inputTaxRate: valNum('inputTaxRate') / 100,
+          outputTaxRate: valNum('outputTaxRate') / 100,
+          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valNum('salesTaxRate') / 100,
+          serviceVATRate: valNum('serviceVATRate') / 100,
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        };
+        
+        // 调用引擎函数计算所需售价
+        const requiredPrice = solveSellingPrice(params, r, a, basis, m);
+        
+        if (isFinite(requiredPrice) && requiredPrice > 0) {
+          document.getElementById('targetPriceResult').textContent = `¥${requiredPrice.toFixed(2)}`;
+          showMessage('售价计算成功', 'success');
+        } else {
+          document.getElementById('targetPriceResult').textContent = '参数无效/不可解';
+          showMessage('无法计算所需售价，请检查参数', 'error');
+        }
+        
+      } catch (error) {
+        console.error('计算所需售价失败:', error);
+        showMessage('计算失败: ' + error.message, 'error');
+      }
+    };
+    
+    // 计算可接受进货价
+    window.calculateTargetCost = function() {
+      if (!currentAnalysisData) return;
+      
+      try {
+        const r = parseFloat(document.getElementById('targetR').value);
+        const a = parseFloat(document.getElementById('targetA').value);
+        const basis = document.getElementById('targetBasis').value;
+        const m = parseFloat(document.getElementById('targetM').value);
+        
+        if (!isFinite(r) || !isFinite(a) || !isFinite(m)) {
+          showMessage('请填写所有必要的参数', 'error');
+          return;
+        }
+        
+        // 构建参数对象
+        const params = {
+          sellingPrice: currentAnalysisData.price,
+          returnRate: currentAnalysisData.returnRate,
+          costPrice: currentAnalysisData.cost,
+          inputTaxRate: valNum('inputTaxRate') / 100,
+          outputTaxRate: valNum('outputTaxRate') / 100,
+          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valNum('salesTaxRate') / 100,
+          serviceVATRate: valNum('serviceVATRate') / 100,
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        };
+        
+        // 调用引擎函数计算可接受进货价
+        const acceptableCost = solveCostPrice(params, r, a, basis, m);
+        
+        if (isFinite(acceptableCost) && acceptableCost > 0) {
+          document.getElementById('targetCostResult').textContent = `¥${acceptableCost.toFixed(2)}`;
+          showMessage('进货价计算成功', 'success');
+        } else {
+          document.getElementById('targetCostResult').textContent = '参数无效/不可解';
+          showMessage('无法计算可接受进货价，请检查参数', 'error');
+        }
+        
+      } catch (error) {
+        console.error('计算可接受进货价失败:', error);
+        showMessage('计算失败: ' + error.message, 'error');
+      }
+    };
+    
+    // 计算税负
+    window.calculateTaxBurden = function() {
+      if (!currentAnalysisData) return;
+      
+      try {
+        const a = parseFloat(document.getElementById('taxAdRate').value);
+        const r = parseFloat(document.getElementById('taxR').value);
+        const basis = document.getElementById('taxBasis').value;
+        
+        if (!isFinite(a) || !isFinite(r)) {
+          showMessage('请填写所有必要的参数', 'error');
+          return;
+        }
+        
+        // 构建参数对象
+        const params = {
+          sellingPrice: currentAnalysisData.price,
+          returnRate: currentAnalysisData.returnRate,
+          costPrice: currentAnalysisData.cost,
+          inputTaxRate: valNum('inputTaxRate') / 100,
+          outputTaxRate: valNum('outputTaxRate') / 100,
+          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valNum('salesTaxRate') / 100,
+          serviceVATRate: valNum('serviceVATRate') / 100,
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        };
+        
+        // 调用引擎函数计算税负
+        const taxResult = taxBurdenGiven(params, a, r, basis);
+        
+        if (isFinite(taxResult.shareGMV)) {
+          document.getElementById('taxResult').textContent = `${(taxResult.shareGMV * 100).toFixed(2)}%`;
+          showMessage('税负计算成功', 'success');
+        } else {
+          document.getElementById('taxResult').textContent = '参数无效/不可解';
+          showMessage('无法计算税负，请检查参数', 'error');
+        }
+        
+      } catch (error) {
+        console.error('计算税负失败:', error);
+        showMessage('计算失败: ' + error.message, 'error');
+      }
+    };
+    
+    // 计算投放三角分析
+    window.calculateValueAnalysis = function() {
+      if (!currentAnalysisData) return;
+      
+      try {
+        const basis = document.getElementById('valueBasis').value;
+        const cvr = parseFloat(document.getElementById('valueCvr').value);
+        const cpc = parseFloat(document.getElementById('valueCpc').value);
+        const aov = parseFloat(document.getElementById('valueAov').value);
+        
+        if (!isFinite(cvr) || !isFinite(cpc) || !isFinite(aov)) {
+          showMessage('请填写所有必要的参数', 'error');
+          return;
+        }
+        
+        // 构建参数对象
+        const params = {
+          sellingPrice: currentAnalysisData.price,
+          returnRate: currentAnalysisData.returnRate,
+          costPrice: currentAnalysisData.cost,
+          inputTaxRate: valNum('inputTaxRate') / 100,
+          outputTaxRate: valNum('outputTaxRate') / 100,
+          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valNum('salesTaxRate') / 100,
+          serviceVATRate: valNum('serviceVATRate') / 100,
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        };
+        
+        // 调用引擎函数计算投放三角分析
+        const valueResult = valueAnalysis(params, basis, cvr, cpc, aov);
+        
+        if (valueResult.error) {
+          showMessage(valueResult.error, 'error');
+          return;
+        }
+        
+        // 显示结果
+        if (isFinite(valueResult.ROIbe)) {
+          document.getElementById('valueRoiResult').textContent = valueResult.ROIbe.toFixed(2);
+        }
+        
+        if (isFinite(valueResult.cpcCritical)) {
+          document.getElementById('valueCpcResult').textContent = `¥${valueResult.cpcCritical.toFixed(2)}`;
+        }
+        
+        if (isFinite(valueResult.cvrCritical)) {
+          document.getElementById('valueCvrResult').textContent = `${(valueResult.cvrCritical * 100).toFixed(4)}%`;
+        }
+        
+        if (isFinite(valueResult.aovCritical)) {
+          document.getElementById('valueAovResult').textContent = `¥${valueResult.aovCritical.toFixed(2)}`;
+        }
+        
+        showMessage('投放三角分析计算成功', 'success');
+        
+      } catch (error) {
+        console.error('计算投放三角分析失败:', error);
+        showMessage('计算失败: ' + error.message, 'error');
+      }
+    };
+    
+    // 点击面板外部关闭面板
+    document.addEventListener('click', function(event) {
+      const panel = document.getElementById('analysisPanel');
+      if (event.target === panel) {
+        window.closeAnalysisPanel();
+      }
+    });
+    
+    // ESC键关闭面板
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        window.closeAnalysisPanel();
+      }
+    });
 
 
   </script>
