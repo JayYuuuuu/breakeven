@@ -88,6 +88,18 @@
       padding: 6px 12px; font-size: 12px;
     }
     
+    /* 清除筛选按钮高亮样式 */
+    .btn#clearFilters.active {
+      background: var(--accent) !important;
+      color: white !important;
+      box-shadow: 0 2px 8px rgba(0,122,255,0.24) !important;
+    }
+    
+    .btn#clearFilters.active:hover {
+      background: var(--accent-2) !important;
+      box-shadow: 0 2px 8px rgba(10,132,255,0.3) !important;
+    }
+    
     /* 功能按钮托盘 */
     .tooltray{ 
       display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; 
@@ -775,10 +787,13 @@
               <span class="quick-filter-label">快捷筛选</span>
               <button class="btn secondary small" onclick="quickFilter('main', 'true')">只看主推款</button>
               <button class="btn secondary small" onclick="quickFilter('platform', '淘宝')">只看淘宝</button>
-              <button class="btn secondary small" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;5%)</button>
-              <button class="btn secondary small" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;10%)</button>
+              <button class="btn secondary small" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;=10%)</button>
+              <button class="btn secondary small" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;=15%)</button>
               <button class="btn secondary small" onclick="quickFilter('roi', 'low')">低ROI(&lt;2.2)</button>
               <button class="btn secondary small" onclick="quickFilter('roi', 'high')">高ROI(&gt;3.5)</button>
+              <button class="btn secondary small" onclick="quickFilter('adRate', 'low')">保本广告占比(&lt;=20%)</button>
+              <button class="btn secondary small" onclick="quickFilter('adCost', 'low')">保本广告费(&lt;10)</button>
+              <button class="btn secondary small" onclick="quickFilter('nanData', 'show')">显示NaN数据</button>
             </div>
           </div>
         </div>
@@ -789,6 +804,7 @@
           <button class="btn secondary" id="addRow">添加商品行</button>
           <button class="btn secondary" id="insertExamples">插入示例</button>
           <button class="btn secondary" id="importFile">导入文件</button>
+          <button class="btn secondary" id="deleteSelectedTop">批量删除</button>
           <button class="btn" id="analyze">开始分析</button>
         </div>
         
@@ -1564,7 +1580,11 @@
           isMain: row.querySelector('.main-toggle').classList.contains('active'),
           singlePrice: finalSinglePrice,
           tierPrices: finalTierPrices,
-          returnRate: parseFloat(row.querySelector('.return-rate').value) / 100,
+          returnRate: (() => {
+            const value = row.querySelector('.return-rate').value;
+            const parsed = parseFloat(value);
+            return isFinite(parsed) ? parsed / 100 : 0;
+          })(),
           singleCost: finalSingleCost,
           tierCosts: finalTierCosts,
           platformRate: getPlatformRate(row.querySelector('.platform-select').value) // 添加平台佣金率
@@ -2306,7 +2326,7 @@
         </td>
         <td>
           <input type="number" class="table-input return-rate" placeholder="0.00" step="0.01" 
-                 value="${data['退货率'] || ''}" data-row-id="${rowId}">
+                 value="${data['退货率'] !== undefined && data['退货率'] !== null && data['退货率'] !== '' ? data['退货率'] : ''}" data-row-id="${rowId}">
         </td>
 
         <td>
@@ -2495,6 +2515,7 @@
     document.getElementById('analyze').addEventListener('click', startAnalysis);
     document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
     document.getElementById('deleteSelected').addEventListener('click', deleteSelectedRows);
+    document.getElementById('deleteSelectedTop').addEventListener('click', deleteSelectedRows);
     
     // 搜索和筛选功能的事件监听器
     document.getElementById('searchInput').addEventListener('input', debounce(performSearch, 300));
@@ -2604,27 +2625,44 @@
             }
             
             // 数值区间筛选
-            if (valueFilterColumn && (isFinite(valueFilterMin) || isFinite(valueFilterMax)) && result) {
+            if (valueFilterColumn && result) {
               let shouldShowThisRow = false;
               
-              // 对于多档数据，检查任意一档是否满足条件
-              if (result.singleAnalysis) {
-                // 单一价格模式
-                const value = getValueFromResult(result, valueFilterColumn);
-                if (value !== null) {
-                  shouldShowThisRow = checkValueInRange(value, valueFilterMin, valueFilterMax);
-                }
-              } else if (result.tierAnalysis.length > 0) {
-                // 多档价格模式 - 检查任意一档是否满足条件
-                for (let i = 0; i < result.tierAnalysis.length; i++) {
-                  const tierResult = {
-                    ...result,
-                    singleAnalysis: result.tierAnalysis[i]
-                  };
+              // 检查是否为NaN数据筛选
+              const isNaNFilter = valueFilterMin === 'NaN' || valueFilterMax === 'NaN';
+              
+              if (isNaNFilter) {
+                // NaN数据筛选逻辑
+                if (result.singleAnalysis) {
+                  // 单一价格模式
                   const value = getValueFromResult(result, valueFilterColumn);
-                  if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
-                    shouldShowThisRow = true;
-                    break; // 只要有一档满足条件就可以
+                  shouldShowThisRow = value === null || isNaN(value);
+                } else if (result.tierAnalysis.length > 0) {
+                  // 多档价格模式 - 检查任意一档是否为NaN
+                  for (let i = 0; i < result.tierAnalysis.length; i++) {
+                    const value = getValueFromResult(result, valueFilterColumn);
+                    if (value === null || isNaN(value)) {
+                      shouldShowThisRow = true;
+                      break; // 只要有一档是NaN就可以
+                    }
+                  }
+                }
+              } else if (isFinite(valueFilterMin) || isFinite(valueFilterMax)) {
+                // 正常数值区间筛选逻辑
+                if (result.singleAnalysis) {
+                  // 单一价格模式
+                  const value = getValueFromResult(result, valueFilterColumn);
+                  if (value !== null) {
+                    shouldShowThisRow = checkValueInRange(value, valueFilterMin, valueFilterMax);
+                  }
+                } else if (result.tierAnalysis.length > 0) {
+                  // 多档价格模式 - 检查任意一档是否满足条件
+                  for (let i = 0; i < result.tierAnalysis.length; i++) {
+                    const value = getValueFromResult(result, valueFilterColumn);
+                    if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
+                      shouldShowThisRow = true;
+                      break; // 只要有一档满足条件就可以
+                    }
                   }
                 }
               }
@@ -2883,19 +2921,25 @@
       
       if (hasFilters) {
         statusText += ` | 筛选条件: ${filterDetails.join(', ')}`;
-        
-        // 添加筛选后的统计信息
-        if (visibleRows > 0) {
-          const stats = getFilteredStats();
-          if (stats.platforms.length > 0) {
-            statusText += ` | 平台分布: ${stats.platforms.join(', ')}`;
-          }
-          if (stats.mainProductCount > 0) {
-            statusText += ` | 主推款: ${stats.mainProductCount}个`;
-          }
-          if (stats.avgReturnRate !== null) {
-            statusText += ` | 平均退货率: ${stats.avgReturnRate.toFixed(2)}%`;
-          }
+      }
+      
+      // 添加统计信息（无论是否有筛选条件）
+      if (visibleRows > 0) {
+        const stats = getFilteredStats();
+        if (stats.platforms.length > 0) {
+          statusText += ` | 平台分布: ${stats.platforms.join(', ')}`;
+        }
+        if (stats.mainProductCount > 0) {
+          statusText += ` | 主推款: ${stats.mainProductCount}个`;
+        }
+        if (stats.avgReturnRate !== null) {
+          statusText += ` | 平均退货率: ${stats.avgReturnRate.toFixed(2)}%`;
+        }
+        if (stats.avgAdRateEffective !== null) {
+          statusText += ` | 平均保本广告占比(有效): ${stats.avgAdRateEffective.toFixed(2)}%`;
+        }
+        if (stats.avgROIEffective !== null) {
+          statusText += ` | 平均保本ROI(有效): ${stats.avgROIEffective.toFixed(2)}`;
         }
       }
       
@@ -2920,6 +2964,16 @@
           exportFilteredBtn.style.display = 'none';
         }
       }
+      
+      // 高亮清除筛选按钮
+      const clearFiltersBtn = document.getElementById('clearFilters');
+      if (clearFiltersBtn) {
+        if (hasFilters) {
+          clearFiltersBtn.classList.add('active');
+        } else {
+          clearFiltersBtn.classList.remove('active');
+        }
+      }
     }
     
     // 获取筛选后的统计信息
@@ -2928,13 +2982,17 @@
       const stats = {
         platforms: [],
         mainProductCount: 0,
-        avgReturnRate: null
+        avgReturnRate: null,
+        avgAdRateEffective: null,
+        avgROIEffective: null
       };
       
       if (visibleRows.length === 0) return stats;
       
       const platformCounts = {};
       const returnRates = [];
+      const adRatesEffective = [];
+      const roisEffective = [];
       let mainProductCount = 0;
       
       visibleRows.forEach(row => {
@@ -2952,6 +3010,32 @@
         if (isFinite(returnRate)) {
           returnRates.push(returnRate);
         }
+        
+        // 统计保本广告占比(有效)和ROI(有效)
+        const rowId = row.id.replace('row-', '');
+        const resultIndex = calculationRowMap.indexOf(row.id);
+        if (resultIndex !== -1 && analysisResults[resultIndex]) {
+          const result = analysisResults[resultIndex];
+          
+          if (result.singleAnalysis) {
+            // 单一价格模式
+            if (isFinite(result.singleAnalysis.adRateBE_effective)) {
+              adRatesEffective.push(result.singleAnalysis.adRateBE_effective * 100); // 转换为百分比
+            }
+            if (isFinite(result.singleAnalysis.ROI_BE_effective)) {
+              roisEffective.push(result.singleAnalysis.ROI_BE_effective);
+            }
+          } else if (result.tierAnalysis.length > 0) {
+            // 多档价格模式 - 使用第一档的数据
+            const firstTier = result.tierAnalysis[0];
+            if (isFinite(firstTier.adRateBE_effective)) {
+              adRatesEffective.push(firstTier.adRateBE_effective * 100); // 转换为百分比
+            }
+            if (isFinite(firstTier.ROI_BE_effective)) {
+              roisEffective.push(firstTier.ROI_BE_effective);
+            }
+          }
+        }
       });
       
       // 生成平台分布信息
@@ -2966,6 +3050,18 @@
       if (returnRates.length > 0) {
         const sum = returnRates.reduce((acc, rate) => acc + rate, 0);
         stats.avgReturnRate = sum / returnRates.length;
+      }
+      
+      // 计算平均保本广告占比(有效)
+      if (adRatesEffective.length > 0) {
+        const sum = adRatesEffective.reduce((acc, rate) => acc + rate, 0);
+        stats.avgAdRateEffective = sum / adRatesEffective.length;
+      }
+      
+      // 计算平均保本ROI(有效)
+      if (roisEffective.length > 0) {
+        const sum = roisEffective.reduce((acc, roi) => acc + roi, 0);
+        stats.avgROIEffective = sum / roisEffective.length;
       }
       
       return stats;
@@ -3297,7 +3393,7 @@
         </td>
         <td>
           <input type="number" class="table-input return-rate" placeholder="0.00" step="0.01" 
-                 value="${data.returnRate}" data-row-id="${rowId}">
+                 value="${data.returnRate !== undefined && data.returnRate !== null && data.returnRate !== '' ? data.returnRate : ''}" data-row-id="${rowId}">
         </td>
 
         <td>
@@ -3654,9 +3750,9 @@
         case 'returnRate':
           if (value === 'low') {
             document.getElementById('returnRateMin').value = '0';
-            document.getElementById('returnRateMax').value = '5';
+            document.getElementById('returnRateMax').value = '10';
           } else if (value === 'high') {
-            document.getElementById('returnRateMin').value = '10';
+            document.getElementById('returnRateMin').value = '15';
             document.getElementById('returnRateMax').value = '100';
           }
           break;
@@ -3669,6 +3765,29 @@
             document.getElementById('valueFilterColumn').value = 'ROI_BE_effective';
             document.getElementById('valueFilterMin').value = '3.5';
             document.getElementById('valueFilterMax').value = '';
+          }
+          break;
+        case 'adRate':
+          if (value === 'low') {
+            document.getElementById('valueFilterColumn').value = 'adRateBE_effective';
+            document.getElementById('valueFilterMin').value = '';
+            document.getElementById('valueFilterMax').value = '20';
+          }
+          break;
+        case 'adCost':
+          if (value === 'low') {
+            document.getElementById('valueFilterColumn').value = 'adCostBreakEven';
+            document.getElementById('valueFilterMin').value = '';
+            document.getElementById('valueFilterMax').value = '10';
+          }
+          break;
+        case 'nanData':
+          if (value === 'show') {
+            // 对于NaN数据，我们需要特殊处理，因为NaN无法直接比较
+            // 这里我们设置一个特殊的标记，在筛选逻辑中处理
+            document.getElementById('valueFilterColumn').value = 'adRateBE_effective';
+            document.getElementById('valueFilterMin').value = 'NaN';
+            document.getElementById('valueFilterMax').value = 'NaN';
           }
           break;
       }
@@ -3686,13 +3805,28 @@
           filterName = value;
           break;
         case 'returnRate':
-          filterName = value === 'low' ? '低退货率(<5%)' : '高退货率(>10%)';
+          filterName = value === 'low' ? '低退货率(<=10%)' : '高退货率(>=15%)';
           break;
         case 'roi':
           if (value === 'low') {
             filterName = '低ROI(<2.2)';
           } else if (value === 'high') {
             filterName = '高ROI(>3.5)';
+          }
+          break;
+        case 'adRate':
+          if (value === 'low') {
+            filterName = '低广告占比(<=20%)';
+          }
+          break;
+        case 'adCost':
+          if (value === 'low') {
+            filterName = '低广告费(<10)';
+          }
+          break;
+        case 'nanData':
+          if (value === 'show') {
+            filterName = '显示NaN数据';
           }
           break;
       }

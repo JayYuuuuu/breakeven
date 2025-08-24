@@ -566,7 +566,7 @@ export function parseProductFromRow(rowData) {
   }
 
   // 解析退货率
-  if (rowData['退货率'] && !isNaN(parseFloat(rowData['退货率']))) {
+  if (rowData['退货率'] !== undefined && rowData['退货率'] !== null && rowData['退货率'] !== '' && !isNaN(parseFloat(rowData['退货率']))) {
     product.returnRate = parseFloat(rowData['退货率']) / 100; // 转换为小数
   }
 
