@@ -1779,6 +1779,55 @@
       });
     }
 
+    // 自动加载示例商品（页面初始化时使用，不显示重复提示）
+    function autoLoadExamples() {
+      const examples = getProductExamples();
+      
+      // 获取现有的货号列表，用于过滤重复项
+      const existingSkus = Array.from(document.querySelectorAll('#productsTableBody tr[id^="row-"]'))
+        .map(row => row.querySelector('.product-sku')?.value.trim())
+        .filter(sku => sku);
+      
+      // 过滤掉重复的示例数据
+      const filteredExamples = examples.filter(example => !existingSkus.includes(example.sku));
+      
+      if (filteredExamples.length === 0) {
+        console.log('所有示例数据都已存在，无需重复添加');
+        return;
+      }
+      
+      // 清空现有表格（如果有no-data-row的话）
+      const tableBody = document.getElementById('productsTableBody');
+      const noDataRow = tableBody.querySelector('#no-data-row');
+      if (noDataRow) {
+        tableBody.removeChild(noDataRow);
+      }
+      
+      // 添加过滤后的示例数据
+      filteredExamples.forEach(product => {
+        const row = createProductRow(product);
+        tableBody.appendChild(row);
+      });
+      
+      // —— 兼容旧行：为已有商品名单元补上"新品"胶囊 ——
+      ensureNewTagPills();
+      console.log(`自动加载了 ${filteredExamples.length} 个示例商品`);
+      
+      // 延迟更新表格状态，确保DOM完全更新后再隐藏提示
+      setTimeout(() => {
+        updateTableStatus();
+        console.log('自动加载示例数据后，延迟更新表格状态');
+      }, 50);
+      
+      // 自动保存到localStorage
+      saveToLocalStorage();
+      
+      // 触发自动计算
+      setTimeout(() => {
+        autoCalculate();
+      }, 100);
+    }
+
     // 添加示例商品
     function addExampleProducts() {
       const examples = getProductExamples();
@@ -4334,10 +4383,17 @@
           }, 200);
           
           return true;
+        } else {
+          // 如果没有保存的数据，自动加载示例数据
+          console.log('没有找到保存的数据，自动加载示例数据');
+          autoLoadExamples();
         }
       } catch (error) {
         console.error('从localStorage加载数据失败:', error);
         localStorage.removeItem(STORAGE_KEY); // 清除损坏的数据
+        // 加载失败时也尝试自动加载示例数据
+        console.log('数据加载失败，自动加载示例数据');
+        autoLoadExamples();
       }
       return false;
     }
