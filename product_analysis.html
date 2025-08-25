@@ -4023,6 +4023,9 @@
         if (stats.avgReturnRate !== null) {
           statusText += ` | 平均退货率: ${stats.avgReturnRate.toFixed(2)}%`;
         }
+        if (stats.avgGrossMarginRate !== null) {
+          statusText += ` | 平均毛利率: ${stats.avgGrossMarginRate.toFixed(2)}%`;
+        }
         if (stats.avgAdRateEffective !== null) {
           statusText += ` | 平均保本广告(有效): ${stats.avgAdRateEffective.toFixed(2)}%`;
         }
@@ -4071,6 +4074,7 @@
         platforms: [],
         mainProductCount: 0,
         avgReturnRate: null,
+        avgGrossMarginRate: null,
         avgAdRateEffective: null,
         avgROIEffective: null
       };
@@ -4079,6 +4083,7 @@
       
       const platformCounts = {};
       const returnRates = [];
+      const grossMarginRates = [];
       const adRatesEffective = [];
       const roisEffective = [];
       let mainProductCount = 0;
@@ -4099,7 +4104,7 @@
           returnRates.push(returnRate);
         }
         
-        // 统计保本广告(有效)和ROI(有效)
+        // 统计毛利率
         const rowId = row.id.replace('row-', '');
         const resultIndex = calculationRowMap.indexOf(row.id);
         if (resultIndex !== -1 && analysisResults[resultIndex]) {
@@ -4107,6 +4112,9 @@
           
           if (result.singleAnalysis) {
             // 单一价格模式
+            if (isFinite(result.singleAnalysis.grossMarginRate)) {
+              grossMarginRates.push(result.singleAnalysis.grossMarginRate * 100); // 转换为百分比
+            }
             if (isFinite(result.singleAnalysis.adRateBE_effective)) {
               adRatesEffective.push(result.singleAnalysis.adRateBE_effective * 100); // 转换为百分比
             }
@@ -4116,6 +4124,9 @@
           } else if (result.tierAnalysis.length > 0) {
             // 多档价格模式 - 使用第一档的数据
             const firstTier = result.tierAnalysis[0];
+            if (isFinite(firstTier.grossMarginRate)) {
+              grossMarginRates.push(firstTier.grossMarginRate * 100); // 转换为百分比
+            }
             if (isFinite(firstTier.adRateBE_effective)) {
               adRatesEffective.push(firstTier.adRateBE_effective * 100); // 转换为百分比
             }
@@ -4140,7 +4151,13 @@
         stats.avgReturnRate = sum / returnRates.length;
       }
       
-              // 计算平均保本广告(有效)
+      // 计算平均毛利率
+      if (grossMarginRates.length > 0) {
+        const sum = grossMarginRates.reduce((acc, rate) => acc + rate, 0);
+        stats.avgGrossMarginRate = sum / grossMarginRates.length;
+      }
+      
+      // 计算平均保本广告(有效)
       if (adRatesEffective.length > 0) {
         const sum = adRatesEffective.reduce((acc, rate) => acc + rate, 0);
         stats.avgAdRateEffective = sum / adRatesEffective.length;
