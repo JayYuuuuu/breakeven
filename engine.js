@@ -830,3 +830,128 @@ export function getPlatformRate(platform) {
   
   return platformRates[platform] || 0.05; // 默认5%
 }
+
+/** ===== CVR–CPC 保本边界分析工具 (基于有效营收口径) =====
+ * 术语说明：
+ *  - breakevenAdCost: 保本广告费（元/单），当 profit = 0 时允许的最大每单广告支出
+ *  - ROI_BE_effective: 保本ROI（有效营收口径），ROI = 有效营收 / 广告费
+ *  - price P: 含税售价
+ *  - returnRate r: 退货率（0–1），有效营收 = P × (1 - r)
+ *  - cvr: 转化率（0–1）
+ *  - cpc: 点击单价（元/点击）
+ *
+ * CPC 计费下的保本恒等式：
+ *   每单广告费 = CPC / CVR  ≤  breakevenAdCost
+ *   => CPC ≤ breakevenAdCost × CVR
+ *   => CVR ≥ CPC / breakevenAdCost
+ */
+
+/** 百分比友好转换：0.12 或 12 输入都转成 0.12 */
+function _toDecimalMaybe(x){
+  if (!Number.isFinite(x)) return 0;
+  return x > 1 ? x / 100 : x;
+}
+
+/** 
+ * 已知 ROI_BE(有效) + 售价 + 退货率 => 推出保本广告费（元/单）
+ * @param {number} price - 含税售价
+ * @param {number} returnRate - 退货率（小数0-1）
+ * @param {number} ROI_BE_effective - 保本ROI（有效营收口径）
+ * @returns {number} 保本广告费（元/单）
+ */
+export function breakevenAdCostFromROI(price, returnRate, ROI_BE_effective){
+  const P = Number(price) || 0;
+  const r = _toDecimalMaybe(Number(returnRate) || 0);
+  const roi = Number(ROI_BE_effective) || 0;
+  if (P <= 0 || roi <= 0) return 0;
+  const effectiveRevenue = P * (1 - r);
+  return effectiveRevenue / roi;
+}
+
+/** 
+ * 给定 CVR 与保本广告费 => 保本 CPC 临界值（元/点击）
+ * @param {number} cvr - 转化率（小数0-1）
+ * @param {number} breakevenAdCost - 保本广告费（元/单）
+ * @returns {number} 保本CPC临界值（元/点击）
+ */
+export function cpcAtBreakeven(cvr, breakevenAdCost){
+  const v = _toDecimalMaybe(Number(cvr) || 0);
+  const A = Number(breakevenAdCost) || 0;
+  if (v <= 0 || A <= 0) return 0;
+  return A * v;
+}
+
+/** 
+ * 给定 CPC 与保本广告费 => 保本所需最低 CVR（小数 0–1）
+ * @param {number} cpc - 点击单价（元/点击）
+ * @param {number} breakevenAdCost - 保本广告费（元/单）
+ * @returns {number} 保本所需最低CVR（小数0-1）
+ */
+export function cvrAtBreakeven(cpc, breakevenAdCost){
+  const C = Number(cpc) || 0;
+  const A = Number(breakevenAdCost) || 0;
+  if (C <= 0 || A <= 0) return 0;
+  return C / A;
+}
+
+/** 
+ * 生成绘图数据：CPC = A × CVR 的边界曲线点
+ * @param {number} breakevenAdCost - 保本广告费（元/单）
+ * @param {Object} opts - 选项 {cvrMin, cvrMax, steps}
+ * @returns {Array} 边界曲线点数组 [{cvr, cpc}, ...]
+ */
+export function cpcCvrCurve(breakevenAdCost, opts = {}){
+  const A = Number(breakevenAdCost) || 0;
+  const { cvrMin = 0.005, cvrMax = 0.20, steps = 20 } = opts;
+  const lo = _toDecimalMaybe(cvrMin);
+  const hi = _toDecimalMaybe(cvrMax);
+  const n = Math.max(2, Math.floor(steps));
+  if (A <= 0 || !(hi > lo)) return [];
+  const out = [];
+  for (let i = 0; i < n; i++){
+    const t = i / (n - 1);
+    const cvr = lo + (hi - lo) * t;
+    out.push({ cvr, cpc: A * cvr });
+  }
+  return out;
+}
+
+/**
+ * CVR-CPC安全边际分析
+ * @param {number} currentCpc - 当前CPC（元/点击）
+ * @param {number} currentCvr - 当前CVR（小数0-1）
+ * @param {number} breakevenAdCost - 保本广告费（元/单）
+ * @returns {Object} 安全边际分析结果
+ */
+export function safetyMarginAnalysis(currentCpc, currentCvr, breakevenAdCost) {
+  const cpc = Number(currentCpc) || 0;
+  const cvr = _toDecimalMaybe(Number(currentCvr) || 0);
+  const A = Number(breakevenAdCost) || 0;
+  
+  if (cpc <= 0 || cvr <= 0 || A <= 0) {
+    return { 
+      error: '参数无效',
+      isSafe: false,
+      margin: 0,
+      currentAdCostPerOrder: 0,
+      maxAdCostPerOrder: A
+    };
+  }
+  
+  const currentAdCostPerOrder = cpc / cvr; // 当前每单广告费
+  const maxAdCostPerOrder = A; // 最大允许每单广告费（保本）
+  const margin = maxAdCostPerOrder - currentAdCostPerOrder; // 安全边际
+  const isSafe = currentAdCostPerOrder <= maxAdCostPerOrder; // 是否安全
+  const marginPercent = maxAdCostPerOrder > 0 ? (margin / maxAdCostPerOrder) : 0; // 安全边际百分比
+  
+  return {
+    isSafe,
+    margin, // 安全边际（元）
+    marginPercent, // 安全边际百分比
+    currentAdCostPerOrder, // 当前每单广告费
+    maxAdCostPerOrder, // 最大允许每单广告费
+    breakevenCpc: A * cvr, // 保本CPC临界值
+    breakevenCvr: cpc / A, // 保本CVR临界值
+    status: isSafe ? 'safe' : 'danger' // 状态：安全或危险
+  };
+}
