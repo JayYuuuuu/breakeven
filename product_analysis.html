@@ -381,21 +381,73 @@
     
 
     
-    /* 小屏幕设备适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
-    /* 当屏幕宽度小于等于1680px时，隐藏这两列以节省空间 */
+    /* 小屏幕设备适配 - 默认隐藏保本广告(GMV)和保本ROI(GMV)列 */
+    /* 当屏幕宽度小于等于1680px时，默认隐藏这两列以节省空间 */
     /* 适用于：MacBook Air 13"、iPad Pro 11"、iPad mini 7等所有小屏幕设备 */
     @media (max-width: 1680px) {
-      /* 隐藏保本广告(GMV)列 - 使用语义化类名 */
+      /* 默认隐藏保本广告(GMV)列 - 使用语义化类名 */
       .products-table th.col-ad-gmv,
       .products-table td.col-ad-gmv {
         display: none;
       }
       
-      /* 隐藏保本ROI(GMV)列 - 使用语义化类名 */
+      /* 默认隐藏保本ROI(GMV)列 - 使用语义化类名 */
       .products-table th.col-roi-gmv,
       .products-table td.col-roi-gmv {
         display: none;
       }
+      
+      /* 小屏幕下，当用户手动显示GMV列时，覆盖默认隐藏 */
+      .products-table.gmv-visible th.col-ad-gmv,
+      .products-table.gmv-visible td.col-ad-gmv,
+      .products-table.gmv-visible th.col-roi-gmv,
+      .products-table.gmv-visible td.col-roi-gmv {
+        display: table-cell;
+      }
+      
+      /* 确保表头也正确显示 */
+      .products-table.gmv-visible th.col-ad-gmv,
+      .products-table.gmv-visible th.col-roi-gmv {
+        display: table-cell;
+      }
+    }
+    
+    /* 大屏幕下，用户手动隐藏GMV列时的样式 */
+    .products-table.gmv-hidden th.col-ad-gmv,
+    .products-table.gmv-hidden td.col-ad-gmv,
+    .products-table.gmv-hidden th.col-roi-gmv,
+    .products-table.gmv-hidden td.col-roi-gmv {
+      display: none;
+    }
+    
+    /* 低调的图标按钮样式 */
+    .btn-icon {
+      background: transparent;
+      border: 1px solid #e0e0e0;
+      color: #999;
+      padding: 4px 6px;
+      font-size: 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: auto;
+      height: auto;
+      line-height: 1;
+      opacity: 0.7;
+    }
+    
+    .btn-icon:hover {
+      background: #f8f8f8;
+      border-color: #d0d0d0;
+      color: #666;
+      opacity: 1;
+    }
+    
+    .btn-icon.active {
+      background: #f0f8ff;
+      border-color: #b3d9ff;
+      color: #0066cc;
+      opacity: 0.9;
     }
     
     /* 功能按钮托盘 */
@@ -1218,6 +1270,10 @@
           <button class="btn secondary" id="exportResultsTop">导出结果</button>
           <button class="btn secondary" id="exportTemplateTop">导出产品模板</button>
           <button class="btn" id="analyze">开始分析</button>
+          
+          <button class="btn-icon" id="toggleGmvColumns" title="切换显示/隐藏GMV列" style="margin-left: 12px; opacity: 0.7;">
+            <span class="gmv-toggle-text">👁️</span>
+          </button>
         </div>
         
         <div class="products-table-container">
@@ -3391,6 +3447,15 @@
     document.getElementById('deleteSelected').addEventListener('click', deleteSelectedRows);
     document.getElementById('deleteSelectedTop').addEventListener('click', deleteSelectedRows);
     
+    // GMV列显示/隐藏切换
+    document.getElementById('toggleGmvColumns').addEventListener('click', toggleGmvColumns);
+    
+    // 监听窗口大小变化，自动调整GMV列状态
+    window.addEventListener('resize', debounce(() => {
+      // 延迟执行，避免频繁触发
+      setTimeout(adjustGmvColumnsForScreenSize, 100);
+    }, 250));
+    
     // 搜索和筛选功能的事件监听器
     document.getElementById('searchInput').addEventListener('input', debounce(performSearch, 300));
     document.getElementById('clearSearch').addEventListener('click', clearSearch);
@@ -3411,6 +3476,154 @@
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
       };
+    }
+    
+    // GMV列显示/隐藏切换功能
+    function toggleGmvColumns() {
+      const table = document.getElementById('productsTable');
+      const toggleBtn = document.getElementById('toggleGmvColumns');
+      const toggleText = toggleBtn.querySelector('.gmv-toggle-text');
+      
+      // 检查当前屏幕尺寸
+      const isSmallScreen = window.innerWidth <= 1680;
+      
+      if (isSmallScreen) {
+        // 小屏幕逻辑：在gmv-visible和默认隐藏之间切换
+        if (table.classList.contains('gmv-visible')) {
+          // 当前是显示状态，切换到默认隐藏
+          table.classList.remove('gmv-visible');
+          toggleText.textContent = '👁️‍🗨️'; // 眼睛带思考气泡，表示可以显示
+          toggleBtn.classList.add('active');
+          toggleBtn.title = '显示GMV列';
+        } else {
+          // 当前是默认隐藏状态，切换到显示
+          table.classList.add('gmv-visible');
+          toggleText.textContent = '👁️'; // 普通眼睛，表示可以隐藏
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = '隐藏GMV列';
+        }
+      } else {
+        // 大屏幕逻辑：在gmv-hidden和默认显示之间切换
+        if (table.classList.contains('gmv-hidden')) {
+          // 当前是隐藏状态，切换到默认显示
+          table.classList.remove('gmv-hidden');
+          toggleText.textContent = '👁️'; // 普通眼睛，表示可以隐藏
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = '隐藏GMV列';
+        } else {
+          // 当前是默认显示状态，切换到隐藏
+          table.classList.add('gmv-hidden');
+          toggleText.textContent = '👁️‍🗨️'; // 眼睛带思考气泡，表示可以显示
+          toggleBtn.classList.add('active');
+          toggleBtn.title = '显示GMV列';
+        }
+      }
+      
+      // 保存用户偏好到localStorage
+      localStorage.setItem('gmvColumnsHidden', table.classList.contains('gmv-hidden'));
+      localStorage.setItem('gmvColumnsVisible', table.classList.contains('gmv-visible'));
+      
+      // 显示操作提示
+      const action = isSmallScreen ? 
+        (table.classList.contains('gmv-visible') ? '显示' : '隐藏') :
+        (table.classList.contains('gmv-hidden') ? '隐藏' : '显示');
+      showMessage(`已${action}GMV相关列`, 'success');
+    }
+    
+    // 恢复GMV列显示状态（从localStorage读取用户偏好）
+    function restoreGmvColumnsState() {
+      const table = document.getElementById('productsTable');
+      const toggleBtn = document.getElementById('toggleGmvColumns');
+      const toggleText = toggleBtn.querySelector('.gmv-toggle-text');
+      
+      if (!table || !toggleBtn || !toggleText) {
+        console.warn('GMV列状态恢复失败：DOM元素未找到');
+        return;
+      }
+      
+      // 检查当前屏幕尺寸
+      const isSmallScreen = window.innerWidth <= 1680;
+      
+      // 从localStorage读取用户偏好
+      const gmvHidden = localStorage.getItem('gmvColumnsHidden') === 'true';
+      const gmvVisible = localStorage.getItem('gmvColumnsVisible') === 'true';
+      
+      if (isSmallScreen) {
+        // 小屏幕：根据用户偏好设置gmv-visible状态
+        if (gmvVisible) {
+          // 用户之前选择了显示GMV列
+          table.classList.add('gmv-visible');
+          toggleText.textContent = '👁️'; // 普通眼睛，表示可以隐藏
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = '隐藏GMV列';
+          console.log('✅ 小屏幕：已恢复GMV列显示状态');
+        } else {
+          // 用户之前选择了默认隐藏（或首次使用）
+          table.classList.remove('gmv-visible');
+          toggleText.textContent = '👁️‍🗨️'; // 眼睛带思考气泡，表示可以显示
+          toggleBtn.classList.add('active');
+          toggleBtn.title = '显示GMV列';
+          console.log('✅ 小屏幕：已恢复GMV列默认隐藏状态');
+        }
+      } else {
+        // 大屏幕：根据用户偏好设置gmv-hidden状态
+        if (gmvHidden) {
+          // 用户之前选择了隐藏GMV列
+          table.classList.add('gmv-hidden');
+          toggleText.textContent = '👁️‍🗨️'; // 眼睛带思考气泡，表示可以显示
+          toggleBtn.classList.add('active');
+          toggleBtn.title = '显示GMV列';
+          console.log('✅ 大屏幕：已恢复GMV列隐藏状态');
+        } else {
+          // 用户之前选择了默认显示（或首次使用）
+          table.classList.remove('gmv-hidden');
+          toggleText.textContent = '👁️'; // 普通眼睛，表示可以隐藏
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = '隐藏GMV列';
+          console.log('✅ 大屏幕：已恢复GMV列默认显示状态');
+        }
+      }
+    }
+    
+    // 根据屏幕尺寸自动调整GMV列状态
+    function adjustGmvColumnsForScreenSize() {
+      const table = document.getElementById('productsTable');
+      const toggleBtn = document.getElementById('toggleGmvColumns');
+      const toggleText = toggleBtn.querySelector('.gmv-toggle-text');
+      
+      if (!table || !toggleBtn || !toggleText) {
+        return;
+      }
+      
+      const isSmallScreen = window.innerWidth <= 1680;
+      
+      if (isSmallScreen) {
+        // 小屏幕：确保使用gmv-visible类来控制显示
+        if (table.classList.contains('gmv-visible')) {
+          // 用户之前选择了显示，保持显示状态
+          toggleText.textContent = '👁️';
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = '隐藏GMV列';
+        } else {
+          // 用户之前选择了隐藏，保持隐藏状态
+          toggleText.textContent = '👁️‍🗨️';
+          toggleBtn.classList.add('active');
+          toggleBtn.title = '显示GMV列';
+        }
+      } else {
+        // 大屏幕：确保使用gmv-hidden类来控制隐藏
+        if (table.classList.contains('gmv-hidden')) {
+          // 用户之前选择了隐藏，保持隐藏状态
+          toggleText.textContent = '👁️‍🗨️';
+          toggleBtn.classList.add('active');
+          toggleBtn.title = '显示GMV列';
+        } else {
+          // 用户之前选择了显示，保持显示状态
+          toggleText.textContent = '👁️';
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = '隐藏GMV列';
+        }
+      }
     }
     
     // 搜索功能
@@ -5977,6 +6190,9 @@
       
       // 🆕 初始化现有SKU输入框的旧值记录
       setTimeout(initializeSkuOldValues, 150);
+      
+      // 🆕 恢复GMV列显示状态
+      setTimeout(restoreGmvColumnsState, 200);
     });
     // 如果DOM已经加载完成，立即执行
     if (document.readyState !== 'loading') {
@@ -5984,6 +6200,9 @@
       
       // 🆕 初始化现有SKU输入框的旧值记录
       setTimeout(initializeSkuOldValues, 150);
+      
+      // 🆕 恢复GMV列显示状态
+      setTimeout(restoreGmvColumnsState, 200);
     }
 
 
