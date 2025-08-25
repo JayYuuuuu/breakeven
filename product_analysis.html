@@ -274,11 +274,14 @@
     }
     
     .input-group .hint {
-      font-size: 12px;
-      color: var(--muted);
-      font-style: italic;
+      font-size: 10px;
+      color: #aaa;
+      /* font-style: italic; */
       margin-left: 8px;
+      margin-top: 2px;
+      font-weight: 400;
       flex-shrink: 0;
+      line-height: 1.2;
     }
     
     .input-group input[type="number"] {
@@ -1344,54 +1347,39 @@
         </div>
         
         <!-- 目标推演区域 -->
-        <div class="target-analysis">
+        <div class="target-analysis decision-card" id="targetCard">
           <h4>目标推演</h4>
-          <div class="input-group">
-            <label>有效率 (r)：</label>
-            <input type="number" id="targetR" step="0.01" min="0" max="1" placeholder="0.88">
-            <span class="hint">= 1 - 退货率</span>
+          <span class="tiny-hint">（与投放决策条统一样式：同口径、同参数，支持百分比自动识别）</span>
+          <div class="decision-grid">
+            <div class="decision-item">
+              <label>有效率 (r)：= 1 - 退货率</label>
+              <input type="number" id="targetR" step="0.01" min="0" max="1" placeholder="0.88">
+            </div>
+            <div class="decision-item">
+              <label>广告占比 (a)：直接输入百分比数字</label>
+              <input type="number" id="targetA" step="0.01" min="0" max="100" placeholder="25" onchange="window.convertToDecimal(this, 'targetA')" oninput="window.previewConversion(this, 'targetA')">
+              <span id="targetAPreview" class="conversion-preview"></span>
+            </div>
+            <div class="decision-item">
+              <label>口径：</label>
+              <select id="targetBasis">
+                <option value="effective">有效营收</option>
+                <option value="gmv">GMV</option>
+              </select>
+            </div>
+            <div class="decision-item">
+              <label>目标利润率 (m)：直接输入百分比数字</label>
+              <input type="number" id="targetM" step="0.01" min="-100" max="100" placeholder="15" onchange="window.convertToDecimal(this, 'targetM')" oninput="window.previewConversion(this, 'targetM')">
+              <span id="targetMPreview" class="conversion-preview"></span>
+            </div>
           </div>
-          <div class="input-group">
-            <label>广告占比 (a)：</label>
-            <input type="number" id="targetA" step="0.01" min="0" max="100" placeholder="25" 
-                   onchange="window.convertToDecimal(this, 'targetA')" 
-                   oninput="window.previewConversion(this, 'targetA')">
-            <span class="hint">直接输入百分比，如25表示25%，系统自动转换</span>
-            <span id="targetAPreview" class="conversion-preview"></span>
-          </div>
-          <div class="input-group">
-            <label>口径：</label>
-            <select id="targetBasis">
-              <option value="effective">有效营收</option>
-              <option value="gmv">GMV</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label>目标利润率 (m)：</label>
-            <input type="number" id="targetM" step="0.01" min="-100" max="100" placeholder="15" 
-                   onchange="window.convertToDecimal(this, 'targetM')" 
-                   oninput="window.previewConversion(this, 'targetM')">
-            <span class="hint">直接输入百分比，如15表示15%，系统自动转换</span>
-            <span id="targetMPreview" class="conversion-preview"></span>
-          </div>
-          
           <div class="result-buttons">
             <button class="btn" onclick="window.calculateTargetAnalysis()">计算目标推演</button>
           </div>
-          
-          <div class="target-results">
-            <div class="result-item">
-              <span class="label">所需售价：</span>
-              <span id="targetPriceResult">—</span>
-            </div>
-            <div class="result-item">
-              <span class="label">可接受进货价：</span>
-              <span id="targetCostResult">—</span>
-            </div>
-            <div class="result-item">
-              <span class="label">净税负占比：</span>
-              <span id="taxResult">—</span>
-            </div>
+          <div class="kpi-band">
+            <div class="kpi" id="kpiTargetPrice"><div class="label">所需售价</div><div class="val" id="targetPriceResult">—</div></div>
+            <div class="kpi" id="kpiTargetCost"><div class="label">可接受进货价</div><div class="val" id="targetCostResult">—</div></div>
+            <div class="kpi" id="kpiTargetTax"><div class="label">净税负占比</div><div class="val" id="taxResult">—</div></div>
           </div>
         </div>
         
@@ -1401,50 +1389,36 @@
           
 
           <!-- 投放三角分析 -->
-          <div class="value-analysis">
-            <h5>投放三角分析</h5>
-            <div class="input-group">
-              <label>口径：</label>
-              <select id="valueBasis">
-                <option value="effective">有效营收</option>
-                <option value="gmv">GMV</option>
-              </select>
-            </div>
-                      <div class="input-group">
-            <label>转化率 (CVR)：</label>
-            <input type="number" id="valueCvr" step="0.01" min="0" max="100" placeholder="2" 
-                   onchange="window.convertToDecimal(this, 'valueCvr')" 
-                   oninput="window.previewConversion(this, 'valueCvr')">
-            <span class="hint">直接输入百分比，如2表示2%，系统自动转换</span>
-            <span id="valueCvrPreview" class="conversion-preview"></span>
-          </div>
-            <div class="input-group">
-              <label>CPC：</label>
-              <input type="number" id="valueCpc" step="0.01" min="0" placeholder="2.5">
-            </div>
-            <div class="input-group">
-              <label>客单价 (AOV)：</label>
-              <input type="number" id="valueAov" step="0.01" min="0" placeholder="79.8">
+          <div class="value-analysis decision-card" id="valueCard">
+            <h4>🔺 投放三角分析 <span class="tiny-hint">（同口径：当口径=有效营收时，AOV 自动用 AOV×(1−退货率)）</span></h4>
+            <div class="decision-grid">
+              <div class="decision-item">
+                <label>口径：</label>
+                <select id="valueBasis">
+                  <option value="effective">有效营收</option>
+                  <option value="gmv">GMV</option>
+                </select>
+              </div>
+              <div class="decision-item">
+                <label>转化率 (CVR)：直接输入数字</label>
+                <input type="number" id="valueCvr" step="0.01" min="0" max="100" placeholder="2" onchange="window.convertToDecimal(this, 'valueCvr')" oninput="window.previewConversion(this, 'valueCvr')">
+                <span id="valueCvrPreview" class="conversion-preview"></span>
+              </div>
+              <div class="decision-item">
+                <label>CPC：</label>
+                <input type="number" id="valueCpc" step="0.01" min="0" placeholder="2.5">
+              </div>
+              <div class="decision-item">
+                <label>客单价 (AOV)：</label>
+                <input type="number" id="valueAov" step="0.01" min="0" placeholder="79.8">
+              </div>
             </div>
             <button class="btn secondary" onclick="window.calculateValueAnalysis()">计算临界值</button>
-            
-            <div class="value-results">
-              <div class="result-item">
-                <span class="label">保本ROI：</span>
-                <span id="valueRoiResult">—</span>
-              </div>
-              <div class="result-item">
-                <span class="label">CPC临界值：</span>
-                <span id="valueCpcResult">—</span>
-              </div>
-              <div class="result-item">
-                <span class="label">CVR临界值：</span>
-                <span id="valueCvrResult">—</span>
-              </div>
-              <div class="result-item">
-                <span class="label">客单价临界值：</span>
-                <span id="valueAovResult">—</span>
-              </div>
+            <div class="kpi-band">
+              <div class="kpi"><div class="label">保本ROI</div><div class="val" id="valueRoiResult">—</div></div>
+              <div class="kpi"><div class="label">CPC临界值</div><div class="val" id="valueCpcResult">—</div></div>
+              <div class="kpi"><div class="label">CVR临界值</div><div class="val" id="valueCvrResult">—</div></div>
+              <div class="kpi"><div class="label">客单价临界值</div><div class="val" id="valueAovResult">—</div></div>
             </div>
           </div>
         </div>
