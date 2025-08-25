@@ -103,6 +103,14 @@
     .tooltray .tag{ margin-right:auto; align-self:center; color:var(--muted); font-size:12px; }
     @media (max-width: 640px){ .tooltray{ justify-content:flex-start; } }
 
+    /* 恢复默认值按钮：存在感很小的链接样式 */
+    .reset-link{
+      background:transparent; border:0; color:var(--muted); font-size:11px; 
+      text-decoration:underline; cursor:pointer; padding:0; margin-left:8px;
+      font-family:inherit; font-weight:normal;
+    }
+    .reset-link:hover{ color:var(--accent); }
+
     /* Floating explain FAB */
     .fab-explain{ position:fixed; right:22px; bottom:22px; z-index:998; }
     .fab-btn{
@@ -212,6 +220,7 @@
           <div class="row">
             <button class="btn" id="calc">计算</button>
             <span class="muted">提示：所有 % 将自动换算为小数参与计算。输入会自动保存到本地。</span>
+            <button class="reset-link" id="resetDefaults">恢复默认值</button>
           </div>
           <div class="sep"></div>
           <div class="tooltray">
@@ -221,8 +230,8 @@
             <button class="btn" id="openTaxSim">税费推演</button>
             <button class="btn" id="openCostSim">成本价推演</button>
             <button class="btn" id="openValueSim">数值分析</button>
-            <button class="icon-btn" id="resetDefaults">恢复默认值</button>
             <button class="btn" id="openProductAnalysis">商品分析</button>
+            <button class="btn" id="openListPrice">标价计算</button>
             <!-- 未来功能按钮占位：
             <button class="icon-btn" disabled>毛利敏感度</button>
             <button class="icon-btn" disabled>多SKU对比</button>
@@ -1404,6 +1413,11 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     // 商品分析页面跳转
     document.getElementById('openProductAnalysis').addEventListener('click', () => {
       window.open('./product_analysis.html', '_blank');
+    });
+
+    // 标价计算页面跳转
+    document.getElementById('openListPrice').addEventListener('click', () => {
+      window.open('./list_price.html', '_blank');
     });
 
     // first-time restore
