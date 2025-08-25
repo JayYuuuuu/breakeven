@@ -479,6 +479,10 @@
       color: var(--muted);
     }
 
+    /* 商品名输入 与 新品胶囊并排显示 */
+    .name-inline{ display:flex; align-items:center; gap:6px; }
+    .name-inline .product-name{ flex:1; width:auto; }
+
     /* 多档价格样式 */
     .tier-prices-container {
       display: flex;
@@ -594,6 +598,18 @@
       color: white;
       font-size: 12px;
     }
+
+    /* 新品标识（最小侵入：与商品名同格显示一个小胶囊） */
+    .tag-pill {
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 0 6px; height: 18px; border-radius: 9px;
+      font-size: 11px; font-weight: 600; letter-spacing:.5px;
+      border: 1px solid #d2d2d7; background:#f1f1f1; color:#999;
+      cursor:pointer; margin-left:6px; user-select:none;
+      transition: background 0.18s, border-color 0.18s, color 0.18s;
+    }
+    .tag-pill.new-toggle.active{ background:#ffedd1; border-color:#ffcf78; color:#7a4a00; }
+    .products-table tr.new-product td:first-child::before{ content:"🆕 "; }
     
     /* 平台选择样式 */
     .platform-select {
@@ -1562,7 +1578,10 @@
       const rowId = nextRowId++;
       const row = document.createElement('tr');
       row.id = `row-${rowId}`;
-      row.className = product && product.isMain ? 'main-product' : '';
+      row.className = [
+        (product && product.isMain) ? 'main-product' : '',
+        (product && product.isNew) ? 'new-product' : ''
+      ].filter(Boolean).join(' ');
       
       const isMultiTier = product && product.tierPrices && product.tierPrices.length > 0;
       
@@ -1571,8 +1590,11 @@
           <input type="checkbox" class="row-checkbox" data-row-id="${rowId}">
         </td>
         <td>
-          <input type="text" class="table-input product-name" placeholder="商品名称" 
-                 value="${product ? product.name : ''}" data-row-id="${rowId}">
+          <div class="name-inline">
+            <input type="text" class="table-input product-name" placeholder="商品名称" 
+                   value="${product ? product.name : ''}" data-row-id="${rowId}">
+            <button class="tag-pill new-toggle ${product && product.isNew ? 'active' : ''}" title="标记为新品/取消新品" data-row-id="${rowId}" onclick="window.toggleNew(${rowId})">新</button>
+          </div>
         </td>
         <td>
           <input type="text" class="table-input product-sku" placeholder="货号" 
@@ -1696,6 +1718,38 @@
       console.log(`表格状态更新完成：当前有 ${existingRows.length} 行数据`);
     }
 
+    // —— 兼容旧行：为已有商品名单元补上“新品”胶囊 ——
+    function ensureNewTagPills(){
+      const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+      rows.forEach(row => {
+        const nameCell = row.cells[1]; // 商品名称列
+        if (!nameCell) return;
+
+        // 确保有 .name-inline 容器
+        let wrapper = nameCell.querySelector('.name-inline');
+        const input = nameCell.querySelector('.product-name');
+        if (input && !wrapper){
+          wrapper = document.createElement('div');
+          wrapper.className = 'name-inline';
+          nameCell.insertBefore(wrapper, input);
+          wrapper.appendChild(input);
+        }
+
+        // 确保有新品按钮
+        const hasToggle = nameCell.querySelector('.new-toggle');
+        if (!hasToggle && wrapper){
+          const rowId = row.id.replace('row-','');
+          const btn = document.createElement('button');
+          btn.className = 'tag-pill new-toggle' + (row.classList.contains('new-product') ? ' active' : '');
+          btn.title = '标记为新品/取消新品';
+          btn.dataset.rowId = rowId;
+          btn.textContent = '新';
+          btn.onclick = () => window.toggleNew(parseInt(rowId,10));
+          wrapper.appendChild(btn);
+        }
+      });
+    }
+
     // 添加示例商品
     function addExampleProducts() {
       const examples = getProductExamples();
@@ -1727,6 +1781,8 @@
         document.getElementById('productsTableBody').appendChild(row);
       });
       
+      // —— 兼容旧行：为已有商品名单元补上“新品”胶囊 ——
+      ensureNewTagPills();
       showMessage(`已添加 ${filteredExamples.length} 个示例商品`, 'success');
       
       // 延迟更新表格状态，确保DOM完全更新后再隐藏提示
@@ -1772,6 +1828,8 @@
         tbody.appendChild(row);
       }
 
+      // —— 兼容旧行：为已有商品名单元补上“新品”胶囊 ——
+      ensureNewTagPills();
       showMessage('已在表格顶部添加新的商品行', 'info');
 
       // 立即更新表格状态，确保占位状态正确
@@ -1853,6 +1911,18 @@
       saveToLocalStorage();
       
       // 触发自动计算
+      autoCalculate();
+    };
+
+    // 新品标识开关（最小侵入：不新增列，仅在商品名旁显示小胶囊）
+    window.toggleNew = function(rowId){
+      const row = document.getElementById(`row-${rowId}`);
+      if (!row) return;
+      row.classList.toggle('new-product');
+      const btn = row.querySelector(`.new-toggle[data-row-id="${rowId}"]`);
+      if (btn) btn.classList.toggle('active');
+      // 持久化并触发相关刷新
+      saveToLocalStorage();
       autoCalculate();
     };
 
@@ -2155,6 +2225,7 @@
           sku: row.querySelector('.product-sku').value.trim(),
           platform: row.querySelector('.platform-select').value,
           isMain: row.querySelector('.main-toggle').classList.contains('active'),
+          isNew: row.classList.contains('new-product'),
           singlePrice: finalSinglePrice,
           tierPrices: finalTierPrices,
           returnRate: (() => {
@@ -2377,7 +2448,11 @@
         }
         updateFilterStatus();
       }, 100);
+      // —— 兼容旧行：为已有商品名单元补上“新品”胶囊（防止过滤/排序后丢失）
+      setTimeout(ensureNewTagPills, 50);
     }
+    // 初始修复：页面加载后为已有行补充新品开关
+    setTimeout(ensureNewTagPills, 0);
     
     // 检查是否有活跃的筛选条件
     function hasActiveFilters() {
