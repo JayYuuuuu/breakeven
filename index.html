@@ -577,10 +577,17 @@
                   <strong>解释：</strong>因为 GMV > 有效营收，相同的 % 换算成的广告金额更大。利润恒等式未变，是<strong>输入口径分母不同</strong>导致。<br>
                   提示：跨口径换算关系—— 占比(GMV) = 占比(有效) × r； ROI(GMV) = ROI(有效) ÷ r。
                 </div>
+                <div class="note" style="margin-top:8px">
+                  <strong>疑问：</strong>用<strong>有效营收口径</strong>是不是更难盈利？<br>
+                  <strong>结论：</strong>不是。有效口径先扣除了退货，给出的是<strong>更真实</strong>的保本门槛；数值上它的保本 ROI 更低，反而更容易达标。<br>
+                  <strong>关系：</strong><span class="mono">ROI<sub>BE,eff</sub> = (1 − 退货率) × ROI<sub>BE,gmv</sub></span>（只要退货率&gt;0，保本 ROI（有效）&lt; 保本 ROI（GMV））。<br>
+                  <strong>判定：</strong>盈利条件始终是 <span class="mono">ROI<sub>实际</sub> ≥ ROI<sub>BE</sub></span>，且必须在<strong>同一口径</strong>下比较。<br>
+                  <strong>例子：</strong>售价 100、退货率 20%、保本广告费 30，<span class="mono">ROI<sub>BE,gmv</sub>=100/30≈3.33</span>，<span class="mono">ROI<sub>BE,eff</sub>=80/30≈2.67</span>。若投放 ROI=3：按 GMV 未达标，按有效已达标（更贴近真实利润）。<br>
+                  <strong>提示：</strong>跨口径对比会误判。若需要换算：<span class="mono">占比(GMV) = 占比(有效) × r</span>；<span class="mono">ROI(GMV) = ROI(有效) ÷ r</span>。
+                </div>
               </div>
 
               <div class="explain-col">
-                <div class="sep"></div>
                 <div class="muted" style="margin:6px 0">完整利润恒等式（以「出货 1 单」为基准件）：</div>
                 <pre class="mono" style="font-size:12px; line-height:1.65; white-space:pre-wrap; background:#f8f8f8; border:1px solid #e5e5ea; border-radius:10px; padding:10px;">
 Profit = Rev
