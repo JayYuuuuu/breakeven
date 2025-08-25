@@ -644,24 +644,31 @@
     }
     
     /* 计算结果显示 - 统一单一价格和多档价格样式 */
-    .calc-result {
-      background: #f8f9fa;
-      border: 1px solid #e5e5ea;
-      border-radius: 6px;
-      padding: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--ink);
-    }
+
+
+/* 多档价格模式下的容器样式 */
+.calc-result.multi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
     
     /* 多档价格结果项样式 */
-    .calc-result.multi .result-item {
-      background: white;
-      border: 1px solid #e5e5ea;
-      border-radius: 4px;
-      padding: 4px 6px;
-      font-size: 11px;
-    }
+    
+/* 统一单一价格和多档价格的结果样式，合并.calc-result和多档价格下的.result-item样式 */
+.calc-result,
+.calc-result.multi .result-item {
+  background: #f8f9fa;
+  border: 1px solid #e5e5ea;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center; /* 数字居中对齐 */
+}
     
     /* 消息提示样式 */
     .message-area {
