@@ -1269,6 +1269,7 @@
           <button class="btn secondary" id="exportResults">导出结果</button>
           <button class="btn secondary" id="exportTemplate">导出产品模板</button>
           <button class="btn secondary" id="clearAll">清空所有</button>
+          <button class="btn secondary" id="testSkuChange" title="测试SKU变更功能（开发者用）">🧪 测试SKU变更</button>
         </div>
       </div>
     </section>
@@ -1625,7 +1626,8 @@
         </td>
         <td>
           <input type="text" class="table-input product-sku" placeholder="货号" 
-                 value="${product ? product.sku : ''}" data-row-id="${rowId}">
+                 value="${product ? product.sku : ''}" data-row-id="${rowId}"
+                 data-old-sku="${product ? product.sku : ''}">
         </td>
         <td>
           <select class="platform-select" data-row-id="${rowId}">
@@ -1939,6 +1941,12 @@
       
       // 触发自动计算
       autoCalculate();
+    };
+    
+    // 🆕 全局测试函数（供开发者测试SKU变更功能）
+    window.testSkuChange = function() {
+      console.log('🧪 调用全局测试函数：testSkuChange()');
+      testSkuChangeFunction();
     };
 
     // 新品标识开关（最小侵入：不新增列，仅在商品名旁显示小胶囊）
@@ -2949,7 +2957,8 @@
         </td>
         <td>
           <input type="text" class="table-input product-sku" placeholder="货号" 
-                 value="${data['货号'] || ''}" data-row-id="${rowId}">
+                 value="${data['货号'] || ''}" data-row-id="${rowId}"
+                 data-old-sku="${data['货号'] || ''}">
         </td>
         <td>
           <select class="platform-select" data-row-id="${rowId}">
@@ -4166,8 +4175,86 @@
           window.autoCalcTimer = setTimeout(autoCalculate, 500);
         }
       });
+      
+      // 🆕 新增：SKU变更监听器，实现新品状态自动迁移
+      tableBody.addEventListener('input', function(e) {
+        if (e.target.matches('.product-sku')) {
+          handleSkuChange(e.target);
+        }
+      });
+      
+      // 🆕 新增：SKU变更完成监听器（失去焦点时）
+      tableBody.addEventListener('blur', function(e) {
+        if (e.target.matches('.product-sku')) {
+          handleSkuChangeComplete(e.target);
+        }
+      }, true);
     }
 
+    // 🆕 SKU变更处理函数，实现新品状态自动迁移
+    function handleSkuChange(skuInput) {
+      const row = skuInput.closest('tr');
+      if (!row) return;
+      
+      const rowId = row.id.replace('row-', '');
+      const oldSku = skuInput.dataset.oldSku || '';
+      const newSku = skuInput.value.trim();
+      
+      // 记录旧SKU（如果还没有记录的话）
+      if (!skuInput.dataset.oldSku) {
+        skuInput.dataset.oldSku = oldSku || newSku;
+      }
+      
+      // 如果SKU确实发生了变化
+      if (oldSku && newSku && oldSku !== newSku) {
+        console.log(`🔄 SKU变更检测：行${rowId} 从 "${oldSku}" 变更为 "${newSku}"`);
+        
+        // 检查当前行是否标记为新品
+        const isNew = row.classList.contains('new-product');
+        if (isNew) {
+          console.log(`✅ 行${rowId} 标记为新品，SKU变更后保持新品状态`);
+          // 新品状态通过CSS类名保持，无需额外处理
+        } else {
+          console.log(`ℹ️ 行${rowId} 未标记为新品，SKU变更无需特殊处理`);
+        }
+        
+        // 更新旧SKU记录
+        skuInput.dataset.oldSku = newSku;
+      }
+    }
+    
+    // 🆕 SKU变更完成处理函数（失去焦点时）
+    function handleSkuChangeComplete(skuInput) {
+      const row = skuInput.closest('tr');
+      if (!row) return;
+      
+      const rowId = row.id.replace('row-', '');
+      const oldSku = skuInput.dataset.oldSku || '';
+      const newSku = skuInput.value.trim();
+      
+      // 如果SKU确实发生了变化且不为空
+      if (oldSku && newSku && oldSku !== newSku) {
+        console.log(`🎯 SKU变更完成：行${rowId} 从 "${oldSku}" 变更为 "${newSku}"`);
+        
+        // 检查当前行是否标记为新品
+        const isNew = row.classList.contains('new-product');
+        if (isNew) {
+          console.log(`✅ 新品状态已保持：行${rowId} 的 "${newSku}" 保持新品标记`);
+          
+          // 可以在这里添加额外的业务逻辑，比如：
+          // 1. 记录SKU变更历史
+          // 2. 更新相关数据映射
+          // 3. 触发其他业务事件
+        }
+        
+        // 自动保存到localStorage，确保变更持久化
+        setTimeout(() => {
+          saveToLocalStorage();
+          console.log(`💾 SKU变更已自动保存到localStorage`);
+        }, 100);
+      }
+    }
+    
     // 数据持久化存储相关函数
     const STORAGE_KEY = 'product_analysis_data';
     
@@ -4281,7 +4368,8 @@
         </td>
         <td>
           <input type="text" class="table-input product-sku" placeholder="货号" 
-                 value="${data.sku}" data-row-id="${rowId}">
+                 value="${data.sku}" data-row-id="${rowId}"
+                 data-old-sku="${data.sku}">
         </td>
         <td>
           <select class="platform-select" data-row-id="${rowId}">
@@ -4428,6 +4516,51 @@
       return result;
     }
 
+    // 🆕 初始化现有SKU输入框的旧值记录
+    function initializeSkuOldValues() {
+      console.log('🔄 开始初始化SKU输入框的旧值记录...');
+      
+      const skuInputs = document.querySelectorAll('.product-sku');
+      let initializedCount = 0;
+      
+      skuInputs.forEach((skuInput, index) => {
+        const currentValue = skuInput.value.trim();
+        if (currentValue && !skuInput.dataset.oldSku) {
+          skuInput.dataset.oldSku = currentValue;
+          initializedCount++;
+          console.log(`🔄 初始化第${index + 1}行SKU旧值：${currentValue}`);
+        }
+      });
+      
+      console.log(`✅ SKU旧值初始化完成，共初始化 ${initializedCount} 个输入框`);
+    }
+    
+    // 🧪 测试SKU变更功能的函数（开发调试用）
+    function testSkuChangeFunction() {
+      console.log('🧪 开始测试SKU变更功能...');
+      
+      // 查找第一个有数据的SKU输入框
+      const firstSkuInput = document.querySelector('.product-sku');
+      if (firstSkuInput) {
+        const oldValue = firstSkuInput.value;
+        const newValue = oldValue + '-TEST';
+        
+        console.log(`🧪 测试SKU变更：从 "${oldValue}" 到 "${newValue}"`);
+        
+        // 模拟用户输入
+        firstSkuInput.value = newValue;
+        firstSkuInput.dataset.oldSku = oldValue;
+        
+        // 触发变更事件
+        handleSkuChange(firstSkuInput);
+        handleSkuChangeComplete(firstSkuInput);
+        
+        console.log('🧪 SKU变更测试完成');
+      } else {
+        console.log('🧪 未找到SKU输入框，无法测试');
+      }
+    }
+    
     // 初始化
     initSystemParams();
     addInputListeners(); // 初始化时添加监听器
@@ -4435,6 +4568,12 @@
     
     // 绑定一次决策条控件切换（保障首次加载时 UI 同步）
     bindDecisionControls();
+    
+    // 🆕 绑定测试按钮事件
+    document.getElementById('testSkuChange')?.addEventListener('click', () => {
+      console.log('🧪 测试按钮被点击');
+      testSkuChangeFunction();
+    });
 
 
     // 解析Excel文件
@@ -5681,10 +5820,16 @@
     document.addEventListener('DOMContentLoaded', () => {
       // 延迟执行，确保DOM完全渲染
       setTimeout(ensureNewTagPills, 100);
+      
+      // 🆕 初始化现有SKU输入框的旧值记录
+      setTimeout(initializeSkuOldValues, 150);
     });
     // 如果DOM已经加载完成，立即执行
     if (document.readyState !== 'loading') {
       setTimeout(ensureNewTagPills, 100);
+      
+      // 🆕 初始化现有SKU输入框的旧值记录
+      setTimeout(initializeSkuOldValues, 150);
     }
 
 
