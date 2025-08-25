@@ -500,14 +500,8 @@
     .name-inline{ display:flex; align-items:center; gap:6px; }
     .name-inline .product-name{ flex:1; width:auto; }
 
-    /* 多档价格样式 */
-    .tier-prices-container {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      align-items: center;
-    }
-    
+    /* 统一价格输入框样式 - 单一价格和多档价格保持一致 */
+    .tier-prices-container,
     .tier-costs-container {
       display: flex;
       flex-direction: column;
@@ -515,14 +509,7 @@
       align-items: center;
     }
     
-    .tier-price-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      width: 100%;
-      justify-content: center;
-    }
-    
+    .tier-price-item,
     .tier-cost-item {
       display: flex;
       align-items: center;
@@ -531,24 +518,15 @@
       justify-content: center;
     }
     
-    .tier-price-input {
-      width: 68px;
-      min-width: 68px;
-      flex: none;
-    }
-    
-    .tier-cost-input {
-      width: 68px;
-      min-width: 68px;
-      flex: none;
-    }
-    
-    /* 单一价格和退货率输入框宽度 */
+    /* 所有价格输入框统一样式 */
+    .tier-price-input,
+    .tier-cost-input,
     .single-price,
     .single-cost,
     .return-rate {
       width: 68px;
       min-width: 68px;
+      flex: none;
     }
     
     .remove-tier-btn {
@@ -640,7 +618,7 @@
       background: white;
     }
     
-    /* 计算结果显示 */
+    /* 计算结果显示 - 统一单一价格和多档价格样式 */
     .calc-result {
       background: #f8f9fa;
       border: 1px solid #e5e5ea;
@@ -648,18 +626,10 @@
       padding: 8px;
       font-size: 12px;
       font-weight: 600;
-    }
-    
-    .calc-result.single {
       color: var(--ink);
     }
     
-    .calc-result.multi {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    
+    /* 多档价格结果项样式 */
     .calc-result.multi .result-item {
       background: white;
       border: 1px solid #e5e5ea;
