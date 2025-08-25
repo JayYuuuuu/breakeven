@@ -6445,216 +6445,202 @@
 
     // ========== CVR-CPC 边界可视化图表功能 ==========
     
-    /**
-     * 获取当前的保本广告费用于图表绘制
-     * @returns {number} 保本广告费（元/单）
-     */
-    function getCurrentBreakevenAdCost() {
-      if (!window.CURRENT_ANALYSIS_ROW_ID) return null;
-      
-      try {
-        updateSystemParams();
-        const product = getRowProductForAnalysis(window.CURRENT_ANALYSIS_ROW_ID);
-        if (!product || !isFinite(product.singlePrice) || !isFinite(product.singleCost)) {
-          return null;
-        }
-        const be = computeBEForProduct(product);
-        return be ? be.adCostBreakEven : null;
-      } catch (error) {
-        console.error('获取保本广告费失败:', error);
-        return null;
-      }
-    }
-
-    /**
-     * 获取当前用户输入的CVR和CPC
-     * @returns {object} {cvr, cpc} 当前投放参数
-     */
-    function getCurrentCvrCpc() {
-      const cvrPct = parseFloat(document.getElementById('decCVR').value);
-      const cvr = isFinite(cvrPct) ? cvrPct / 100 : null;
-      
-      const mode = document.getElementById('decBuyMode').value;
-      let cpc = parseFloat(document.getElementById('decCPC').value);
-      
-      if (mode === 'cpm') {
-        const cpm = parseFloat(document.getElementById('decCPM').value);
-        const ctrPct = parseFloat(document.getElementById('decCTR').value);
-        const ctr = isFinite(ctrPct) ? ctrPct / 100 : null;
-        cpc = (isFinite(cpm) && isFinite(ctr) && ctr > 0) ? (cpm / (ctr * 1000)) : null;
-      }
-      
-      return { cvr, cpc };
-    }
-
-    /**
-     * 绘制CVR-CPC边界图表
-     */
-    window.updateCvrCpcChart = function() {
-      const canvas = document.getElementById('cvrCpcChart');
-      if (!canvas) return;
-      
+    // —— 工具：像素比适配 —— 
+    function setupHiDPICanvas(canvas, width, height){
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width  = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width  = width + 'px';
+      canvas.style.height = height + 'px';
       const ctx = canvas.getContext('2d');
-      const width = canvas.width;
-      const height = canvas.height;
-      
-      // 清空画布
-      ctx.clearRect(0, 0, width, height);
-      
-      // 获取图表范围
-      const cvrMin = parseFloat(document.getElementById('cvrMin').value) || 0;
-      const cvrMax = parseFloat(document.getElementById('cvrMax').value) || 20;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return ctx;
+    }
+
+    // —— 读取当前口径下的"每单可承受广告费 A" —— 
+    function getBreakevenAdCost_CurrentBasis(){
+      // 从分析面板/决策条里拿：售价P、退货率r(%→小数)、ROI_BE(有效/GMV)、口径
+      const basis = document.getElementById('decBasis').value; // 'effective' | 'gmv'
+      // 兜底：如果你把这些值存在当前分析商品的上下文里，就从那里取
+      const P  = Number(document.getElementById('decAOV').value) || Number(document.getElementById('analysisPrice').textContent) || 0;
+      const r0 = (document.getElementById('analysisReturnRate').textContent || '').replace('%','').trim();
+      const r  = r0 ? (parseFloat(r0) > 1 ? parseFloat(r0)/100 : parseFloat(r0)) : 0;
+
+      // 这两个 ROI 你应该已在结果列或上下文里算出；若没有，可从当前行结果对象拿
+      // 这里放兜底读取方式：优先取"投放决策条"里 BE-ROAS（即保本ROI）
+      const roiBE_effective = Number(document.querySelector('#kpiBEROAS .val')?.textContent) || 0;
+      // GMV 口径 ROI 如需单独取值，请按你的上下文替换：
+      const roiBE_gmv = roiBE_effective; // 若你只做有效口径，可共用；否则换成 GMV 的
+
+      if (basis === 'effective'){
+        return breakevenAdCostFromROI(P, r, roiBE_effective);
+      } else {
+        // GMV：A = P / ROI_BE_GMV
+        return (P > 0 && roiBE_gmv > 0) ? (P / roiBE_gmv) : 0;
+      }
+    }
+
+    // —— 主入口：刷新图表 —— 
+    window.updateCvrCpcChart = function(){
+      const canvas = document.getElementById('cvrCpcChart');
+      const width = 600, height = 400;
+      const ctx = setupHiDPICanvas(canvas, width, height);
+
+      // 读取范围
+      const cvrMinPct = parseFloat(document.getElementById('cvrMin').value) || 0;
+      const cvrMaxPct = parseFloat(document.getElementById('cvrMax').value) || 20;
       const cpcMin = parseFloat(document.getElementById('cpcMin').value) || 0;
       const cpcMax = parseFloat(document.getElementById('cpcMax').value) || 3;
+
+      const cvrMin = cvrMinPct > 1 ? cvrMinPct/100 : cvrMinPct/100; // 输入是"百分数"，转成 0–1
+      const cvrMax = cvrMaxPct/100;
+
+      // 每单保本广告费 A
+      const A = getBreakevenAdCost_CurrentBasis();
+      if (!(A > 0) || !(cvrMax > cvrMin) || !(cpcMax > cpcMin)){
+        // 清空并提示
+        ctx.clearRect(0,0,width,height);
+        ctx.fillStyle = '#666';
+        ctx.font = '12px -apple-system, system-ui, Arial';
+        ctx.fillText('参数不足：请检查 A / CVR / CPC 范围与口径设置。', 16, 24);
+        return;
+      }
+
+      // 边界线数据
+      const curve = cpcCvrCurve(A, { cvrMin, cvrMax, steps: 50 });
+
+      // 坐标系
+      const pad = { l: 60, r: 20, t: 20, b: 50 }; // 增加边距以容纳坐标轴名称
+      const plotW = width - pad.l - pad.r;
+      const plotH = height - pad.t - pad.b;
+
+      const x = v => pad.l + ( (v - cvrMin) / (cvrMax - cvrMin) ) * plotW;
+      const y = v => pad.t + ( (v - cpcMin) / (cpcMax - cpcMin) ) * plotH; // 修正：0在下面
       
-      // 获取保本广告费
-      const breakevenAdCost = getCurrentBreakevenAdCost();
-      
-      // 设置绘图区域边距
-      const margin = { top: 30, right: 30, bottom: 50, left: 60 };
-      const chartWidth = width - margin.left - margin.right;
-      const chartHeight = height - margin.top - margin.bottom;
-      
-      // 坐标转换函数
-      const xScale = (cvr) => margin.left + (cvr / cvrMax) * chartWidth;
-      const yScale = (cpc) => margin.top + (1 - cpc / cpcMax) * chartHeight;
-      
-      // 绘制背景网格
-      ctx.strokeStyle = '#f0f0f0';
+      // 背景与网格
+      ctx.clearRect(0,0,width,height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,width,height);
+
+      ctx.strokeStyle = '#e5e5ea';
       ctx.lineWidth = 1;
-      
-      // 垂直网格线（CVR）
-      for (let cvr = 0; cvr <= cvrMax; cvr += cvrMax / 10) {
-        const x = xScale(cvr);
-        ctx.beginPath();
-        ctx.moveTo(x, margin.top);
-        ctx.lineTo(x, margin.top + chartHeight);
-        ctx.stroke();
+      ctx.beginPath();
+      for(let i=0;i<=5;i++){
+        const gx = pad.l + (plotW * i/5);
+        ctx.moveTo(gx, pad.t);
+        ctx.lineTo(gx, pad.t + plotH);
       }
-      
-      // 水平网格线（CPC）
-      for (let cpc = 0; cpc <= cpcMax; cpc += cpcMax / 10) {
-        const y = yScale(cpc);
-        ctx.beginPath();
-        ctx.moveTo(margin.left, y);
-        ctx.lineTo(margin.left + chartWidth, y);
-        ctx.stroke();
+      for(let j=0;j<=5;j++){
+        const gy = pad.t + (plotH * j/5);
+        ctx.moveTo(pad.l, gy);
+        ctx.lineTo(pad.l + plotW, gy);
       }
-      
-      // 绘制安全区域（保本线以下）
-      if (breakevenAdCost && breakevenAdCost > 0) {
-        ctx.fillStyle = 'rgba(52, 199, 89, 0.1)'; // 浅绿色
-        ctx.beginPath();
-        ctx.moveTo(margin.left, margin.top + chartHeight);
-        
-        // 绘制保本线以下的区域
-        for (let cvr = cvrMin; cvr <= cvrMax; cvr += 0.1) {
-          const cpc = breakevenAdCost * (cvr / 100); // CVR转换为小数
-          if (cpc <= cpcMax) {
-            ctx.lineTo(xScale(cvr), yScale(cpc));
-          }
-        }
-        
-        // 如果保本线超出图表范围，连接到边界
-        const maxCvrForChart = Math.min(cvrMax, (cpcMax / breakevenAdCost) * 100);
-        ctx.lineTo(xScale(maxCvrForChart), yScale(breakevenAdCost * (maxCvrForChart / 100)));
-        ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
-        ctx.lineTo(margin.left, margin.top + chartHeight);
-        ctx.fill();
-      }
-      
-      // 绘制保本边界线
-      if (breakevenAdCost && breakevenAdCost > 0) {
-        ctx.strokeStyle = '#ff3b30'; // 红色边界线
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        
-        const startCvr = cvrMin;
-        const startCpc = breakevenAdCost * (startCvr / 100);
-        ctx.moveTo(xScale(startCvr), yScale(startCpc));
-        
-        const endCvr = Math.min(cvrMax, (cpcMax / breakevenAdCost) * 100);
-        const endCpc = breakevenAdCost * (endCvr / 100);
-        ctx.lineTo(xScale(endCvr), yScale(endCpc));
-        ctx.stroke();
-      }
-      
-      // 绘制当前投放点位
-      const currentPoint = getCurrentCvrCpc();
-      if (currentPoint.cvr && currentPoint.cpc && 
-          currentPoint.cvr * 100 >= cvrMin && currentPoint.cvr * 100 <= cvrMax &&
-          currentPoint.cpc >= cpcMin && currentPoint.cpc <= cpcMax) {
-        
-        ctx.fillStyle = '#007aff'; // 蓝色当前点
-        ctx.beginPath();
-        ctx.arc(xScale(currentPoint.cvr * 100), yScale(currentPoint.cpc), 6, 0, 2 * Math.PI);
-        ctx.fill();
-        
-        // 添加点位标签
-        ctx.fillStyle = '#007aff';
-        ctx.font = '12px -apple-system, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('当前', xScale(currentPoint.cvr * 100), yScale(currentPoint.cpc) - 10);
-      }
-      
-      // 绘制坐标轴
-      ctx.strokeStyle = '#333';
+      ctx.stroke();
+
+      // 填充安全/亏损区域（相对边界线）
+      // 我们采样曲线形成多边形
+      const polyBelow = curve.map(p => ({x: x(p.cvr), y: y(p.cpc)}));
+      // 线下到 x 轴底部
+      ctx.fillStyle = 'rgba(52, 199, 89, 0.15)'; // 安全
+      ctx.beginPath();
+      ctx.moveTo(x(curve[0].cvr), y(cpcMin));
+      polyBelow.forEach((pt, idx) => {
+        if (idx===0) ctx.lineTo(pt.x, y(cpcMin));
+        ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.lineTo(x(curve[curve.length-1].cvr), y(cpcMin));
+      ctx.closePath();
+      ctx.fill();
+
+      // 边界线上方（亏损）
+      ctx.fillStyle = 'rgba(255, 59, 48, 0.12)'; // 危险
+      ctx.beginPath();
+      ctx.moveTo(x(curve[0].cvr), y(cpcMax));
+      polyBelow.forEach((pt) => ctx.lineTo(pt.x, pt.y));
+      ctx.lineTo(x(curve[curve.length-1].cvr), y(cpcMax));
+      ctx.closePath();
+      ctx.fill();
+
+      // 画边界线
+      ctx.strokeStyle = '#ff3b30';
       ctx.lineWidth = 2;
-      
-      // X轴（CVR）
       ctx.beginPath();
-      ctx.moveTo(margin.left, margin.top + chartHeight);
-      ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+      curve.forEach((p, i) => {
+        const px = x(p.cvr), py = y(p.cpc);
+        if (i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
       ctx.stroke();
-      
-      // Y轴（CPC）
-      ctx.beginPath();
-      ctx.moveTo(margin.left, margin.top);
-      ctx.lineTo(margin.left, margin.top + chartHeight);
-      ctx.stroke();
-      
-      // 绘制坐标轴标签
+
+      // 坐标轴与刻度
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 1.2;
+      // x轴
+      ctx.beginPath(); ctx.moveTo(pad.l, pad.t+plotH); ctx.lineTo(pad.l+plotW, pad.t+plotH); ctx.stroke();
+      // y轴
+      ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t+plotH); ctx.stroke();
+
       ctx.fillStyle = '#333';
-      ctx.font = '12px -apple-system, system-ui, sans-serif';
+      ctx.font = '12px -apple-system, system-ui, Arial';
       ctx.textAlign = 'center';
-      
-      // X轴标签（CVR）
-      for (let cvr = 0; cvr <= cvrMax; cvr += cvrMax / 5) {
-        const x = xScale(cvr);
-        ctx.fillText(cvr.toFixed(1) + '%', x, margin.top + chartHeight + 20);
+      for(let i=0;i<=5;i++){
+        const cvrTick = cvrMin + (cvrMax - cvrMin) * i/5;
+        ctx.fillText((cvrTick*100).toFixed(1)+'%', pad.l + plotW*i/5, pad.t+plotH+16);
       }
-      
-      // Y轴标签（CPC）
       ctx.textAlign = 'right';
-      for (let cpc = 0; cpc <= cpcMax; cpc += cpcMax / 5) {
-        const y = yScale(cpc);
-        ctx.fillText(cpc.toFixed(1) + '元', margin.left - 10, y + 4);
+      for (let j = 0; j <= 5; j++) {
+      const cpcTick = cpcMax - (cpcMax - cpcMin) * (j/5);   // 顶部显示最大值，底部显示最小值
+      ctx.fillText(cpcTick.toFixed(2), pad.l-6, pad.t + (plotH*j/5) + 4);
       }
       
-      // 绘制轴标题
+      // 添加坐标轴名称
       ctx.fillStyle = '#666';
-      ctx.font = 'bold 14px -apple-system, system-ui, sans-serif';
+      ctx.font = 'bold 14px -apple-system, system-ui, Arial';
       ctx.textAlign = 'center';
       
-      // X轴标题
-      ctx.fillText('转化率 CVR (%)', margin.left + chartWidth / 2, height - 10);
+      // X轴名称（转化率）
+      ctx.fillText('转化率 CVR (%)', pad.l + plotW/2, height - 15);
       
-      // Y轴标题（旋转90度）
+      // Y轴名称（点击单价）- 旋转90度
       ctx.save();
-      ctx.translate(15, margin.top + chartHeight / 2);
+      ctx.translate(15, pad.t + plotH/2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillText('点击单价 CPC (元)', 0, 0);
       ctx.restore();
       
-      // 绘制图表标题
-      if (breakevenAdCost) {
+      // 图表标题
+      if (A > 0) {
         ctx.fillStyle = '#333';
-        ctx.font = 'bold 16px -apple-system, system-ui, sans-serif';
+        ctx.font = 'bold 16px -apple-system, system-ui, Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`保本边界线：CPC = ${breakevenAdCost.toFixed(2)} × CVR`, width / 2, 20);
+        ctx.fillText(`保本边界线：CPC = ${A.toFixed(2)} × CVR`, width/2, 15);
       }
-      
-      console.log('📊 CVR-CPC图表已更新', { breakevenAdCost, currentPoint });
+
+      // 当前点位（从决策条读值）
+      const cvrPct = parseFloat(document.getElementById('decCVR').value);
+      const cpcVal = parseFloat(document.getElementById('decCPC').value);
+      if (isFinite(cvrPct) && isFinite(cpcVal) && cvrPct >= 0 && cpcVal >= 0){
+        const v = cvrPct/100;
+        const cx = x(Math.min(Math.max(v, cvrMin), cvrMax));
+        const cy = y(Math.min(Math.max(cpcVal, cpcMin), cpcMax));
+        // 十字参考线
+        ctx.strokeStyle = 'rgba(0,122,255,0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t+plotH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad.l, cy); ctx.lineTo(pad.l+plotW, cy); ctx.stroke();
+        // 点
+        ctx.fillStyle = '#007aff';
+        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+        
+        // 显示点位数值
+        ctx.fillStyle = '#007aff';
+        ctx.font = 'bold 12px -apple-system, system-ui, Arial';
+        ctx.textAlign = 'center';
+        // 在点上方显示CVR值
+        ctx.fillText(`${cvrPct.toFixed(1)}%`, cx, cy - 8);
+        // 在点右侧显示CPC值
+        ctx.textAlign = 'left';
+        ctx.fillText(`${cpcVal.toFixed(2)}元`, cx + 8, cy + 4);
+      }
     };
 
     /**
