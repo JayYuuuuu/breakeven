@@ -408,6 +408,23 @@
       }
     }
     
+    /* MacBook Air 13 屏幕适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
+    /* 当屏幕宽度小于等于1680px时，隐藏这两列以节省空间 */
+    /* 1680px对应MacBook Air 13"的"更多空间"模式逻辑分辨率，确保在有限屏幕上表格不会过于拥挤 */
+    @media (max-width: 1680px) {
+      /* 隐藏保本广告(GMV)列 - 第14列 */
+      .products-table th:nth-child(14),
+      .products-table td:nth-child(14) {
+        display: none;
+      }
+      
+      /* 隐藏保本ROI(GMV)列 - 第16列 */
+      .products-table th:nth-child(16),
+      .products-table td:nth-child(16) {
+        display: none;
+      }
+    }
+    
     /* 功能按钮托盘 */
     .tooltray{ 
       display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; 
