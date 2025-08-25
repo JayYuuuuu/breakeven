@@ -408,74 +408,10 @@
       }
     }
     
-    /* MacBook Air 13 屏幕适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
-    /* 精确针对MacBook Air 13"的"更多空间"模式逻辑分辨率范围 */
-    /* 1680 × 1050 逻辑分辨率，确保在有限屏幕上表格不会过于拥挤 */
-    @media (min-width: 1680px) and (max-width: 1680px) {
-      /* 隐藏保本广告(GMV)列 - 第14列 */
-      .products-table th:nth-child(14),
-      .products-table td:nth-child(14) {
-        display: none;
-      }
-      
-      /* 隐藏保本ROI(GMV)列 - 第16列 */
-      .products-table th:nth-child(16),
-      .products-table td:nth-child(16) {
-        display: none;
-      }
-    }
-    
-    /* iPad Pro 11寸 屏幕适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
-    /* 精确针对iPad Pro 11寸的逻辑分辨率范围 */
-    /* 横屏：1210 × 834，竖屏：834 × 1210 */
-    @media (min-width: 1210px) and (max-width: 1210px) {
-      /* 隐藏保本广告(GMV)列 - 第14列 */
-      .products-table th:nth-child(14),
-      .products-table td:nth-child(14) {
-        display: none;
-      }
-      
-      /* 隐藏保本ROI(GMV)列 - 第16列 */
-      .products-table th:nth-child(16),
-      .products-table td:nth-child(16) {
-        display: none;
-      }
-    }
-    
-    /* iPad Pro 11寸 竖屏模式适配 */
-    @media (min-width: 834px) and (max-width: 834px) {
-      /* 隐藏保本广告(GMV)列 - 第14列 */
-      .products-table th:nth-child(14),
-      .products-table td:nth-child(14) {
-        display: none;
-      }
-      
-      /* 隐藏保本ROI(GMV)列 - 第16列 */
-      .products-table th:nth-child(16),
-      .products-table td:nth-child(16) {
-        display: none;
-      }
-    }
-    
-    /* iPad mini 7 屏幕适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
-    /* 精确针对iPad mini 7的逻辑分辨率范围 */
-    /* 横屏：1133 × 744，竖屏：744 × 1133 */
-    @media (min-width: 1133px) and (max-width: 1133px) {
-      /* 隐藏保本广告(GMV)列 - 第14列 */
-      .products-table th:nth-child(14),
-      .products-table td:nth-child(14) {
-        display: none;
-      }
-      
-      /* 隐藏保本ROI(GMV)列 - 第16列 */
-      .products-table th:nth-child(16),
-      .products-table td:nth-child(16) {
-        display: none;
-      }
-    }
-    
-    /* iPad mini 7 竖屏模式适配 */
-    @media (min-width: 744px) and (max-width: 744px) {
+    /* 小屏幕设备适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
+    /* 当屏幕宽度小于等于1680px时，隐藏这两列以节省空间 */
+    /* 适用于：MacBook Air 13"、iPad Pro 11"、iPad mini 7等所有小屏幕设备 */
+    @media (max-width: 1680px) {
       /* 隐藏保本广告(GMV)列 - 第14列 */
       .products-table th:nth-child(14),
       .products-table td:nth-child(14) {
