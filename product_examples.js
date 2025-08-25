@@ -24,6 +24,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXB50001',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 标记为新品
     singlePrice: 58,
     tierPrices: [],
     returnRate: 0.1399,
@@ -35,6 +36,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240331',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 标记为新品
     singlePrice: 0,
     tierPrices: [59.80, 65.80, 69.80],
     returnRate: 0.2315,
@@ -46,6 +48,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY8101',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.1082,

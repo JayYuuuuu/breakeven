@@ -609,6 +609,7 @@
       transition: background 0.18s, border-color 0.18s, color 0.18s;
     }
     .tag-pill.new-toggle.active{ background:#ffedd1; border-color:#ffcf78; color:#7a4a00; }
+    .tag-pill.new-toggle:hover{ background:#fff3e0; border-color:#ffb74d; }
     .products-table tr.new-product td:first-child::before{ content:"🆕 "; }
     
     /* 平台选择样式 */
@@ -1152,6 +1153,16 @@
                 </select>
               </div>
               
+              <!-- 新品筛选 -->
+              <div class="filter-chip">
+                <span class="muted">新品</span>
+                <select id="newProductFilter" class="input">
+                  <option value="">全部</option>
+                  <option value="true">新品</option>
+                  <option value="false">非新品</option>
+                </select>
+              </div>
+              
               <!-- 排序功能 -->
               <div class="filter-chip">
                 <span class="muted">排序</span>
@@ -1196,6 +1207,7 @@
             <div class="quick-filters">
               <span class="quick-filter-label">快捷筛选</span>
               <button class="btn secondary small" id="quickFilter-main-true" onclick="quickFilter('main', 'true')">只看主推款</button>
+              <button class="btn secondary small" id="quickFilter-new-true" onclick="quickFilter('new', 'true')">只看新品</button>
               <button class="btn secondary small" id="quickFilter-platform-淘宝" onclick="quickFilter('platform', '淘宝')">只看淘宝</button>
               <button class="btn secondary small" id="quickFilter-returnRate-low" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;=10%)</button>
               <button class="btn secondary small" id="quickFilter-returnRate-high" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;=15%)</button>
@@ -3198,6 +3210,7 @@
               '货号': rowData.sku || '',
               '平台': rowData.platform || '淘宝',
               '主推款': rowData.isMain ? '是' : '否',
+              '新品': rowData.isNew ? '是' : '否', // 添加新品列
               '含税售价P': singleSellingPrice,
               '含税售价（多档）': tierSellingPrices,
               '单一进货价': singleCostPrice,
@@ -3377,6 +3390,7 @@
           const returnRateMin = parseFloat(document.getElementById('returnRateMin').value) || 0;
           const returnRateMax = parseFloat(document.getElementById('returnRateMax').value) || 100;
           const mainProductFilter = document.getElementById('mainProductFilter').value;
+          const newProductFilter = document.getElementById('newProductFilter').value;
           const valueFilterColumn = document.getElementById('valueFilterColumn').value;
           const valueFilterMin = parseFloat(document.getElementById('valueFilterMin').value);
           const valueFilterMax = parseFloat(document.getElementById('valueFilterMax').value);
@@ -3415,6 +3429,16 @@
               if (mainProductFilter === 'true' && !isMain) {
                 shouldShow = false;
               } else if (mainProductFilter === 'false' && isMain) {
+                shouldShow = false;
+              }
+            }
+            
+            // 新品筛选
+            if (newProductFilter !== '') {
+              const isNew = row.classList.contains('new-product');
+              if (newProductFilter === 'true' && !isNew) {
+                shouldShow = false;
+              } else if (newProductFilter === 'false' && isNew) {
                 shouldShow = false;
               }
             }
@@ -3602,6 +3626,7 @@
       document.getElementById('returnRateMin').value = '';
       document.getElementById('returnRateMax').value = '';
       document.getElementById('mainProductFilter').value = '';
+      document.getElementById('newProductFilter').value = '';
       document.getElementById('valueFilterColumn').value = '';
       document.getElementById('valueFilterMin').value = '';
       document.getElementById('valueFilterMax').value = '';
@@ -4160,6 +4185,7 @@
           sku: row.querySelector('.product-sku')?.value || '',
           platform: row.querySelector('.platform-select')?.value || '淘宝',
           isMain: row.querySelector('.main-toggle')?.classList.contains('active') || false,
+          isNew: row.classList.contains('new-product') || false, // 保存新品状态
           singlePrice: row.querySelector('.single-price')?.value || '',
           singleCost: row.querySelector('.single-cost')?.value || '',
           returnRate: row.querySelector('.return-rate')?.value || '',
@@ -4196,7 +4222,7 @@
             tableBody.appendChild(row);
           });
           
-          showMessage(`已恢复 ${parsedData.length} 行数据`, 'success');
+          showMessage(`已加载 ${parsedData.length} 行数据`, 'success');
           
           // 延迟更新表格状态，确保DOM完全更新后再隐藏提示
           setTimeout(() => {
@@ -4234,7 +4260,10 @@
       const rowId = nextRowId++;
       const row = document.createElement('tr');
       row.id = `row-${rowId}`;
-      row.className = data.isMain ? 'main-product' : '';
+      row.className = [
+        data.isMain ? 'main-product' : '',
+        data.isNew ? 'new-product' : ''
+      ].filter(Boolean).join(' ');
       
       const hasTierPrices = data.tierPrices && data.tierPrices.length > 0;
       const hasTierCosts = data.tierCosts && data.tierCosts.length > 0;
@@ -4244,8 +4273,11 @@
           <input type="checkbox" class="row-checkbox" data-row-id="${rowId}">
         </td>
         <td>
-          <input type="text" class="table-input product-name" placeholder="商品名称" 
-                 value="${data.name}" data-row-id="${rowId}">
+          <div class="name-inline">
+            <input type="text" class="table-input product-name" placeholder="商品名称" 
+                   value="${data.name}" data-row-id="${rowId}">
+            <button class="tag-pill new-toggle ${data.isNew ? 'active' : ''}" title="标记为新品/取消新品" data-row-id="${rowId}" onclick="window.toggleNew(${rowId})">新</button>
+          </div>
         </td>
         <td>
           <input type="text" class="table-input product-sku" placeholder="货号" 
@@ -4662,6 +4694,9 @@
         case 'main':
           document.getElementById('mainProductFilter').value = value;
           break;
+        case 'new':
+          document.getElementById('newProductFilter').value = value;
+          break;
         case 'platform':
           document.getElementById('platformFilter').value = value;
           break;
@@ -4725,6 +4760,9 @@
       switch (type) {
         case 'main':
           filterName = '主推款';
+          break;
+        case 'new':
+          filterName = '新品';
           break;
         case 'platform':
           filterName = value;
@@ -5142,6 +5180,7 @@
         const sku = row.querySelector('.product-sku')?.value?.trim() || '';
         const platform = row.querySelector('.platform-select')?.value || '';
         const isMain = row.querySelector('.main-toggle')?.classList.contains('active') || false;
+        const isNew = row.classList.contains('new-product') || false; // 收集新品状态
         const returnRate = parseFloat(row.querySelector('.return-rate')?.value || '0') / 100; // 转换为小数
         
         // 检查价格模式
@@ -5188,6 +5227,7 @@
           sku,
           platform,
           isMain,
+          isNew, // 返回新品状态
           returnRate,
           priceMode,
           price,
@@ -5635,6 +5675,16 @@
       document.addEventListener('DOMContentLoaded', setupAutoCalculation);
     } else {
       setupAutoCalculation();
+    }
+    
+    // 在页面加载完成后自动为旧数据补上新品胶囊
+    document.addEventListener('DOMContentLoaded', () => {
+      // 延迟执行，确保DOM完全渲染
+      setTimeout(ensureNewTagPills, 100);
+    });
+    // 如果DOM已经加载完成，立即执行
+    if (document.readyState !== 'loading') {
+      setTimeout(ensureNewTagPills, 100);
     }
 
 

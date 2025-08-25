@@ -545,6 +545,7 @@ export function parseProductFromRow(rowData) {
     sku: rowData['货号'] || '',
     platform: rowData['平台'] || '',
     isMain: rowData['主推款'] === '是',
+    isNew: rowData['新品'] === '是', // 解析新品状态
     singlePrice: null,
     tierPrices: [],
     returnRate: 0,
@@ -686,8 +687,8 @@ export function validateProduct(product) {
  * @returns {string} CSV模板内容
  */
 export function generateCSVTemplate() {
-  const headers = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
-  const example = ['示例商品', 'SKU001', '淘宝', '是', '79.8', '', '38.5', '25,26,27', '12'];
+  const headers = ['商品名称', '货号', '平台', '主推款', '新品', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
+  const example = ['示例商品', 'SKU001', '淘宝', '是', '是', '79.8', '', '38.5', '25,26,27', '12'];
   
   return [headers.join(','), example.join(',')].join('\n');
 }
@@ -747,7 +748,7 @@ export function parseCSV(csvText) {
  */
 export function exportAnalysisToCSV(analysisResults) {
   const headers = [
-    '商品名称', '货号', '平台', '主推款', '售价模式', '售价', '进货价', 
+    '商品名称', '货号', '平台', '主推款', '新品', '售价模式', '售价', '进货价', 
     '退货率', '保本广告费', '保本广告占比(有效)', '保本广告占比(GMV)', 
     '保本ROI(有效)', '保本ROI(GMV)'
   ];
@@ -762,6 +763,7 @@ export function exportAnalysisToCSV(analysisResults) {
         result.sku,
         result.platform,
         result.isMain ? '是' : '否',
+        result.isNew ? '是' : '否', // 导出新品状态
         '单一价格',
         result.singlePrice,
         result.singleCost,
@@ -781,6 +783,7 @@ export function exportAnalysisToCSV(analysisResults) {
         result.sku,
         result.platform,
         result.isMain ? '是' : '否',
+        result.isNew ? '是' : '否', // 导出新品状态
         `多档价格${index + 1}`,
         tier.price,
         tier.cost,
