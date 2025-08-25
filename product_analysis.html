@@ -1327,13 +1327,16 @@
           </div>
           <div class="decision-actions">
             <button class="btn" id="decCalcBtn" onclick="console.log('🔘 按钮被点击了'); window.calculateDecisionBar();">计算投放阈值</button>
-            <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。</span>
+            <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
           </div>
           <div class="kpi-band">
             <div class="kpi" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiBECPA"><div class="label">BE-CPA（可承受每单广告额）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiCritCPC"><div class="label">CPC 临界（保本）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiSafety"><div class="label">安全边际（MaxCPC−实际CPC）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
           </div>
@@ -4839,12 +4842,23 @@
         let aov = parseFloat(document.getElementById('decAOV').value);
         if (!isFinite(aov)) aov = product.singlePrice || NaN;
 
+        // —— 口径对齐 ——
+        // 若选择"有效营收"口径，则把 AOV 折成"有效AOV = AOV × (1 - 退货率)"
+        const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
+          ? (aov * (1 - product.returnRate))
+          : aov;
+
         const beROAS = (basis==='effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
         const beCPA  = be.adCostBreakEven;
 
-        const maxCPC = (isFinite(cvr) && isFinite(aov) && beROAS>0) ? (cvr*aov)/beROAS : NaN;
-        const actROAS = (isFinite(cvr) && isFinite(aov) && isFinite(cpc) && cpc>0) ? (cvr*aov)/cpc : NaN;
+        const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
+        const actROAS = (isFinite(cvr) && isFinite(usedAOV) && isFinite(cpc) && cpc>0) ? (cvr*usedAOV)/cpc : NaN;
         const safety = (isFinite(maxCPC) && isFinite(cpc)) ? (maxCPC - cpc) : NaN;
+
+        // 三角临界
+        const critCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
+        const critCVR = (isFinite(cpc) && isFinite(usedAOV) && usedAOV>0) ? (cpc*beROAS)/usedAOV : NaN;
+        const critAOV = (isFinite(cpc) && isFinite(cvr) && cvr>0) ? (cpc*beROAS)/cvr : NaN;
 
         // 增量修正（0-1，可选）
         const incr = parseFloat(document.getElementById('decIncrementality').value);
@@ -4870,10 +4884,20 @@
         // 显示“当前预估 ROAS（增量修正后）”
         document.querySelector('#kpiActROAS .val').textContent = isFinite(adjROAS)? fmt(adjROAS,2) : '—';
         document.querySelector('#kpiSafety .val').textContent = isFinite(safety)? fmt(safety,2) : '—';
+        const elCritCPC = document.querySelector('#kpiCritCPC .val');
+        const elCritCVR = document.querySelector('#kpiCritCVR .val');
+        const elCritAOV = document.querySelector('#kpiCritAOV .val');
+        if (elCritCPC) elCritCPC.textContent = isFinite(critCPC) ? fmt(critCPC,2) : '—';
+        if (elCritCVR) elCritCVR.textContent = isFinite(critCVR) ? (critCVR*100).toFixed(2) + '%' : '—';
+        if (elCritAOV) elCritAOV.textContent = isFinite(critAOV) ? fmt(critAOV,2) : '—';
+        console.log('🔺 三角临界：', { basis, usedAOV, beROAS, cvr, cpc, critCPC, critCVR, critAOV });
         const kAdv = document.getElementById('kpiAdvice');
         kAdv.querySelector('.val').textContent = advice;
         kAdv.classList.remove('good','warn','bad');
         if (adviceClass) kAdv.classList.add(adviceClass);
+        
+        // 调试日志：口径对齐信息
+        console.log('📐 口径对齐：basis=', basis, '原始AOV=', aov, '退货率=', product.returnRate, '用于计算的AOV=', usedAOV);
         
         console.log('✅ 投放决策条计算完成！');
       } catch (error) {
