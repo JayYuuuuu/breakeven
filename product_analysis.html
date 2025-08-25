@@ -1214,6 +1214,7 @@
               <button class="btn secondary small" id="quickFilter-roi-high" onclick="quickFilter('roi', 'high')">高ROI(&gt;3.5)</button>
               <button class="btn secondary small" id="quickFilter-adRate-low" onclick="quickFilter('adRate', 'low')">保本广告(&lt;=20%)</button>
               <button class="btn secondary small" id="quickFilter-adCost-low" onclick="quickFilter('adCost', 'low')">保本广告费(&lt;10)</button>
+              <button class="btn secondary small" id="quickFilter-grossMargin-low" onclick="quickFilter('grossMargin', 'low')">毛利率(&lt;30%)</button>
               <button class="btn secondary small" id="quickFilter-nanData-show" onclick="quickFilter('nanData', 'show')">显示NaN数据</button>
             </div>
           </div>
@@ -3578,7 +3579,7 @@
                 } else if (result.tierAnalysis.length > 0) {
                   // 多档价格模式 - 检查任意一档是否满足条件
                   for (let i = 0; i < result.tierAnalysis.length; i++) {
-                    const value = getValueFromResult(result, valueFilterColumn);
+                    const value = getValueFromTier(result.tierAnalysis[i], valueFilterColumn);
                     if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
                       shouldShowThisRow = true;
                       break; // 只要有一档满足条件就可以
@@ -3688,7 +3689,7 @@
           } else if (result.tierAnalysis.length > 0) {
             // 多档价格模式 - 检查任意一档是否满足条件
             for (let i = 0; i < result.tierAnalysis.length; i++) {
-              const value = getValueFromResult(result, valueFilterColumn);
+              const value = getValueFromTier(result.tierAnalysis[i], valueFilterColumn);
               if (value !== null && checkValueInRange(value, valueFilterMin, valueFilterMax)) {
                 valueCell.classList.add('highlight-match');
                 break;
@@ -3839,6 +3840,8 @@
       if (result.singleAnalysis) {
         // 单一价格模式
         switch (column) {
+          case 'grossMarginRate':
+            return result.singleAnalysis.grossMarginRate * 100;
           case 'adCostBreakEven':
             return result.singleAnalysis.adCostBreakEven;
           case 'adRateBE_effective':
@@ -3856,6 +3859,8 @@
         // 多档价格模式 - 使用第一档的值进行排序
         const firstTier = result.tierAnalysis[0];
         switch (column) {
+          case 'grossMarginRate':
+            return firstTier.grossMarginRate * 100;
           case 'adCostBreakEven':
             return firstTier.adCostBreakEven;
           case 'adRateBE_effective':
@@ -3871,6 +3876,26 @@
         }
       }
       return null;
+    }
+    
+    // 从单个档位数据中获取指定列的值
+    function getValueFromTier(tier, column) {
+      switch (column) {
+        case 'grossMarginRate':
+          return tier.grossMarginRate * 100;
+        case 'adCostBreakEven':
+          return tier.adCostBreakEven;
+        case 'adRateBE_effective':
+          return tier.adRateBE_effective * 100;
+        case 'adRateBE_gmv':
+          return tier.adRateBE_gmv * 100;
+        case 'ROI_BE_effective':
+          return tier.ROI_BE_effective;
+        case 'ROI_BE_gmv':
+          return tier.ROI_BE_gmv;
+        default:
+          return null;
+      }
     }
     
     // 切换排序方向
@@ -4977,6 +5002,13 @@
             document.getElementById('valueFilterMax').value = '10';
           }
           break;
+        case 'grossMargin':
+          if (value === 'low') {
+            document.getElementById('valueFilterColumn').value = 'grossMarginRate';
+            document.getElementById('valueFilterMin').value = '';
+            document.getElementById('valueFilterMax').value = '30';
+          }
+          break;
         case 'nanData':
           if (value === 'show') {
             // 对于NaN数据，我们需要特殊处理，因为NaN无法直接比较
@@ -5028,6 +5060,11 @@
         case 'adCost':
           if (value === 'low') {
             filterName = '低广告费(<10)';
+          }
+          break;
+        case 'grossMargin':
+          if (value === 'low') {
+            filterName = '低毛利率(<30%)';
           }
           break;
         case 'nanData':
