@@ -2112,6 +2112,16 @@
     };
 
     window.removeTierPrice = function(rowId, button) {
+      // 获取要删除的档位信息
+      const priceInput = button.parentElement.querySelector('.tier-price-input');
+      const priceValue = priceInput ? priceInput.value : '';
+      
+      // 显示删除确认对话框
+      const confirmMessage = `确定要删除售价为 ${priceValue || '未知'} 元的档位吗？\n\n此操作不可撤销！`;
+      if (!confirm(confirmMessage)) {
+        return; // 用户取消删除
+      }
+      
       const container = button.parentElement.parentElement;
       button.parentElement.remove();
       
@@ -2202,6 +2212,16 @@
     };
 
     window.removeTierCost = function(rowId, button) {
+      // 获取要删除的档位信息
+      const costInput = button.parentElement.querySelector('.tier-cost-input');
+      const costValue = costInput ? costInput.value : '';
+      
+      // 显示删除确认对话框
+      const confirmMessage = `确定要删除进货价为 ${costValue || '未知'} 元的档位吗？\n\n此操作不可撤销！`;
+      if (!confirm(confirmMessage)) {
+        return; // 用户取消删除
+      }
+      
       const container = button.parentElement.parentElement;
       button.parentElement.remove();
       
@@ -2243,31 +2263,51 @@
 
     // 删除行（统一的行删除函数）
     window.removeRow = function(rowId) {
+      // 获取要删除的行信息，用于确认对话框
       const row = document.getElementById(`row-${rowId}`);
-      if (row) {
-        row.remove();
-        showMessage('商品行已删除', 'info');
-        
-        // 更新表格状态，如果删除后没有数据行则显示提示
-        updateTableStatus();
-        
-        // 自动保存到localStorage，确保删除操作持久化
-        saveToLocalStorage();
-        
-        // 触发自动计算
-        autoCalculate();
-        
-        // 行删除完成后，重新应用当前的筛选条件
-        setTimeout(() => {
-          if (hasActiveFilters()) {
-            applyFilters();
-          }
-          if (hasActiveSort()) {
-            performSort();
-          }
-          updateFilterStatus();
-        }, 100);
+      if (!row) return;
+      
+      // 获取商品名称，用于确认对话框
+      const productNameInput = row.querySelector('.product-name');
+      const productName = productNameInput ? productNameInput.value.trim() : '未知商品';
+      const skuInput = row.querySelector('.sku-input');
+      const sku = skuInput ? skuInput.value.trim() : '';
+      
+      // 构建确认信息
+      let confirmMessage = `确定要删除商品"${productName}"吗？`;
+      if (sku) {
+        confirmMessage += `\n货号：${sku}`;
       }
+      confirmMessage += '\n\n此操作不可撤销！';
+      
+      // 显示删除确认对话框
+      if (!confirm(confirmMessage)) {
+        return; // 用户取消删除
+      }
+      
+      // 用户确认删除，执行删除操作
+      row.remove();
+      showMessage(`商品"${productName}"已删除`, 'info');
+      
+      // 更新表格状态，如果删除后没有数据行则显示提示
+      updateTableStatus();
+      
+      // 自动保存到localStorage，确保删除操作持久化
+      saveToLocalStorage();
+      
+      // 触发自动计算
+      autoCalculate();
+      
+      // 行删除完成后，重新应用当前的筛选条件
+      setTimeout(() => {
+        if (hasActiveFilters()) {
+          applyFilters();
+        }
+        if (hasActiveSort()) {
+          performSort();
+        }
+        updateFilterStatus();
+      }, 100);
     };
 
     // 收集表格数据
