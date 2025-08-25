@@ -379,48 +379,21 @@
       color: var(--ink);
     }
     
-    /* 响应式设计 */
-    @media (max-width: 768px) {
-      .analysis-panel {
-        width: 95%;
-        margin: 20px;
-      }
-      
-      .analysis-panel-content {
-        padding: 16px;
-      }
-      
-      .info-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .input-group {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      
-      .input-group label {
-        min-width: auto;
-      }
-      
-      .result-buttons {
-        flex-direction: column;
-      }
-    }
+
     
     /* 小屏幕设备适配 - 隐藏保本广告(GMV)和保本ROI(GMV)列 */
     /* 当屏幕宽度小于等于1680px时，隐藏这两列以节省空间 */
     /* 适用于：MacBook Air 13"、iPad Pro 11"、iPad mini 7等所有小屏幕设备 */
     @media (max-width: 1680px) {
-      /* 隐藏保本广告(GMV)列 - 第14列 */
-      .products-table th:nth-child(14),
-      .products-table td:nth-child(14) {
+      /* 隐藏保本广告(GMV)列 - 使用语义化类名 */
+      .products-table th.col-ad-gmv,
+      .products-table td.col-ad-gmv {
         display: none;
       }
       
-      /* 隐藏保本ROI(GMV)列 - 第16列 */
-      .products-table th:nth-child(16),
-      .products-table td:nth-child(16) {
+      /* 隐藏保本ROI(GMV)列 - 使用语义化类名 */
+      .products-table th.col-roi-gmv,
+      .products-table td.col-roi-gmv {
         display: none;
       }
     }
@@ -873,8 +846,36 @@
       100% { opacity: 1; }
     }
     
-    /* 移动端适配 */
+    /* 移动端适配 - 统一管理所有768px断点样式 */
     @media (max-width: 768px) {
+      /* 分析面板适配 */
+      .analysis-panel {
+        width: 95%;
+        margin: 20px;
+      }
+      
+      .analysis-panel-content {
+        padding: 16px;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .input-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .input-group label {
+        min-width: auto;
+      }
+      
+      .result-buttons {
+        flex-direction: column;
+      }
+      
+      /* 筛选和搜索适配 */
       .filter-row {
         flex-direction: column;
         align-items: stretch;
@@ -923,9 +924,8 @@
       .filter-chip .input {
         padding: 8px 10px;
       }
-    }
-    
-    @media (max-width: 768px) {
+      
+      /* 参数网格和工具栏适配 */
       .params-grid {
         grid-template-columns: 1fr;
       }
@@ -934,6 +934,7 @@
         justify-content: flex-start;
       }
       
+      /* 表格适配 */
       .products-table-container {
         font-size: 11px;
       }
@@ -1238,9 +1239,9 @@
                 <th>毛利率</th>
                 <th>保本广告费</th>
                 <th>保本广告(有效)</th>
-                <th>保本广告(GMV)</th>
+                <th class="col-ad-gmv">保本广告(GMV)</th>
                 <th>保本ROI(有效)</th>
-                <th>保本ROI(GMV)</th>
+                <th class="col-roi-gmv">保本ROI(GMV)</th>
                 <th>分析</th>
                 <th>操作</th>
               </tr>
@@ -1679,13 +1680,13 @@
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
-        <td>
+        <td class="col-ad-gmv">
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
-        <td>
+        <td class="col-roi-gmv">
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
@@ -3100,13 +3101,13 @@
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
-        <td>
+        <td class="col-ad-gmv">
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
-        <td>
+        <td class="col-roi-gmv">
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
@@ -4571,13 +4572,13 @@
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
-        <td>
+        <td class="col-ad-gmv">
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
-        <td>
+        <td class="col-roi-gmv">
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
