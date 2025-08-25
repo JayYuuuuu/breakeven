@@ -828,10 +828,7 @@
     .products-table tr.filtered-out {
       display: none;
     }
-    
-    .products-table tr.highlight-match {
-      background-color: #fff3cd;
-    }
+
     
     /* 筛选高亮样式 */
     .products-table .calc-result.highlight-match,
@@ -3444,6 +3441,8 @@
       // 使用setTimeout让UI更新
       setTimeout(() => {
         try {
+          // 获取搜索条件
+          const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
           const platformFilter = document.getElementById('platformFilter').value;
           const returnRateMin = parseFloat(document.getElementById('returnRateMin').value) || 0;
           const returnRateMax = parseFloat(document.getElementById('returnRateMax').value) || 100;
@@ -3469,6 +3468,21 @@
             const rowId = row.id.replace('row-', '');
             const resultIndex = calculationRowMap.indexOf(row.id);
             const result = resultIndex !== -1 ? analysisResults[resultIndex] : null;
+            
+            // 搜索筛选
+            if (searchTerm) {
+              const name = row.querySelector('.product-name')?.value.toLowerCase() || '';
+              const sku = row.querySelector('.product-sku')?.value.toLowerCase() || '';
+              if (!name.includes(searchTerm) && !sku.includes(searchTerm)) {
+                shouldShow = false;
+              } else {
+                // 添加搜索高亮
+                row.classList.add('highlight-match');
+              }
+            } else {
+              // 移除搜索高亮
+              row.classList.remove('highlight-match');
+            }
             
             // 平台筛选
             if (platformFilter && row.querySelector('.platform-select').value !== platformFilter) {
