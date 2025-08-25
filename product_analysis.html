@@ -970,6 +970,47 @@
       margin-right: auto;
       align-self: center;
     }
+    
+    /* 投放决策条样式 */
+    .decision-card {
+      background: #fffdf7;
+      border: 1px solid #ffe8b3;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 16px 0 28px 0;
+    }
+    .decision-card h4 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #7a5400;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .decision-item { display:flex; flex-direction:column; gap:6px; }
+    .decision-item label { font-size:12px; color:#7a7a7a; }
+    .decision-item input, .decision-item select { padding:8px 10px; border:1px solid #d2d2d7; border-radius:6px; background:#fff; font-size:14px; }
+    .decision-actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+    .kpi-band { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; margin-top:14px; }
+    .kpi {
+      background:#ffffff;
+      border:1px solid #e5e5ea;
+      border-radius:8px;
+      padding:10px 12px;
+    }
+    .kpi .label { font-size:12px; color:#6e6e73; }
+    .kpi .val { font-size:18px; font-weight:700; margin-top:4px; }
+    .kpi.good .val { color:#34c759; }
+    .kpi.warn .val { color:#ff9f0a; }
+    .kpi.bad  .val { color:#ff3b30; }
+    .tiny-hint { font-size:11px; color:#6e6e73; }
   </style>
 </head>
 <body>
@@ -1238,6 +1279,63 @@
               <span class="label">退货率：</span>
               <span id="analysisReturnRate">—</span>
             </div>
+          </div>
+        </div>
+        
+        <!-- 投放决策条 -->
+        <div class="decision-card" id="decisionCard">
+          <h4>🎯 投放决策条 <span class="tiny-hint">（基于所选商品与系统参数，计算 BE-ROAS/BE-CPA/Max CPC 等）</span></h4>
+          <div class="decision-grid">
+            <div class="decision-item">
+              <label>口径</label>
+              <select id="decBasis">
+                <option value="effective">有效营收</option>
+                <option value="gmv">GMV</option>
+              </select>
+            </div>
+            <div class="decision-item">
+              <label>转化率 CVR（%）</label>
+              <input type="number" id="decCVR" step="0.01" placeholder="2.0">
+            </div>
+            <div class="decision-item">
+              <label>买量方式</label>
+              <select id="decBuyMode">
+                <option value="cpc">按 CPC 出价</option>
+                <option value="cpm">按 CPM 出价（需 CTR）</option>
+              </select>
+            </div>
+            <div class="decision-item" id="decCPCWrap">
+              <label>CPC（元/点击）</label>
+              <input type="number" id="decCPC" step="0.01" placeholder="2.50">
+            </div>
+            <div class="decision-item" id="decCPMWrap" style="display:none;">
+              <label>CPM（元/千次曝光）</label>
+              <input type="number" id="decCPM" step="0.01" placeholder="30">
+            </div>
+            <div class="decision-item" id="decCTRWrap" style="display:none;">
+              <label>CTR（%）</label>
+              <input type="number" id="decCTR" step="0.01" placeholder="2.5">
+            </div>
+            <div class="decision-item">
+              <label>客单价 AOV（留空则用当前售价）</label>
+              <input type="number" id="decAOV" step="0.01" placeholder="79.8">
+            </div>
+            <div class="decision-item">
+              <label>增量系数（0-1，可选）</label>
+              <input type="number" id="decIncrementality" step="0.01" min="0" max="1" placeholder="1">
+            </div>
+          </div>
+          <div class="decision-actions">
+            <button class="btn" id="decCalcBtn" onclick="console.log('🔘 按钮被点击了'); window.calculateDecisionBar();">计算投放阈值</button>
+            <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。</span>
+          </div>
+          <div class="kpi-band">
+            <div class="kpi" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiBECPA"><div class="label">BE-CPA（可承受每单广告额）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiSafety"><div class="label">安全边际（MaxCPC−实际CPC）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
           </div>
         </div>
         
@@ -4134,6 +4232,9 @@
     initSystemParams();
     addInputListeners(); // 初始化时添加监听器
     loadFromLocalStorage(); // 加载保存的数据
+    
+    // 绑定一次决策条控件切换（保障首次加载时 UI 同步）
+    bindDecisionControls();
 
 
     // 解析Excel文件
@@ -4513,6 +4614,10 @@
     let currentAnalysisData = null;
     let currentTierIndex = 0;
     
+    // —— 投放决策条 逻辑 ——
+    // 当前分析面板对应的表格行ID
+    let CURRENT_ANALYSIS_ROW_ID = null;
+    
     // 自动换算函数：将用户输入的百分比数值转换为小数
     window.convertToDecimal = function(inputElement, fieldId) {
       let inputValue = inputElement.value.trim();
@@ -4586,6 +4691,197 @@
       }
     }
     
+    // 投放决策条核心函数
+    function getRowProductForAnalysis(rowId) {
+      console.log('🔍 获取行商品数据，行ID:', rowId);
+      const row = document.getElementById(`row-${rowId}`);
+      if (!row) {
+        console.log('❌ 找不到行元素');
+        return null;
+      }
+
+      const tierPrices = Array.from(row.querySelectorAll('.tier-price-input'))
+        .map(i => parseFloat(i.value)).filter(v => isFinite(v) && v>0);
+      const tierCosts  = Array.from(row.querySelectorAll('.tier-cost-input'))
+        .map(i => parseFloat(i.value)).filter(v => isFinite(v) && v>0);
+
+      const singlePriceEl = row.querySelector('.single-price');
+      const singleCostEl  = row.querySelector('.single-cost');
+      const singlePrice = singlePriceEl && !singlePriceEl.disabled ? parseFloat(singlePriceEl.value) : null;
+      const singleCost  = singleCostEl  && !singleCostEl.disabled  ? parseFloat(singleCostEl.value)  : null;
+
+      const product = {
+        name: row.querySelector('.product-name')?.value.trim() || '',
+        sku: row.querySelector('.product-sku')?.value.trim() || '',
+        platform: row.querySelector('.platform-select')?.value || '淘宝',
+        isMain: row.querySelector('.main-toggle')?.classList.contains('active') || false,
+        singlePrice: null,
+        singleCost: null,
+        tierPrices: [],
+        tierCosts: [],
+        returnRate: (() => { const v=row.querySelector('.return-rate')?.value;
+                             const p=parseFloat(v); return isFinite(p)? p/100 : 0; })(),
+        platformRate: getPlatformRate(row.querySelector('.platform-select')?.value || '淘宝')
+      };
+
+      // 若多档齐全，用面板的档位选择器降维成单一；否则走单一或"单一售价+多档成本(第一档)"
+      const tierSel = document.getElementById('tierSelect');
+      const hasTier = (tierPrices.length>0 && (tierCosts.length>0 || (isFinite(singleCost))));
+      if (hasTier) {
+        let idx = 0;
+        if (tierSel && tierSel.value) {
+          idx = Math.max(0, Math.min(parseInt(tierSel.value,10)||0,
+                     Math.max(tierPrices.length, tierCosts.length)-1));
+        }
+        const pickPrice = tierPrices.length>0 ? tierPrices[idx] : (singlePrice || 0);
+        const pickCost  = tierCosts.length>0  ? tierCosts[idx]  : (singleCost  || 0);
+        product.singlePrice = pickPrice;
+        product.singleCost  = pickCost;
+      } else {
+        product.singlePrice = isFinite(singlePrice)? singlePrice : null;
+        if (tierCosts.length>0 && isFinite(singlePrice)) {
+          product.singleCost = tierCosts[0];
+        } else {
+          product.singleCost = isFinite(singleCost)? singleCost : null;
+        }
+      }
+      console.log('✅ 构建的商品对象:', product);
+      return product;
+    }
+
+    function fmt(x, d=2){ return isFinite(x)? x.toFixed(d) : '—'; }
+
+    function computeBEForProduct(product){
+      console.log('🧮 开始计算保本指标，商品:', product.name);
+      try {
+        const res = analyzeProducts([product], systemParams);
+        console.log('分析结果:', res);
+        if (!res || !res[0]) {
+          console.log('❌ 分析结果为空');
+          return null;
+        }
+        const r0 = res[0];
+        if (r0.singleAnalysis) {
+          console.log('✅ 使用单一价格分析结果');
+          return r0.singleAnalysis;
+        }
+        if (r0.tierAnalysis && r0.tierAnalysis.length>0) {
+          console.log('✅ 使用多档价格分析结果');
+          return r0.tierAnalysis[0];
+        }
+        console.log('❌ 没有找到分析结果');
+        return null;
+      } catch(e){ 
+        console.error('computeBEForProduct error', e); 
+        return null; 
+      }
+    }
+
+    // 控件显示切换（CPC/CPM）
+    function bindDecisionControls(){
+      const modeSel = document.getElementById('decBuyMode');
+      if (!modeSel) return;
+      const toggle = () => {
+        const m = modeSel.value;
+        document.getElementById('decCPCWrap').style.display = (m==='cpc')? '' : 'none';
+        document.getElementById('decCPMWrap').style.display = (m==='cpm')? '' : 'none';
+        document.getElementById('decCTRWrap').style.display = (m==='cpm')? '' : 'none';
+      };
+      modeSel.onchange = toggle;
+      toggle();
+    }
+
+    // 主计算入口
+    window.calculateDecisionBar = function(){
+      console.log('🎯 开始计算投放决策条...');
+      console.log('当前行ID:', window.CURRENT_ANALYSIS_ROW_ID);
+      
+      // 简单测试：先显示一个消息
+      showMessage('开始计算投放决策条...', 'info');
+      
+      if (!window.CURRENT_ANALYSIS_ROW_ID) {
+        console.log('❌ 没有当前行ID，退出计算');
+        showMessage('请先选择要分析的商品行', 'error');
+        return;
+      }
+      
+      try {
+        updateSystemParams();
+        const product = getRowProductForAnalysis(window.CURRENT_ANALYSIS_ROW_ID);
+        if (!product || !isFinite(product.singlePrice) || !isFinite(product.singleCost)) {
+          showMessage('请先完善该行的售价与进货价（或选择有效档位）', 'error');
+          return;
+        }
+        const be = computeBEForProduct(product);
+        if (!be){ 
+          console.log('❌ 计算保本阈值失败');
+          showMessage('计算保本阈值失败，请检查输入。', 'error'); 
+          return; 
+        }
+        
+        console.log('✅ 保本指标计算结果:', be);
+
+        const basis = document.getElementById('decBasis').value; // 'effective' | 'gmv'
+        const cvrPct = parseFloat(document.getElementById('decCVR').value);
+        const cvr = isFinite(cvrPct)? cvrPct/100 : NaN;
+        
+        console.log('📊 输入参数:', { basis, cvrPct, cvr });
+
+        const mode = document.getElementById('decBuyMode').value; // cpc | cpm
+        let cpc = parseFloat(document.getElementById('decCPC').value);
+        if (mode==='cpm'){
+          const cpm = parseFloat(document.getElementById('decCPM').value);
+          const ctrPct = parseFloat(document.getElementById('decCTR').value);
+          const ctr = isFinite(ctrPct)? ctrPct/100 : NaN;
+          cpc = (isFinite(cpm) && isFinite(ctr) && ctr>0) ? (cpm/(ctr*1000)) : NaN;
+        }
+
+        let aov = parseFloat(document.getElementById('decAOV').value);
+        if (!isFinite(aov)) aov = product.singlePrice || NaN;
+
+        const beROAS = (basis==='effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
+        const beCPA  = be.adCostBreakEven;
+
+        const maxCPC = (isFinite(cvr) && isFinite(aov) && beROAS>0) ? (cvr*aov)/beROAS : NaN;
+        const actROAS = (isFinite(cvr) && isFinite(aov) && isFinite(cpc) && cpc>0) ? (cvr*aov)/cpc : NaN;
+        const safety = (isFinite(maxCPC) && isFinite(cpc)) ? (maxCPC - cpc) : NaN;
+
+        // 增量修正（0-1，可选）
+        const incr = parseFloat(document.getElementById('decIncrementality').value);
+        const adjROAS = (isFinite(incr) && incr>=0 && incr<=1) ? (actROAS * incr) : actROAS;
+
+        // 建议
+        let advice = '—';
+        let adviceClass = '';
+        if (isFinite(adjROAS) && isFinite(beROAS)) {
+          const target = beROAS; // 仅以保本阈值作为判断线
+          if (adjROAS >= target) { advice='可放量'; adviceClass='good'; }
+          else if (adjROAS >= beROAS*0.9) { advice='小幅尝试/优化页与定向'; adviceClass='warn'; }
+          else { advice='止损或收窄预算'; adviceClass='bad'; }
+        }
+
+        // 回填
+        console.log('📝 开始回填结果到UI...');
+        console.log('计算结果:', { beROAS, beCPA, maxCPC, actROAS, safety, advice, adviceClass });
+        
+        document.querySelector('#kpiBEROAS .val').textContent = fmt(beROAS,2);
+        document.querySelector('#kpiBECPA .val').textContent  = fmt(beCPA,2);
+        document.querySelector('#kpiMaxCPC .val').textContent = fmt(maxCPC,2);
+        // 显示“当前预估 ROAS（增量修正后）”
+        document.querySelector('#kpiActROAS .val').textContent = isFinite(adjROAS)? fmt(adjROAS,2) : '—';
+        document.querySelector('#kpiSafety .val').textContent = isFinite(safety)? fmt(safety,2) : '—';
+        const kAdv = document.getElementById('kpiAdvice');
+        kAdv.querySelector('.val').textContent = advice;
+        kAdv.classList.remove('good','warn','bad');
+        if (adviceClass) kAdv.classList.add(adviceClass);
+        
+        console.log('✅ 投放决策条计算完成！');
+      } catch (error) {
+        console.error('❌ 计算过程中发生错误:', error);
+        showMessage('计算过程中发生错误: ' + error.message, 'error');
+      }
+    };
+    
     // 打开分析面板
     window.openAnalysisPanel = function(rowId) {
       console.log('打开分析面板，行ID:', rowId);
@@ -4615,7 +4911,18 @@
       // 显示面板
       document.getElementById('analysisPanel').style.display = 'flex';
       
-              console.log('分析面板已打开');
+      // 设置投放决策条的当前行ID并绑定控件
+      window.CURRENT_ANALYSIS_ROW_ID = rowId;
+      bindDecisionControls();
+      
+      // 预填AOV为当前售价（若为空）
+      const prodForPrefill = getRowProductForAnalysis(rowId);
+      if (prodForPrefill && isFinite(prodForPrefill.singlePrice)) {
+        const aovEl = document.getElementById('decAOV');
+        if (aovEl && !aovEl.value) aovEl.value = prodForPrefill.singlePrice.toFixed(2);
+      }
+      
+      console.log('分析面板已打开');
     };
     
     // 关闭分析面板
@@ -4761,6 +5068,13 @@
         
         // 清空结果
         clearAnalysisResults();
+        
+        // 档位改变时，投放决策条的BE指标也能联动
+        try { 
+          if (window.CURRENT_ANALYSIS_ROW_ID) {
+            window.calculateDecisionBar(); 
+          }
+        } catch(_) {}
       }
     };
     
