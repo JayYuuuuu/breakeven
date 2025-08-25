@@ -990,6 +990,19 @@
       align-self: center;
     }
     
+    /* 快捷筛选按钮选中状态 */
+    .quick-filters .btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+    }
+    
+    .quick-filters .btn.active:hover {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+    }
+    
     /* 投放决策条样式 */
     .decision-card {
       background: #fffdf7;
@@ -1182,15 +1195,15 @@
             <!-- 快捷筛选按钮 -->
             <div class="quick-filters">
               <span class="quick-filter-label">快捷筛选</span>
-              <button class="btn secondary small" onclick="quickFilter('main', 'true')">只看主推款</button>
-              <button class="btn secondary small" onclick="quickFilter('platform', '淘宝')">只看淘宝</button>
-              <button class="btn secondary small" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;=10%)</button>
-              <button class="btn secondary small" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;=15%)</button>
-              <button class="btn secondary small" onclick="quickFilter('roi', 'low')">低ROI(&lt;2.2)</button>
-              <button class="btn secondary small" onclick="quickFilter('roi', 'high')">高ROI(&gt;3.5)</button>
-              <button class="btn secondary small" onclick="quickFilter('adRate', 'low')">保本广告(&lt;=20%)</button>
-              <button class="btn secondary small" onclick="quickFilter('adCost', 'low')">保本广告费(&lt;10)</button>
-              <button class="btn secondary small" onclick="quickFilter('nanData', 'show')">显示NaN数据</button>
+              <button class="btn secondary small" id="quickFilter-main-true" onclick="quickFilter('main', 'true')">只看主推款</button>
+              <button class="btn secondary small" id="quickFilter-platform-淘宝" onclick="quickFilter('platform', '淘宝')">只看淘宝</button>
+              <button class="btn secondary small" id="quickFilter-returnRate-low" onclick="quickFilter('returnRate', 'low')">低退货率(&lt;=10%)</button>
+              <button class="btn secondary small" id="quickFilter-returnRate-high" onclick="quickFilter('returnRate', 'high')">高退货率(&gt;=15%)</button>
+              <button class="btn secondary small" id="quickFilter-roi-low" onclick="quickFilter('roi', 'low')">低ROI(&lt;2.2)</button>
+              <button class="btn secondary small" id="quickFilter-roi-high" onclick="quickFilter('roi', 'high')">高ROI(&gt;3.5)</button>
+              <button class="btn secondary small" id="quickFilter-adRate-low" onclick="quickFilter('adRate', 'low')">保本广告(&lt;=20%)</button>
+              <button class="btn secondary small" id="quickFilter-adCost-low" onclick="quickFilter('adCost', 'low')">保本广告费(&lt;10)</button>
+              <button class="btn secondary small" id="quickFilter-nanData-show" onclick="quickFilter('nanData', 'show')">显示NaN数据</button>
             </div>
           </div>
         </div>
@@ -1202,6 +1215,8 @@
           <button class="btn secondary" id="insertExamples">插入示例</button>
           <button class="btn secondary" id="importFile">导入文件</button>
           <button class="btn secondary" id="deleteSelectedTop">批量删除</button>
+          <button class="btn secondary" id="exportResultsTop">导出结果</button>
+          <button class="btn secondary" id="exportTemplateTop">导出产品模板</button>
           <button class="btn" id="analyze">开始分析</button>
         </div>
         
@@ -1215,7 +1230,7 @@
                 <th>商品名称</th>
                 <th>货号</th>
                 <th>平台</th>
-                <th style="width: 60px;">主推款</th>
+                <th>主推款</th>
                 <th>含税售价P</th>
                 <th>含税售价（多档）</th>
                 <th>单一进货价</th>
@@ -1226,8 +1241,8 @@
                 <th>保本广告(GMV)</th>
                 <th>保本ROI(有效)</th>
                 <th>保本ROI(GMV)</th>
-                <th style="width: 50px;">分析</th>
-                <th style="width: 50px;">操作</th>
+                <th>分析</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody id="productsTableBody">
@@ -1718,7 +1733,7 @@
       console.log(`表格状态更新完成：当前有 ${existingRows.length} 行数据`);
     }
 
-    // —— 兼容旧行：为已有商品名单元补上“新品”胶囊 ——
+    // —— 兼容旧行：为已有商品名单元补上"新品"胶囊 ——
     function ensureNewTagPills(){
       const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
       rows.forEach(row => {
@@ -1781,7 +1796,7 @@
         document.getElementById('productsTableBody').appendChild(row);
       });
       
-      // —— 兼容旧行：为已有商品名单元补上“新品”胶囊 ——
+      // —— 兼容旧行：为已有商品名单元补上"新品"胶囊 ——
       ensureNewTagPills();
       showMessage(`已添加 ${filteredExamples.length} 个示例商品`, 'success');
       
@@ -1828,7 +1843,7 @@
         tbody.appendChild(row);
       }
 
-      // —— 兼容旧行：为已有商品名单元补上“新品”胶囊 ——
+      // —— 兼容旧行：为已有商品名单元补上"新品"胶囊 ——
       ensureNewTagPills();
       showMessage('已在表格顶部添加新的商品行', 'info');
 
@@ -2448,7 +2463,7 @@
         }
         updateFilterStatus();
       }, 100);
-      // —— 兼容旧行：为已有商品名单元补上“新品”胶囊（防止过滤/排序后丢失）
+      // —— 兼容旧行：为已有商品名单元补上"新品"胶囊（防止过滤/排序后丢失）
       setTimeout(ensureNewTagPills, 50);
     }
     // 初始修复：页面加载后为已有行补充新品开关
@@ -3281,6 +3296,9 @@
     document.getElementById('importFile').addEventListener('click', importFile);
     document.getElementById('exportResults').addEventListener('click', exportResults);
     document.getElementById('exportTemplate').addEventListener('click', exportTemplate);
+    // 表格上方的导出按钮事件监听器（复用相同的功能函数）
+    document.getElementById('exportResultsTop').addEventListener('click', exportResults);
+    document.getElementById('exportTemplateTop').addEventListener('click', exportTemplate);
     document.getElementById('clearAll').addEventListener('click', clearAllData);
     document.getElementById('analyze').addEventListener('click', startAnalysis);
     document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
@@ -3587,6 +3605,11 @@
       document.getElementById('valueFilterColumn').value = '';
       document.getElementById('valueFilterMin').value = '';
       document.getElementById('valueFilterMax').value = '';
+      
+      // 清除快捷筛选按钮的选中状态
+      document.querySelectorAll('.quick-filters .btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
       
       // 显示所有行并清除高亮
       const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
@@ -4690,6 +4713,13 @@
       // 应用筛选
       applyFilters();
       
+      // 设置快捷筛选按钮的选中状态
+      const buttonId = `quickFilter-${type}-${value}`;
+      const button = document.getElementById(buttonId);
+      if (button) {
+        button.classList.add('active');
+      }
+      
       // 显示快捷筛选提示
       let filterName = '';
       switch (type) {
@@ -5023,7 +5053,7 @@
         document.querySelector('#kpiBEROAS .val').textContent = fmt(beROAS,2);
         document.querySelector('#kpiBECPA .val').textContent  = fmt(beCPA,2);
         document.querySelector('#kpiMaxCPC .val').textContent = fmt(maxCPC,2);
-        // 显示“当前预估 ROAS（增量修正后）”
+        // 显示"当前预估 ROAS（增量修正后）"
         document.querySelector('#kpiActROAS .val').textContent = isFinite(adjROAS)? fmt(adjROAS,2) : '—';
         document.querySelector('#kpiSafety .val').textContent = isFinite(safety)? fmt(safety,2) : '—';
         const elCritCPC = document.querySelector('#kpiCritCPC .val');
@@ -5466,7 +5496,7 @@
           document.getElementById('valueAov').value = isFinite(critAOV_gmv) ? critAOV_gmv.toFixed(2) : '';
         }
 
-        // 7) 若三项都填，则给出三项“校验用”的临界参考值（不覆盖用户输入）
+        // 7) 若三项都填，则给出三项"校验用"的临界参考值（不覆盖用户输入）
         if (isFinite(cvrIn) && isFinite(cpcIn) && isFinite(aovIn)) {
           const usedAOV_all = (basis === 'effective' && isFinite(r)) ? (aovIn * (1 - r)) : aovIn;
           critCPC = (isFinite(usedAOV_all) && beROAS > 0) ? (cvrIn * usedAOV_all) / beROAS : NaN;
@@ -5475,7 +5505,7 @@
           critAOV_gmv = (basis === 'effective' && isFinite(r) && (1 - r) > 0) ? (critAOV_eff / (1 - r)) : critAOV_eff;
         }
 
-        // 8) 回填“结果展示区”
+        // 8) 回填"结果展示区"
         const elCpc = document.getElementById('valueCpcResult');
         const elCvr = document.getElementById('valueCvrResult');
         const elAov = document.getElementById('valueAovResult');
@@ -5609,5 +5639,13 @@
 
 
   </script>
+  
+  <!-- TODO: 快捷筛选按钮选中状态功能已完成
+    - 为每个快捷筛选按钮添加了唯一ID
+    - 添加了.active CSS样式类，显示蓝色背景和白色文字
+    - 在quickFilter函数中设置按钮选中状态
+    - 在clearFilters函数中清除所有按钮的选中状态
+    - 用户现在可以清楚地看到哪个筛选条件被激活
+  -->
 </body>
 </html>
