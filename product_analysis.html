@@ -1221,6 +1221,7 @@
           <span class="tag">批量操作</span>
           <button class="btn secondary" id="deleteSelected">删除选中</button>
           <button class="btn secondary" id="exportResults">导出结果</button>
+          <button class="btn secondary" id="exportTemplate">导出产品模板</button>
           <button class="btn secondary" id="clearAll">清空所有</button>
         </div>
       </div>
@@ -2926,7 +2927,24 @@
         </td>
         <td>
           <input type="number" class="table-input return-rate" placeholder="0.00" step="0.01" 
-                 value="${data['退货率'] !== undefined && data['退货率'] !== null && data['退货率'] !== '' ? data['退货率'] : ''}" data-row-id="${rowId}">
+                 value="${(() => {
+                   const returnRateRaw = data['退货率'];
+                   if (returnRateRaw === undefined || returnRateRaw === null || returnRateRaw === '') return '';
+                   
+                   // 如果是百分比格式，转换为数值
+                   const returnRateStr = returnRateRaw.toString().trim();
+                   if (returnRateStr.endsWith('%')) {
+                     const percentValue = parseFloat(returnRateStr.replace('%', ''));
+                     return isFinite(percentValue) ? percentValue.toFixed(2) : '';
+                   } else {
+                     const numValue = parseFloat(returnRateStr);
+                     if (isFinite(numValue)) {
+                       // 如果是小数格式（如0.1399），转换为百分比数值（如13.99）
+                       return numValue > 1 ? numValue.toFixed(2) : (numValue * 100).toFixed(2);
+                     }
+                   }
+                   return '';
+                 })()}" data-row-id="${rowId}">
         </td>
 
         <td>
@@ -3059,6 +3077,103 @@
       }
     }
 
+    // 导出产品模板（仅产品信息，单行显示）
+    function exportTemplate() {
+      console.log('=== exportTemplate 函数被调用 ===');
+      
+      const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+      if (rows.length === 0) {
+        showMessage('没有产品数据可导出', 'error');
+        return;
+      }
+      
+      try {
+        const templateData = [];
+        
+        rows.forEach(row => {
+          const rowData = collectRowData(row);
+          
+          if (rowData) {
+            // 处理价格：区分单档和多档
+            let singleSellingPrice = '';
+            let tierSellingPrices = '';
+            let singleCostPrice = '';
+            let tierCostPrices = '';
+            
+            // 售价处理
+            if (rowData.tierPrices && rowData.tierPrices.length > 0) {
+              // 多档售价：填入"含税售价（多档）"字段
+              tierSellingPrices = rowData.tierPrices.join(',');
+            } else if (rowData.singlePrice) {
+              // 单档售价：填入"含税售价P"字段
+              singleSellingPrice = rowData.singlePrice.toString();
+            }
+            
+            // 进货价处理
+            if (rowData.tierCosts && rowData.tierCosts.length > 0) {
+              // 多档进货价：填入"进货价（多档）"字段
+              tierCostPrices = rowData.tierCosts.join(',');
+            } else if (rowData.singleCost) {
+              // 单档进货价：填入"单一进货价"字段
+              singleCostPrice = rowData.singleCost.toString();
+            }
+            
+            // 处理退货率：转换为百分比格式显示
+            let returnRateDisplay = '';
+            if (rowData.returnRate !== undefined && rowData.returnRate !== null && rowData.returnRate !== '') {
+              const returnRatePercent = parseFloat(rowData.returnRate) * 100;
+              if (isFinite(returnRatePercent)) {
+                returnRateDisplay = returnRatePercent.toFixed(2) + '%';
+              }
+            }
+            
+            templateData.push({
+              '商品名称': rowData.name || '',
+              '货号': rowData.sku || '',
+              '平台': rowData.platform || '淘宝',
+              '主推款': rowData.isMain ? '是' : '否',
+              '含税售价P': singleSellingPrice,
+              '含税售价（多档）': tierSellingPrices,
+              '单一进货价': singleCostPrice,
+              '进货价（多档）': tierCostPrices,
+              '退货率': returnRateDisplay
+            });
+          }
+        });
+        
+        if (templateData.length === 0) {
+          showMessage('没有有效的产品数据可导出', 'error');
+          return;
+        }
+        
+        // 生成CSV内容
+        const headers = Object.keys(templateData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...templateData.map(row => 
+            headers.map(header => {
+              const value = row[header] || '';
+              // 如果值包含逗号，需要用引号包围
+              return value.toString().includes(',') ? `"${value}"` : value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // 下载文件
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = '产品信息模板.csv';
+        link.click();
+        
+        showMessage(`已导出 ${templateData.length} 个产品的模板`, 'success');
+        console.log('产品模板导出成功');
+      } catch (error) {
+        console.error('导出产品模板失败:', error);
+        showMessage('导出失败: ' + error.message, 'error');
+      }
+    }
+
     // 全选/取消全选
     function toggleSelectAll() {
       const selectAllCheckbox = $('selectAll');
@@ -3114,6 +3229,7 @@
     document.getElementById('addRow').addEventListener('click', addEmptyRow);
     document.getElementById('importFile').addEventListener('click', importFile);
     document.getElementById('exportResults').addEventListener('click', exportResults);
+    document.getElementById('exportTemplate').addEventListener('click', exportTemplate);
     document.getElementById('clearAll').addEventListener('click', clearAllData);
     document.getElementById('analyze').addEventListener('click', startAnalysis);
     document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
@@ -4914,11 +5030,16 @@
       window.CURRENT_ANALYSIS_ROW_ID = rowId;
       bindDecisionControls();
       
-      // 预填AOV为当前售价（若为空）
+      // 自动填入当前产品售价到AOV输入框
       const prodForPrefill = getRowProductForAnalysis(rowId);
       if (prodForPrefill && isFinite(prodForPrefill.singlePrice)) {
-        const aovEl = document.getElementById('decAOV');
-        if (aovEl && !aovEl.value) aovEl.value = prodForPrefill.singlePrice.toFixed(2);
+        // 投放决策条的AOV
+        const decAovEl = document.getElementById('decAOV');
+        if (decAovEl) decAovEl.value = prodForPrefill.singlePrice.toFixed(2);
+        
+        // 投放三角分析的AOV
+        const valueAovEl = document.getElementById('valueAov');
+        if (valueAovEl) valueAovEl.value = prodForPrefill.singlePrice.toFixed(2);
       }
       
       console.log('分析面板已打开');
@@ -5069,6 +5190,17 @@
         
         // 清空结果
         clearAnalysisResults();
+        
+        // 档位改变时，同步更新AOV输入框
+        const decAovEl = document.getElementById('decAOV');
+        if (decAovEl) {
+          decAovEl.value = currentAnalysisData.price.toFixed(2);
+        }
+        
+        const valueAovEl = document.getElementById('valueAov');
+        if (valueAovEl) {
+          valueAovEl.value = currentAnalysisData.price.toFixed(2);
+        }
         
         // 档位改变时，投放决策条的BE指标也能联动
         try { 
@@ -5334,6 +5466,95 @@
         }, 0);
       }
     });
+
+    // 为分析弹窗中的输入框添加自动触发重算功能
+    function setupAutoCalculation() {
+      // 投放决策条相关输入框
+      const decisionInputs = ['decCVR', 'decCPC', 'decCPM', 'decCTR', 'decAOV', 'decIncrementality'];
+      // 目标推演相关输入框  
+      const targetInputs = ['targetR', 'targetA', 'targetM'];
+      // 投放三角分析相关输入框
+      const valueInputs = ['valueCvr', 'valueCpc', 'valueAov'];
+      // 下拉选择框
+      const selectInputs = ['decBasis', 'decBuyMode', 'targetBasis', 'valueBasis'];
+
+      // 防抖函数
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+
+      // 创建防抖版本的计算函数
+      const debouncedDecisionCalc = debounce(() => {
+        if (window.CURRENT_ANALYSIS_ROW_ID && typeof window.calculateDecisionBar === 'function') {
+          window.calculateDecisionBar();
+        }
+      }, 500);
+
+      const debouncedTargetCalc = debounce(() => {
+        if (typeof window.calculateTargetAnalysis === 'function') {
+          window.calculateTargetAnalysis();
+        }
+      }, 500);
+
+      const debouncedValueCalc = debounce(() => {
+        if (window.CURRENT_ANALYSIS_ROW_ID && typeof window.calculateValueAnalysis === 'function') {
+          window.calculateValueAnalysis();
+        }
+      }, 500);
+
+      // 绑定投放决策条输入框事件
+      decisionInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', debouncedDecisionCalc);
+          el.addEventListener('change', debouncedDecisionCalc);
+        }
+      });
+
+      // 绑定目标推演输入框事件
+      targetInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', debouncedTargetCalc);
+          el.addEventListener('change', debouncedTargetCalc);
+        }
+      });
+
+      // 绑定投放三角分析输入框事件
+      valueInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', debouncedValueCalc);
+          el.addEventListener('change', debouncedValueCalc);
+        }
+      });
+
+      // 绑定下拉选择框事件
+      document.getElementById('decBasis')?.addEventListener('change', debouncedDecisionCalc);
+      document.getElementById('decBuyMode')?.addEventListener('change', () => {
+        bindDecisionControls(); // 先更新UI显示
+        debouncedDecisionCalc(); // 再触发计算
+      });
+      document.getElementById('targetBasis')?.addEventListener('change', debouncedTargetCalc);
+      document.getElementById('valueBasis')?.addEventListener('change', debouncedValueCalc);
+    }
+
+    // 在页面加载完成后设置自动计算
+    document.addEventListener('DOMContentLoaded', setupAutoCalculation);
+    // 如果DOM已经加载完成，立即执行
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupAutoCalculation);
+    } else {
+      setupAutoCalculation();
+    }
 
 
   </script>

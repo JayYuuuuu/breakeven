@@ -565,9 +565,41 @@ export function parseProductFromRow(rowData) {
     }
   }
 
-  // 解析退货率
-  if (rowData['退货率'] !== undefined && rowData['退货率'] !== null && rowData['退货率'] !== '' && !isNaN(parseFloat(rowData['退货率']))) {
-    product.returnRate = parseFloat(rowData['退货率']) / 100; // 转换为小数
+  // 解析退货率（支持百分比格式，如 "15%" 或 "15" 或 "0.15"）
+  const returnRateRaw = rowData['退货率'];
+  
+  if (returnRateRaw !== undefined && returnRateRaw !== null) {
+    let returnRateStr = returnRateRaw.toString().trim();
+    
+    if (returnRateStr === '' || returnRateStr === 'undefined' || returnRateStr === 'null') {
+      // 空值或无效值
+      product.returnRate = 0;
+    } else if (returnRateStr.endsWith('%')) {
+      // 百分比格式：去掉%符号，直接除以100
+      const percentValue = parseFloat(returnRateStr.replace('%', ''));
+      if (isFinite(percentValue)) {
+        product.returnRate = percentValue / 100;
+      } else {
+        product.returnRate = 0;
+      }
+    } else {
+      // 数字格式：判断是百分比数值还是小数
+      const numValue = parseFloat(returnRateStr);
+      if (isFinite(numValue)) {
+        if (numValue > 1) {
+          // 大于1认为是百分比数值（如15表示15%）
+          product.returnRate = numValue / 100;
+        } else {
+          // 小于等于1认为是小数（如0.15表示15%）
+          product.returnRate = numValue;
+        }
+      } else {
+        product.returnRate = 0;
+      }
+    }
+  } else {
+    // 如果退货率字段完全为空或不存在，设置默认值为0
+    product.returnRate = 0;
   }
 
   // 解析单一进货价
@@ -639,7 +671,7 @@ export function validateProduct(product) {
   }
 
   // 退货率检查
-  if (product.returnRate < 0 || product.returnRate > 1) {
+  if (typeof product.returnRate !== 'number' || product.returnRate < 0 || product.returnRate > 1) {
     errors.push('退货率必须在0-100%之间');
   }
 
@@ -669,11 +701,33 @@ export function parseCSV(csvText) {
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim());
+  // 解析CSV行，正确处理包含逗号的引号字段
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  }
+
+  const headers = parseCSVLine(lines[0]);
   const data = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim());
+    const values = parseCSVLine(lines[i]);
     if (values.length !== headers.length) continue;
 
     const row = {};
