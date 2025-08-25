@@ -3474,6 +3474,10 @@
       rows.forEach(row => {
         row.classList.remove('filtered-out', 'highlight-match');
       });
+      
+      // 重置排序状态，恢复默认排序
+      resetSort();
+      
       updateFilterStatus();
     }
     
@@ -3765,6 +3769,9 @@
           cell.classList.remove('highlight-match');
         });
       });
+      
+      // 重置排序状态，恢复默认排序
+      resetSort();
       
       updateFilterStatus();
     }
