@@ -43,6 +43,7 @@
  * @property {number} adRateBE_gmv - 保本占比（GMV） = X / 售价
  * @property {number} ROI_BE_effective - 保本 ROI（有效） = 1 / 占比
  * @property {number} ROI_BE_gmv - 保本 ROI（GMV） = 1 / 占比
+ * @property {number} grossMarginRate - 毛利率（有效营收口径） = 毛利润 / 有效营收
  */
 
 /**
@@ -85,11 +86,17 @@ export function computeBase(p) {
   const ROI_BE_effective = adRateBE_effective > 0 ? 1 / adRateBE_effective : NaN;
   const ROI_BE_gmv = adRateBE_gmv > 0 ? 1 / adRateBE_gmv : NaN;
 
+  // 毛利率计算（有效营收口径下的毛利率）
+  // 毛利润 = 有效营收 - 成本 - 佣金 - 净税负（广告费为0时的利润）
+  // 这实际上等于 A，因为 A = Rev - (goodsCost + othersCost + commission) - VAT_out + VAT_in_goods + VAT_in_comm
+  const grossProfit = A; // 毛利润就是A（保本广告费的基础值）
+  const grossMarginRate = Rev > 0 ? grossProfit / Rev : NaN; // 毛利率 = 毛利润 / 有效营收
+
   return {
     r, Rev, goodsCost, othersCost, commission,
     VAT_out, VAT_in_goods, VAT_in_comm, A,
     adCostBreakEven, adRateBE_effective, adRateBE_gmv,
-    ROI_BE_effective, ROI_BE_gmv
+    ROI_BE_effective, ROI_BE_gmv, grossMarginRate
   };
 }
 
@@ -413,6 +420,7 @@ export function formatPercent(n, p = 2) {
  * @property {number} adRateBE_gmv - 保本广告占比（GMV口径）
  * @property {number} ROI_BE_effective - 保本ROI（有效营收口径）
  * @property {number} ROI_BE_gmv - 保本ROI（GMV口径）
+ * @property {number} grossMarginRate - 毛利率（有效营收口径）
  */
 
 /**
@@ -454,7 +462,8 @@ export function analyzeProduct(product, systemParams) {
       adRateBE_effective: baseResult.adRateBE_effective,
       adRateBE_gmv: baseResult.adRateBE_gmv,
       ROI_BE_effective: baseResult.ROI_BE_effective,
-      ROI_BE_gmv: baseResult.ROI_BE_gmv
+      ROI_BE_gmv: baseResult.ROI_BE_gmv,
+      grossMarginRate: baseResult.grossMarginRate
     };
   }
   
@@ -483,7 +492,8 @@ export function analyzeProduct(product, systemParams) {
         adRateBE_effective: baseResult.adRateBE_effective,
         adRateBE_gmv: baseResult.adRateBE_gmv,
         ROI_BE_effective: baseResult.ROI_BE_effective,
-        ROI_BE_gmv: baseResult.ROI_BE_gmv
+        ROI_BE_gmv: baseResult.ROI_BE_gmv,
+        grossMarginRate: baseResult.grossMarginRate
       });
       
       console.log(`第${i + 1}档计算结果: ROI=${baseResult.ROI_BE_effective.toFixed(2)}, 广告占比=${(baseResult.adRateBE_effective * 100).toFixed(2)}%`);
@@ -516,7 +526,8 @@ export function analyzeProduct(product, systemParams) {
         adRateBE_effective: baseResult.adRateBE_effective,
         adRateBE_gmv: baseResult.adRateBE_gmv,
         ROI_BE_effective: baseResult.ROI_BE_effective,
-        ROI_BE_gmv: baseResult.ROI_BE_gmv
+        ROI_BE_gmv: baseResult.ROI_BE_gmv,
+        grossMarginRate: baseResult.grossMarginRate
       });
     }
   }
@@ -749,7 +760,7 @@ export function parseCSV(csvText) {
 export function exportAnalysisToCSV(analysisResults) {
   const headers = [
     '商品名称', '货号', '平台', '主推款', '新品', '售价模式', '售价', '进货价', 
-    '退货率', '保本广告费', '保本广告占比(有效)', '保本广告占比(GMV)', 
+    '退货率', '毛利率', '保本广告费', '保本广告占比(有效)', '保本广告占比(GMV)', 
     '保本ROI(有效)', '保本ROI(GMV)'
   ];
 
@@ -758,22 +769,23 @@ export function exportAnalysisToCSV(analysisResults) {
   analysisResults.forEach(result => {
     // 单一价格行
     if (result.singleAnalysis) {
-      rows.push([
-        result.name,
-        result.sku,
-        result.platform,
-        result.isMain ? '是' : '否',
-        result.isNew ? '是' : '否', // 导出新品状态
-        '单一价格',
-        result.singlePrice,
-        result.singleCost,
-        (result.returnRate * 100).toFixed(2) + '%',
-        result.singleAnalysis.adCostBreakEven.toFixed(2),
-        (result.singleAnalysis.adRateBE_effective * 100).toFixed(2) + '%',
-        (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2) + '%',
-        result.singleAnalysis.ROI_BE_effective.toFixed(2),
-        result.singleAnalysis.ROI_BE_gmv.toFixed(2)
-      ]);
+              rows.push([
+          result.name,
+          result.sku,
+          result.platform,
+          result.isMain ? '是' : '否',
+          result.isNew ? '是' : '否', // 导出新品状态
+          '单一价格',
+          result.singlePrice,
+          result.singleCost,
+          (result.returnRate * 100).toFixed(2) + '%',
+          (result.singleAnalysis.grossMarginRate * 100).toFixed(2) + '%',
+          result.singleAnalysis.adCostBreakEven.toFixed(2),
+          (result.singleAnalysis.adRateBE_effective * 100).toFixed(2) + '%',
+          (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2) + '%',
+          result.singleAnalysis.ROI_BE_effective.toFixed(2),
+          result.singleAnalysis.ROI_BE_gmv.toFixed(2)
+        ]);
     }
 
     // 多档价格行
@@ -788,6 +800,7 @@ export function exportAnalysisToCSV(analysisResults) {
         tier.price,
         tier.cost,
         (result.returnRate * 100).toFixed(2) + '%',
+        (tier.grossMarginRate * 100).toFixed(2) + '%',
         tier.adCostBreakEven.toFixed(2),
         (tier.adRateBE_effective * 100).toFixed(2) + '%',
         (tier.adRateBE_gmv * 100).toFixed(2) + '%',

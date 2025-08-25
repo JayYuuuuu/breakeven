@@ -1165,6 +1165,7 @@
                 <span class="muted">排序</span>
                 <select id="sortColumn" class="input">
                   <option value="">默认</option>
+                  <option value="grossMarginRate">毛利率</option>
                   <option value="adCostBreakEven">保本广告费</option>
                   <option value="adRateBE_effective">广告(有效)</option>
                   <option value="adRateBE_gmv">广告(GMV)</option>
@@ -1179,6 +1180,7 @@
                 <span class="muted">区间</span>
                 <select id="valueFilterColumn" class="input">
                   <option value="">选择列</option>
+                  <option value="grossMarginRate">毛利率</option>
                   <option value="adCostBreakEven">保本广告费</option>
                   <option value="adRateBE_effective">广告(有效)</option>
                   <option value="adRateBE_gmv">广告(GMV)</option>
@@ -1245,6 +1247,7 @@
                 <th>单一进货价</th>
                 <th>进货价（多档）</th>
                 <th>退货率（%）</th>
+                <th>毛利率</th>
                 <th>保本广告费</th>
                 <th>保本广告(有效)</th>
                 <th>保本广告(GMV)</th>
@@ -1682,7 +1685,9 @@
           <input type="number" class="table-input return-rate" placeholder="0.00" step="0.01" 
                  value="${product && product.returnRate ? (product.returnRate * 100).toFixed(2) : ''}" data-row-id="${rowId}">
         </td>
-
+        <td>
+          <div class="calc-result" data-row-id="${rowId}">—</div>
+        </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
@@ -2386,27 +2391,49 @@
         console.log(`回填第 ${index} 个结果到行 ${row.id}（${result.name}）`);
 
         // 获取所有计算结果单元格
-        const adCostCell = row.cells[10]; // 保本广告费列
-        const adRateEffectiveCell = row.cells[11]; // 保本广告(有效)列
-        const adRateGmvCell = row.cells[12]; // 保本广告(GMV)列
-        const roiEffectiveCell = row.cells[13]; // 保本ROI(有效)列
-        const roiGmvCell = row.cells[14]; // 保本ROI(GMV)列
+        const grossMarginCell = row.cells[10]; // 毛利率列
+        const adCostCell = row.cells[11]; // 保本广告费列
+        const adRateEffectiveCell = row.cells[12]; // 保本广告(有效)列
+        const adRateGmvCell = row.cells[13]; // 保本广告(GMV)列
+        const roiEffectiveCell = row.cells[14]; // 保本ROI(有效)列
+        const roiGmvCell = row.cells[15]; // 保本ROI(GMV)列
         
-        if (!adCostCell || !adRateEffectiveCell || !adRateGmvCell || !roiEffectiveCell || !roiGmvCell) {
+        if (!grossMarginCell || !adCostCell || !adRateEffectiveCell || !adRateGmvCell || !roiEffectiveCell || !roiGmvCell) {
           console.log('未找到所有必需的单元格');
           return;
         }
 
         // 查找单元格内的calc-result div元素
+        const grossMarginDiv = grossMarginCell.querySelector('.calc-result');
         const adCostDiv = adCostCell.querySelector('.calc-result');
         const adRateEffectiveDiv = adRateEffectiveCell.querySelector('.calc-result');
         const adRateGmvDiv = adRateGmvCell.querySelector('.calc-result');
         const roiEffectiveDiv = roiEffectiveCell.querySelector('.calc-result');
         const roiGmvDiv = roiGmvCell.querySelector('.calc-result');
         
-        if (!adCostDiv || !adRateEffectiveDiv || !adRateGmvDiv || !roiEffectiveDiv || !roiGmvDiv) {
+        if (!grossMarginDiv || !adCostDiv || !adRateEffectiveDiv || !adRateGmvDiv || !roiEffectiveDiv || !roiGmvDiv) {
           console.log('未找到所有必需的calc-result div元素');
           return;
+        }
+
+        // 更新毛利率显示
+        if (result.singleAnalysis) {
+          // 单一价格模式
+          grossMarginDiv.innerHTML = (result.singleAnalysis.grossMarginRate * 100).toFixed(2) + '%';
+          grossMarginDiv.className = 'calc-result single';
+        } else if (result.tierAnalysis.length > 0) {
+          // 多档价格模式
+          const isSinglePriceMultiCost = result.singlePrice && result.tierAnalysis.every(tier => tier.price === result.singlePrice);
+          if (isSinglePriceMultiCost) {
+            grossMarginDiv.innerHTML = result.tierAnalysis.map((tier, i) => 
+              `<div class="result-item" title="第${i + 1}档进货价: ${tier.cost}元">${(tier.grossMarginRate * 100).toFixed(2)}%</div>`
+            ).join('');
+          } else {
+            grossMarginDiv.innerHTML = result.tierAnalysis.map(tier => 
+              `<div class="result-item">${(tier.grossMarginRate * 100).toFixed(2)}%</div>`
+            ).join('');
+          }
+          grossMarginDiv.className = 'calc-result multi';
         }
 
         // 更新保本广告费显示
@@ -3079,7 +3106,9 @@
                    return '';
                  })()}" data-row-id="${rowId}">
         </td>
-
+        <td>
+          <div class="calc-result" data-row-id="${rowId}">—</div>
+        </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
@@ -3673,11 +3702,12 @@
     // 根据列名获取对应的数值单元格
     function getValueCellByColumn(row, columnName) {
       const columnMap = {
-        'adCostBreakEven': 10,      // 保本广告费列
-        'adRateBE_effective': 11,   // 保本广告(有效)列
-        'adRateBE_gmv': 12,         // 保本广告(GMV)列
-        'ROI_BE_effective': 13,     // 保本ROI(有效)列
-        'ROI_BE_gmv': 14            // 保本ROI(GMV)列
+        'grossMarginRate': 10,      // 毛利率列
+        'adCostBreakEven': 11,      // 保本广告费列
+        'adRateBE_effective': 12,   // 保本广告(有效)列
+        'adRateBE_gmv': 13,         // 保本广告(GMV)列
+        'ROI_BE_effective': 14,     // 保本ROI(有效)列
+        'ROI_BE_gmv': 15            // 保本ROI(GMV)列
       };
       
       const columnIndex = columnMap[columnName];
@@ -4103,6 +4133,7 @@
           
           // 添加计算结果
           if (result.singleAnalysis) {
+            rowData['毛利率(%)'] = (result.singleAnalysis.grossMarginRate * 100).toFixed(2);
             rowData['保本广告费'] = result.singleAnalysis.adCostBreakEven.toFixed(2);
             rowData['保本广告(有效)(%)'] = (result.singleAnalysis.adRateBE_effective * 100).toFixed(2);
             rowData['保本广告(GMV)(%)'] = (result.singleAnalysis.adRateBE_gmv * 100).toFixed(2);
@@ -4111,6 +4142,7 @@
           } else if (result.tierAnalysis.length > 0) {
             // 多档价格模式，导出第一档的结果
             const firstTier = result.tierAnalysis[0];
+            rowData['毛利率(%)'] = (firstTier.grossMarginRate * 100).toFixed(2);
             rowData['保本广告费'] = firstTier.adCostBreakEven.toFixed(2);
             rowData['保本广告(有效)(%)'] = (firstTier.adRateBE_effective * 100).toFixed(2);
             rowData['保本广告(GMV)(%)'] = (firstTier.adRateBE_gmv * 100).toFixed(2);
@@ -4497,7 +4529,9 @@
           <input type="number" class="table-input return-rate" placeholder="0.00" step="0.01" 
                  value="${data.returnRate !== undefined && data.returnRate !== null && data.returnRate !== '' ? data.returnRate : ''}" data-row-id="${rowId}">
         </td>
-
+        <td>
+          <div class="calc-result" data-row-id="${rowId}">—</div>
+        </td>
         <td>
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
@@ -5009,6 +5043,7 @@
     // 获取列的显示名称
     function getColumnDisplayName(column) {
       const columnNames = {
+        'grossMarginRate': '毛利率',
         'adCostBreakEven': '保本广告费',
               'adRateBE_effective': '保本广告(有效)',
       'adRateBE_gmv': '保本广告(GMV)',
