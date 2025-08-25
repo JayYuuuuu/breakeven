@@ -1375,8 +1375,7 @@
           </div>
           
           <div class="result-buttons">
-            <button class="btn" onclick="window.calculateTargetPrice()">计算所需售价</button>
-            <button class="btn secondary" onclick="window.calculateTargetCost()">计算可接受进货价</button>
+            <button class="btn" onclick="window.calculateTargetAnalysis()">计算目标推演</button>
           </div>
           
           <div class="target-results">
@@ -1388,6 +1387,10 @@
               <span class="label">可接受进货价：</span>
               <span id="targetCostResult">—</span>
             </div>
+            <div class="result-item">
+              <span class="label">净税负占比：</span>
+              <span id="taxResult">—</span>
+            </div>
           </div>
         </div>
         
@@ -1395,35 +1398,7 @@
         <div class="extended-analysis">
           <h4>扩展分析</h4>
           
-          <!-- 税负分析 -->
-          <div class="tax-analysis">
-            <h5>税负分析</h5>
-                      <div class="input-group">
-            <label>广告占比：</label>
-            <input type="number" id="taxAdRate" step="0.01" min="0" max="100" placeholder="25" 
-                   onchange="window.convertToDecimal(this, 'taxAdRate')" 
-                   oninput="window.previewConversion(this, 'taxAdRate')">
-            <span class="hint">直接输入百分比，如25表示25%</span>
-            <span id="taxAdRatePreview" class="conversion-preview"></span>
-          </div>
-            <div class="input-group">
-              <label>有效率：</label>
-              <input type="number" id="taxR" step="0.01" min="0" max="1" placeholder="0.88">
-            </div>
-            <div class="input-group">
-              <label>口径：</label>
-              <select id="taxBasis">
-                <option value="effective">有效营收</option>
-                <option value="gmv">GMV</option>
-              </select>
-            </div>
-            <button class="btn secondary" onclick="window.calculateTaxBurden()">计算税负</button>
-            <div class="result-item">
-              <span class="label">净税负占比：</span>
-              <span id="taxResult">—</span>
-            </div>
-          </div>
-          
+
           <!-- 投放三角分析 -->
           <div class="value-analysis">
             <h5>投放三角分析</h5>
@@ -5066,8 +5041,10 @@
       
       // 设置默认值
       const effectiveRate = 1 - data.returnRate;
-      document.getElementById('targetR').value = effectiveRate.toFixed(4);
-      document.getElementById('taxR').value = effectiveRate.toFixed(4);
+      const targetREl = document.getElementById('targetR');
+      if (targetREl) {
+        targetREl.value = effectiveRate.toFixed(4);
+      }
       
       // 清空结果
       clearAnalysisResults();
@@ -5104,17 +5081,18 @@
     
     // 清空分析结果
     function clearAnalysisResults() {
-      document.getElementById('targetPriceResult').textContent = '—';
-      document.getElementById('targetCostResult').textContent = '—';
-      document.getElementById('taxResult').textContent = '—';
-      document.getElementById('valueRoiResult').textContent = '—';
-      document.getElementById('valueCpcResult').textContent = '—';
-      document.getElementById('valueCvrResult').textContent = '—';
-      document.getElementById('valueAovResult').textContent = '—';
+      const elements = [
+        'targetPriceResult', 'targetCostResult', 'taxResult',
+        'valueRoiResult', 'valueCpcResult', 'valueCvrResult', 'valueAovResult'
+      ];
+      elements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '—';
+      });
     }
     
-    // 计算所需售价
-    window.calculateTargetPrice = function() {
+    // 合并的目标推演计算（同时计算售价、进货价、税负）
+    window.calculateTargetAnalysis = function() {
       if (!currentAnalysisData) return;
       
       try {
@@ -5144,79 +5122,52 @@
           goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
         };
         
-        // 调用引擎函数计算所需售价
+        // 1. 计算所需售价
         const requiredPrice = solveSellingPrice(params, r, a, basis, m);
-        
         if (isFinite(requiredPrice) && requiredPrice > 0) {
           document.getElementById('targetPriceResult').textContent = `¥${requiredPrice.toFixed(2)}`;
-          showMessage('售价计算成功', 'success');
         } else {
           document.getElementById('targetPriceResult').textContent = '参数无效/不可解';
-          showMessage('无法计算所需售价，请检查参数', 'error');
         }
         
-      } catch (error) {
-        console.error('计算所需售价失败:', error);
-        showMessage('计算失败: ' + error.message, 'error');
-      }
-    };
-    
-    // 计算可接受进货价
-    window.calculateTargetCost = function() {
-      if (!currentAnalysisData) return;
-      
-      try {
-        const r = parseFloat(document.getElementById('targetR').value);
-        const a = parseFloat(document.getElementById('targetA').value);
-        const basis = document.getElementById('targetBasis').value;
-        const m = parseFloat(document.getElementById('targetM').value);
-        
-        if (!isFinite(r) || !isFinite(a) || !isFinite(m)) {
-          showMessage('请填写所有必要的参数', 'error');
-          return;
-        }
-        
-        // 构建参数对象
-        const params = {
-          sellingPrice: currentAnalysisData.price,
-          returnRate: currentAnalysisData.returnRate,
-          costPrice: currentAnalysisData.cost,
-          inputTaxRate: valNum('inputTaxRate') / 100,
-          outputTaxRate: valNum('outputTaxRate') / 100,
-          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
-          shippingCost: valNum('shippingCost'),
-          shippingInsurance: valNum('shippingInsurance'),
-          otherCost: valNum('otherCost'),
-          salesTaxRate: valNum('salesTaxRate') / 100,
-          serviceVATRate: valNum('serviceVATRate') / 100,
-          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
-        };
-        
-        // 调用引擎函数计算可接受进货价
+        // 2. 计算可接受进货价
         const acceptableCost = solveCostPrice(params, r, a, basis, m);
-        
         if (isFinite(acceptableCost) && acceptableCost > 0) {
           document.getElementById('targetCostResult').textContent = `¥${acceptableCost.toFixed(2)}`;
-          showMessage('进货价计算成功', 'success');
         } else {
           document.getElementById('targetCostResult').textContent = '参数无效/不可解';
-          showMessage('无法计算可接受进货价，请检查参数', 'error');
+        }
+        
+        // 3. 计算税负
+        window.calculateTaxBurden();
+        
+        // 统一成功消息
+        if ((isFinite(requiredPrice) && requiredPrice > 0) || (isFinite(acceptableCost) && acceptableCost > 0)) {
+          showMessage('目标推演计算完成', 'success');
+        } else {
+          showMessage('计算结果异常，请检查参数', 'error');
         }
         
       } catch (error) {
-        console.error('计算可接受进货价失败:', error);
+        console.error('目标推演计算失败:', error);
         showMessage('计算失败: ' + error.message, 'error');
       }
     };
     
-    // 计算税负
+    // 计算税负（直接使用目标推演参数）
     window.calculateTaxBurden = function() {
       if (!currentAnalysisData) return;
       
       try {
-        const a = parseFloat(document.getElementById('taxAdRate').value);
-        const r = parseFloat(document.getElementById('taxR').value);
-        const basis = document.getElementById('taxBasis').value;
+        const basis = document.getElementById('targetBasis').value;
+        // 广告占比：允许 25 或 0.25，统一转为小数
+        const aRaw = document.getElementById('targetA').value;
+        const aNum = parseFloat(aRaw);
+        const a = isFinite(aNum) ? (aNum > 1 ? aNum/100 : aNum) : NaN;
+        // 有效率：允许 0.86 或 86
+        const rRaw = document.getElementById('targetR').value;
+        const rNum = parseFloat(rRaw);
+        const r = isFinite(rNum) ? (rNum > 1 ? rNum/100 : rNum) : NaN;
         
         if (!isFinite(a) || !isFinite(r)) {
           showMessage('请填写所有必要的参数', 'error');
@@ -5255,65 +5206,102 @@
         showMessage('计算失败: ' + error.message, 'error');
       }
     };
+
+
     
-    // 计算投放三角分析
+    // 进阶推演：投放三角（三选二倒算第三个），与决策条完全同口径
     window.calculateValueAnalysis = function() {
-      if (!currentAnalysisData) return;
+      console.log('🧮 进阶推演（三选二倒算）开始');
+      if (!window.CURRENT_ANALYSIS_ROW_ID) {
+        showMessage('请先选择要分析的商品行', 'error');
+        return;
+      }
       
       try {
-        const basis = document.getElementById('valueBasis').value;
-        const cvr = parseFloat(document.getElementById('valueCvr').value);
-        const cpc = parseFloat(document.getElementById('valueCpc').value);
-        const aov = parseFloat(document.getElementById('valueAov').value);
-        
-        if (!isFinite(cvr) || !isFinite(cpc) || !isFinite(aov)) {
-          showMessage('请填写所有必要的参数', 'error');
+        // 1) 同步系统参数，获取当前行商品，并计算保本阈值
+        updateSystemParams();
+        const product = getRowProductForAnalysis(window.CURRENT_ANALYSIS_ROW_ID);
+        if (!product || !isFinite(product.singlePrice) || !isFinite(product.singleCost)) {
+          showMessage('请先完善该行的售价与进货价（或选择有效档位）', 'error');
           return;
         }
-        
-        // 构建参数对象
-        const params = {
-          sellingPrice: currentAnalysisData.price,
-          returnRate: currentAnalysisData.returnRate,
-          costPrice: currentAnalysisData.cost,
-          inputTaxRate: valNum('inputTaxRate') / 100,
-          outputTaxRate: valNum('outputTaxRate') / 100,
-          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
-          shippingCost: valNum('shippingCost'),
-          shippingInsurance: valNum('shippingInsurance'),
-          otherCost: valNum('otherCost'),
-          salesTaxRate: valNum('salesTaxRate') / 100,
-          serviceVATRate: valNum('serviceVATRate') / 100,
-          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
-        };
-        
-        // 调用引擎函数计算投放三角分析
-        const valueResult = valueAnalysis(params, basis, cvr, cpc, aov);
-        
-        if (valueResult.error) {
-          showMessage(valueResult.error, 'error');
+        const be = computeBEForProduct(product);
+        if (!be) {
+          showMessage('计算保本阈值失败，请检查输入。', 'error');
           return;
         }
+
+        // 2) 口径与退货率，与决策条保持一致
+        const basis = document.getElementById('decBasis').value; // 与决策条统一
+        const r = isFinite(product.returnRate) ? product.returnRate : 0;
+        // 如果界面上有单独的 valueBasis，下次点击时让它显示与决策条一致（避免心智冲突）
+        const valueBasisEl = document.getElementById('valueBasis');
+        if (valueBasisEl && valueBasisEl.value !== basis) valueBasisEl.value = basis;
+
+        // 3) 保本ROI按口径取值
+        const beROAS = (basis === 'effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
+        document.getElementById('valueRoiResult').textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
+
+        // 4) 读取三角三项输入（CVR/CPC/AOV），允许留空两选其二
+        const cvrPctInput = document.getElementById('valueCvr').value.trim();
+        const cpcInput    = document.getElementById('valueCpc').value.trim();
+        const aovInput    = document.getElementById('valueAov').value.trim();
         
-        // 显示结果
-        if (isFinite(valueResult.ROIbe)) {
-          document.getElementById('valueRoiResult').textContent = valueResult.ROIbe.toFixed(2);
+        // 注意：本输入框在 onChange 时会将百分数自动转换为小数存储，因此此处直接解析为小数
+        const cvrIn = cvrPctInput === '' ? NaN : parseFloat(cvrPctInput);
+        const cpcIn = cpcInput === ''    ? NaN : parseFloat(cpcInput);
+        let   aovIn = aovInput === ''    ? NaN : parseFloat(aovInput);
+        if (!isFinite(aovIn)) aovIn = product.singlePrice || NaN; // AOV留空用售价
+
+        // 5) 计算 usedAOV（按口径对齐）；注意：仅用于内部计算
+        const usedAOV = (basis === 'effective' && isFinite(r)) ? (aovIn * (1 - r)) : aovIn;
+
+        const numFilled = [cvrIn, cpcIn, aovIn].filter(v => isFinite(v)).length;
+        if (numFilled < 2) {
+          showMessage('请至少填写两项（CVR/CPC/AOV）', 'error');
+          return;
         }
+
+        // 6) 三选二倒算第三个（均为保本临界）
+        let critCPC = NaN, critCVR = NaN, critAOV_eff = NaN, critAOV_gmv = NaN;
         
-        if (isFinite(valueResult.cpcCritical)) {
-          document.getElementById('valueCpcResult').textContent = `¥${valueResult.cpcCritical.toFixed(2)}`;
+        // CPC 缺失 → 倒算 CPC 临界
+        if (!isFinite(cpcIn) && isFinite(cvrIn) && isFinite(usedAOV) && beROAS > 0) {
+          critCPC = (cvrIn * usedAOV) / beROAS;
+          document.getElementById('valueCpc').value = isFinite(critCPC) ? critCPC.toFixed(2) : '';
         }
-        
-        if (isFinite(valueResult.cvrCritical)) {
-          document.getElementById('valueCvrResult').textContent = `${(valueResult.cvrCritical * 100).toFixed(4)}%`;
+        // CVR 缺失 → 倒算 CVR 临界
+        if (!isFinite(cvrIn) && isFinite(cpcIn) && isFinite(usedAOV) && usedAOV > 0) {
+          critCVR = (cpcIn * beROAS) / usedAOV;
+          // 回填到输入框使用小数形式，保持与自动转换口径一致
+          document.getElementById('valueCvr').value = isFinite(critCVR) ? critCVR.toFixed(4) : '';
         }
-        
-        if (isFinite(valueResult.aovCritical)) {
-          document.getElementById('valueAovResult').textContent = `¥${valueResult.aovCritical.toFixed(2)}`;
+        // AOV 缺失 → 倒算 AOV 临界（内部计算有效口径，再按口径回填到输入框）
+        if (!isFinite(aovIn) && isFinite(cpcIn) && isFinite(cvrIn) && cvrIn > 0) {
+          critAOV_eff = (cpcIn * beROAS) / cvrIn;
+          critAOV_gmv = (basis === 'effective' && isFinite(r) && (1 - r) > 0) ? (critAOV_eff / (1 - r)) : critAOV_eff;
+          document.getElementById('valueAov').value = isFinite(critAOV_gmv) ? critAOV_gmv.toFixed(2) : '';
         }
-        
-        showMessage('投放三角分析计算成功', 'success');
-        
+
+        // 7) 若三项都填，则给出三项“校验用”的临界参考值（不覆盖用户输入）
+        if (isFinite(cvrIn) && isFinite(cpcIn) && isFinite(aovIn)) {
+          const usedAOV_all = (basis === 'effective' && isFinite(r)) ? (aovIn * (1 - r)) : aovIn;
+          critCPC = (isFinite(usedAOV_all) && beROAS > 0) ? (cvrIn * usedAOV_all) / beROAS : NaN;
+          critCVR = (isFinite(usedAOV_all) && usedAOV_all > 0) ? (cpcIn * beROAS) / usedAOV_all : NaN;
+          critAOV_eff = (cvrIn > 0) ? (cpcIn * beROAS) / cvrIn : NaN;
+          critAOV_gmv = (basis === 'effective' && isFinite(r) && (1 - r) > 0) ? (critAOV_eff / (1 - r)) : critAOV_eff;
+        }
+
+        // 8) 回填“结果展示区”
+        const elCpc = document.getElementById('valueCpcResult');
+        const elCvr = document.getElementById('valueCvrResult');
+        const elAov = document.getElementById('valueAovResult');
+        if (elCpc) elCpc.textContent = isFinite(critCPC) ? `¥${critCPC.toFixed(2)}` : '—';
+        if (elCvr) elCvr.textContent = isFinite(critCVR) ? `${(critCVR * 100).toFixed(2)}%` : '—';
+        if (elAov) elAov.textContent = isFinite(critAOV_gmv) ? `¥${critAOV_gmv.toFixed(2)}` : '—';
+
+        console.log('🔺 三选二倒算完成：', { basis, r, beROAS, cvrIn, cpcIn, aovIn, usedAOV, critCPC, critCVR, critAOV_eff, critAOV_gmv });
+        showMessage('投放三角进阶推演完成', 'success');
       } catch (error) {
         console.error('计算投放三角分析失败:', error);
         showMessage('计算失败: ' + error.message, 'error');
@@ -5332,6 +5320,18 @@
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
         window.closeAnalysisPanel();
+      }
+    });
+
+    // 为系统中所有输入框添加点击全选功能
+    document.addEventListener('click', function(event) {
+      const target = event.target;
+      // 检查是否是输入框（包括数值、文本输入框）
+      if (target.tagName === 'INPUT' && (target.type === 'number' || target.type === 'text')) {
+        // 延迟执行以确保焦点已设置
+        setTimeout(() => {
+          target.select();
+        }, 0);
       }
     });
 

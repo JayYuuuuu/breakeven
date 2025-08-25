@@ -1726,6 +1726,18 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     el.addEventListener('input', ()=>{ if(valueModal.style.display==='flex'){ valueSim(); } });
   });
   // storage sync disabled
+
+  // 为系统中所有输入框添加点击全选功能
+  document.addEventListener('click', function(event) {
+    const target = event.target;
+    // 检查是否是输入框（包括数值、文本输入框）
+    if (target.tagName === 'INPUT' && (target.type === 'number' || target.type === 'text')) {
+      // 延迟执行以确保焦点已设置
+      setTimeout(() => {
+        target.select();
+      }, 0);
+    }
+  });
 </script>
 </body>
 </html>
