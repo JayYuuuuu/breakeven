@@ -60,6 +60,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240441',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 49.8,
     tierPrices: [],
     returnRate: 0.1427,
@@ -71,6 +72,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY50001',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 89.1,
     tierPrices: [],
     returnRate: 0.0889,
@@ -82,6 +84,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY60001',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 129,
     tierPrices: [],
     returnRate: 0.1267,
@@ -93,6 +96,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2889',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 69.8,
     tierPrices: [],
     returnRate: 0.0658,
@@ -104,6 +108,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN3061',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 69.8,
     tierPrices: [],
     returnRate: 0.0639,
@@ -115,6 +120,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX19585',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [62.10, 62.10, 71.10],
     returnRate: 0.0940,
@@ -126,6 +132,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2021',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 69.98,
     tierPrices: [],
     returnRate: 0.0914,
@@ -137,6 +144,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2221',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.98,
     tierPrices: [],
     returnRate: 0.0692,
@@ -148,6 +156,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240131',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [99.00, 108.00, 115.50],
     returnRate: 0.1308,
@@ -159,6 +168,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2140',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 79,
     tierPrices: [],
     returnRate: 0.0914,
@@ -170,6 +180,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2101',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 129,
     tierPrices: [],
     returnRate: 0.0847,
@@ -181,6 +192,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX21011-1',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 149,
     tierPrices: [],
     returnRate: 0.0455,
@@ -192,6 +204,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2151',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 139,
     tierPrices: [],
     returnRate: 0.1058,
@@ -203,6 +216,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX17100',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [71.10, 71.10, 80.10],
     returnRate: 0.0799,
@@ -214,6 +228,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240231',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 59.4,
     tierPrices: [],
     returnRate: 0.1522,
@@ -225,6 +240,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240251',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 99,
     tierPrices: [],
     returnRate: 0.1606,
@@ -236,6 +252,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240351',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 99,
     tierPrices: [],
     returnRate: 0.2687,
@@ -247,6 +264,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240451',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 118.8,
     tierPrices: [],
     returnRate: 0.2111,
@@ -258,6 +276,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY70001',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 89.1,
     tierPrices: [],
     returnRate: 0.1044,
@@ -269,6 +288,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1813',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [35.10, 39.60, 44.10, 44.10],
     returnRate: 0.0685,
@@ -280,6 +300,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240361',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [69.30, 79.20, 89.10],
     returnRate: 0.2885,
@@ -291,6 +312,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN3081',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.0726,
@@ -302,6 +324,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN94341',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 69,
     tierPrices: [],
     returnRate: 0.0510,
@@ -313,6 +336,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL2505541',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.0510,
@@ -324,6 +348,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN11221',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 59,
     tierPrices: [],
     returnRate: 0.1095,
@@ -335,6 +360,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1801',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [53.10, 53.10, 62.10],
     returnRate: 0.0503,
@@ -346,6 +372,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2003',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 69.75,
     tierPrices: [],
     returnRate: 0.0399,
@@ -357,6 +384,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL2405141',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 69.75,
     tierPrices: [],
     returnRate: 0.0623,
@@ -368,6 +396,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL2505131',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 59,
     tierPrices: [],
     returnRate: 0.0482,
@@ -379,6 +408,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1881',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 99,
     tierPrices: [],
     returnRate: 0.1287,
@@ -390,6 +420,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240161',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [125.10, 134.10, 143.10],
     returnRate: 0.1487,
@@ -401,6 +432,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'JYMBQ2262A',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [229.00, 239.00, 249.00, 289.00, 299.00, 309.00, 319.00, 329.00],
     returnRate: 0.2500,
@@ -412,6 +444,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HG03HDCJB',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [109.00, 129.00],
     returnRate: 0.2384,
@@ -423,6 +456,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXC60001',
     platform: '淘宝',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 79,
     tierPrices: [],
     returnRate: 0.1604,
@@ -434,6 +468,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240141',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [59.80, 69.80],
     returnRate: 0.0866,
@@ -445,6 +480,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXB8401',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 59.4,
     tierPrices: [],
     returnRate: 0.1558,
@@ -457,6 +493,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240331',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [59.80, 65.80, 69.80],
     returnRate: 0.2210,
@@ -468,6 +505,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY8101',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.1024,
@@ -479,6 +517,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240441',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 49.8,
     tierPrices: [],
     returnRate: 0.0974,
@@ -490,6 +529,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY50001',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 89.1,
     tierPrices: [],
     returnRate: 0.1055,
@@ -501,6 +541,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY60001',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 129,
     tierPrices: [],
     returnRate: 0.1117,
@@ -512,6 +553,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2889',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 69.8,
     tierPrices: [],
     returnRate: 0.0592,
@@ -523,6 +565,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN3061',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 69.8,
     tierPrices: [],
     returnRate: 0.0716,
@@ -534,6 +577,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX19585',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [62.10, 62.10, 71.10],
     returnRate: 0.0823,
@@ -545,6 +589,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2021',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 69.98,
     tierPrices: [],
     returnRate: 0.0887,
@@ -556,6 +601,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2221',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.98,
     tierPrices: [],
     returnRate: 0.0721,
@@ -567,6 +613,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240131',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [99.00, 108.00, 115.50],
     returnRate: 0.1329,
@@ -578,6 +625,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2140',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 79,
     tierPrices: [],
     returnRate: 0.0800,
@@ -589,6 +637,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2101',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 129,
     tierPrices: [],
     returnRate: 0.1071,
@@ -600,6 +649,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX21011-1',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 149,
     tierPrices: [],
     returnRate: 0.0909,
@@ -611,6 +661,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2151',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 139,
     tierPrices: [],
     returnRate: 0.1471,
@@ -622,6 +673,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX17100',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [71.10, 71.10, 80.10],
     returnRate: 0.0817,
@@ -633,6 +685,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240231',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 59.4,
     tierPrices: [],
     returnRate: 0.1714,
@@ -644,6 +697,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240251',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 99,
     tierPrices: [],
     returnRate: 0.2171,
@@ -655,6 +709,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240351',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 99,
     tierPrices: [],
     returnRate: 0.2375,
@@ -666,6 +721,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240451',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 118.8,
     tierPrices: [],
     returnRate: 0.1667,
@@ -677,6 +733,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXY70001',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 89.1,
     tierPrices: [],
     returnRate: 0.0619,
@@ -688,6 +745,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1813',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [35.10, 39.60, 44.10, 44.10],
     returnRate: 0.0683,
@@ -699,6 +757,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240361',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [69.30, 79.20, 89.10],
     returnRate: 0.2509,
@@ -710,6 +769,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN3081',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.0785,
@@ -721,6 +781,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN94341',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 69,
     tierPrices: [],
     returnRate: 0.0547,
@@ -732,6 +793,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL2505541',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.0510,
@@ -743,6 +805,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXN11221',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 59,
     tierPrices: [],
     returnRate: 0.0841,
@@ -754,6 +817,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1801',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [53.10, 53.10, 62.10],
     returnRate: 0.0381,
@@ -765,6 +829,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2003',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 69.75,
     tierPrices: [],
     returnRate: 0.0322,
@@ -776,6 +841,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL2405141',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 69.75,
     tierPrices: [],
     returnRate: 0.0000,
@@ -787,6 +853,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL2505131',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 59,
     tierPrices: [],
     returnRate: 0.0484,
@@ -798,6 +865,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXC60001',
     platform: '天猫',
     isMain: true,
+    isNew: false, // 非新品
     singlePrice: 79,
     tierPrices: [],
     returnRate: 0.1860,
@@ -809,6 +877,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'FWL240141',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [59.80, 69.80],
     returnRate: 0.0345,
@@ -820,6 +889,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXB8401',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 59.4,
     tierPrices: [],
     returnRate: 0.1712,
@@ -832,6 +902,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX240381',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 49.5,
     tierPrices: [],
     returnRate: 0.1949,
@@ -843,6 +914,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX240181',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 89.1,
     tierPrices: [],
     returnRate: 0.1579,
@@ -854,6 +926,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX18103',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 35.9,
     tierPrices: [],
     returnRate: 0.1045,
@@ -865,6 +938,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX18103',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 35.9,
     tierPrices: [],
     returnRate: 0.0919,
@@ -876,6 +950,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXM50001',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 78,
     tierPrices: [],
     returnRate: 0.2519,
@@ -887,6 +962,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX9101',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 98.1,
     tierPrices: [],
     returnRate: 0.1244,
@@ -898,6 +974,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX21311',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.1346,
@@ -909,6 +986,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX21311',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 79.8,
     tierPrices: [],
     returnRate: 0.2286,
@@ -920,6 +998,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXJ5031',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 71.1,
     tierPrices: [],
     returnRate: 0.0465,
@@ -931,6 +1010,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXJ1111',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 134.1,
     tierPrices: [],
     returnRate: 0.1325,
@@ -942,6 +1022,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1811',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [44.40, 53.10, 62.10, 62.10],
     returnRate: 0.1194,
@@ -953,6 +1034,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX1811',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [44.40, 53.10, 62.10, 62.10],
     returnRate: 0.0517,
@@ -964,6 +1046,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX19527',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 71.1,
     tierPrices: [],
     returnRate: 0.2028,
@@ -975,6 +1058,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXC811',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 53.1,
     tierPrices: [],
     returnRate: 0.1164,
@@ -986,6 +1070,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2117',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 29,
     tierPrices: [],
     returnRate: 0.0668,
@@ -997,6 +1082,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX2117',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 29,
     tierPrices: [],
     returnRate: 0.0661,
@@ -1008,6 +1094,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXB7201',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 29.9,
     tierPrices: [],
     returnRate: 0.0811,
@@ -1019,6 +1106,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYXB7201',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 29.9,
     tierPrices: [],
     returnRate: 0.0748,
@@ -1030,6 +1118,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX21811',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [71.10, 76.50, 80.10],
     returnRate: 0.2906,
@@ -1041,6 +1130,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX21811',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [71.10, 76.50, 80.10],
     returnRate: 0.1811,
@@ -1052,6 +1142,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX20313',
     platform: '淘宝',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [53.10, 58.80, 62.10, 62.10],
     returnRate: 0.1612,
@@ -1063,6 +1154,7 @@ export const PRODUCT_EXAMPLES = [
     sku: 'HYX20313',
     platform: '天猫',
     isMain: false,
+    isNew: false, // 非新品
     singlePrice: 0,
     tierPrices: [53.10, 58.80, 62.10, 62.10],
     returnRate: 0.1362,
