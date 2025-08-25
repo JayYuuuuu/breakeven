@@ -1160,6 +1160,320 @@ export const PRODUCT_EXAMPLES = [
     returnRate: 0.1362,
     singleCost: 0,
     tierCosts: [24.80, 26.60, 29.00, 31.60]
+  },
+  // 新增商品数据
+  {
+    name: '女童绵绵绒内衣套装',
+    sku: '2401410',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 29,
+    tierCosts: []
+  },
+  {
+    name: '男童绵绵绒内衣套装',
+    sku: '240149',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 29,
+    tierCosts: []
+  },
+  {
+    name: '青少年绵绵绒内衣套装（女）',
+    sku: '250142',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 32,
+    tierCosts: []
+  },
+  {
+    name: '青少年绵绵绒内衣套装（男）',
+    sku: '250141',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 32,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡高腰单裤（女)',
+    sku: '2503126',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 59.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 23,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡单裤（女)',
+    sku: '2503124',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 59.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 22,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡单裤（男)',
+    sku: '2503123',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 59.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 23,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡上衣（女）',
+    sku: '2504128',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 69.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 28,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡上衣（男）',
+    sku: '2504127',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 69.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 29,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡插肩套装（女）',
+    sku: '2501128',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 89.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 39,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡插肩套装（男）',
+    sku: '2501127',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 89.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 41,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡套装（女）',
+    sku: '2501126',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 33,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡套装（男）',
+    sku: '2501125',
+    platform: '淘宝',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 35,
+    tierCosts: []
+  },
+  // 新增天猫平台商品数据
+  {
+    name: '女童绵绵绒内衣套装',
+    sku: '2401410',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 29,
+    tierCosts: []
+  },
+  {
+    name: '男童绵绵绒内衣套装',
+    sku: '240149',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 29,
+    tierCosts: []
+  },
+  {
+    name: '青少年绵绵绒内衣套装（女）',
+    sku: '250142',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 32,
+    tierCosts: []
+  },
+  {
+    name: '青少年绵绵绒内衣套装（男）',
+    sku: '250141',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 32,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡高腰单裤（女)',
+    sku: '2503126',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 59.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 23,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡单裤（女)',
+    sku: '2503124',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 59.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 22,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡单裤（男)',
+    sku: '2503123',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 59.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 23,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡上衣（女）',
+    sku: '2504128',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 69.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 28,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡上衣（男）',
+    sku: '2504127',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 69.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 29,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡插肩套装（女）',
+    sku: '2501128',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 89.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 39,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡插肩套装（男）',
+    sku: '2501127',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 89.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 41,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡套装（女）',
+    sku: '2501126',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 33,
+    tierCosts: []
+  },
+  {
+    name: '青少年棉莱卡套装（男）',
+    sku: '2501125',
+    platform: '天猫',
+    isMain: false,
+    isNew: true, // 标记为新品
+    singlePrice: 79.8,
+    tierPrices: [],
+    returnRate: 0.12,
+    singleCost: 35,
+    tierCosts: []
   }
 ];
 
@@ -1273,7 +1587,35 @@ export function generateExampleCSV() {
     ['空气层加绒单裤', 'HYX21811', '淘宝', '否', '0', '71.10;76.50;80.10', '29.06%', '30.00;36.00;41.00'],
     ['空气层加绒单裤', 'HYX21811', '天猫', '否', '0', '71.10;76.50;80.10', '18.11%', '30.00;36.00;41.00'],
     ['空气层单裤', 'HYX20313', '淘宝', '否', '0', '53.10;58.80;62.10;62.10', '16.12%', '24.80;26.60;29.00;31.60'],
-    ['空气层单裤', 'HYX20313', '天猫', '否', '0', '53.10;58.80;62.10;62.10', '13.62%', '24.80;26.60;29.00;31.60']
+    ['空气层单裤', 'HYX20313', '天猫', '否', '0', '53.10;58.80;62.10;62.10', '13.62%', '24.80;26.60;29.00;31.60'],
+    // 新增商品数据
+    ['女童绵绵绒内衣套装', '2401410', '淘宝', '否', '79.8', '', '12.00%', '29'],
+    ['男童绵绵绒内衣套装', '240149', '淘宝', '否', '79.8', '', '12.00%', '29'],
+    ['青少年绵绵绒内衣套装（女）', '250142', '淘宝', '否', '79.8', '', '12.00%', '32'],
+    ['青少年绵绵绒内衣套装（男）', '250141', '淘宝', '否', '79.8', '', '12.00%', '32'],
+    ['青少年棉莱卡高腰单裤（女)', '2503126', '淘宝', '否', '59.8', '', '12.00%', '23'],
+    ['青少年棉莱卡单裤（女)', '2503124', '淘宝', '否', '59.8', '', '12.00%', '22'],
+    ['青少年棉莱卡单裤（男)', '2503123', '淘宝', '否', '59.8', '', '12.00%', '23'],
+    ['青少年棉莱卡上衣（女）', '2504128', '淘宝', '否', '69.8', '', '12.00%', '28'],
+    ['青少年棉莱卡上衣（男）', '2504127', '淘宝', '否', '69.8', '', '12.00%', '29'],
+    ['青少年棉莱卡插肩套装（女）', '2501128', '淘宝', '否', '89.8', '', '12.00%', '39'],
+    ['青少年棉莱卡插肩套装（男）', '2501127', '淘宝', '否', '89.8', '', '12.00%', '41'],
+    ['青少年棉莱卡套装（女）', '2501126', '淘宝', '否', '79.8', '', '12.00%', '33'],
+    ['青少年棉莱卡套装（男）', '2501125', '淘宝', '否', '79.8', '', '12.00%', '35'],
+    // 新增天猫平台商品数据
+    ['女童绵绵绒内衣套装', '2401410', '天猫', '否', '79.8', '', '12.00%', '29'],
+    ['男童绵绵绒内衣套装', '240149', '天猫', '否', '79.8', '', '12.00%', '29'],
+    ['青少年绵绵绒内衣套装（女）', '250142', '天猫', '否', '79.8', '', '12.00%', '32'],
+    ['青少年绵绵绒内衣套装（男）', '250141', '天猫', '否', '79.8', '', '12.00%', '32'],
+    ['青少年棉莱卡高腰单裤（女)', '2503126', '天猫', '否', '59.8', '', '12.00%', '23'],
+    ['青少年棉莱卡单裤（女)', '2503124', '天猫', '否', '59.8', '', '12.00%', '22'],
+    ['青少年棉莱卡单裤（男)', '2503123', '天猫', '否', '59.8', '', '12.00%', '23'],
+    ['青少年棉莱卡上衣（女）', '2504128', '天猫', '否', '69.8', '', '12.00%', '28'],
+    ['青少年棉莱卡上衣（男）', '2504127', '天猫', '否', '69.8', '', '12.00%', '29'],
+    ['青少年棉莱卡插肩套装（女）', '2501128', '天猫', '否', '89.8', '', '12.00%', '39'],
+    ['青少年棉莱卡插肩套装（男）', '2501127', '天猫', '否', '89.8', '', '12.00%', '41'],
+    ['青少年棉莱卡套装（女）', '2501126', '天猫', '否', '79.8', '', '12.00%', '33'],
+    ['青少年棉莱卡套装（男）', '2501125', '天猫', '否', '79.8', '', '12.00%', '35']
   ];
   
   return [headers, ...examples].map(row => row.join(',')).join('\n');
