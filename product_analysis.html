@@ -1655,8 +1655,7 @@
 
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
           <div class="kpi-band" style="margin-bottom: 12px;">
-            <div class="kpi" id="kpiSafety"><div class="label">安全边际（MaxCPC−实际CPC）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiCvrCpcMargin"><div class="label">CVR-CPC 安全边际（元/点击）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态</div><div class="val">—</div></div>
             <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
           </div>
@@ -1671,7 +1670,7 @@
             <!-- 第一行：成本相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
               <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
-              <div class="kpi"><div class="label">与保本CPA的差</div><div class="val" id="cpaGap">—</div></div>
+              <div class="kpi"><div class="label">和最大承受广告成本差值（元/单）</div><div class="val" id="cpaGap">—</div></div>
               <div class="kpi"><div class="label">实际广告占比（有效）</div><div class="val" id="actualAdRateEff">—</div></div>
             </div>
             
@@ -4017,8 +4016,7 @@
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
           'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
-          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
-          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
           'kpiAdvice',           // 建议（基于安全边际）
           // 即时诊断模块
@@ -4027,7 +4025,7 @@
           'actualAdRateGMV',     // 广告占比（GMV）
           'rpcEffective',        // 每点击收益（有效）
           'rpcGMV',              // 每点击收益（GMV）
-          'cpaGap',              // 与保本CPA的差
+          'cpaGap',              // 和最大承受广告成本差值
           'safetyMargin'         // ROI相比保本的差值
         ],
         color: '#007aff',        // 蓝色
@@ -4043,19 +4041,18 @@
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
           'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
-          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
-          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
           'kpiAdvice',           // 建议（基于安全边际）
           // 即时诊断模块
           'actualCPA',           // CPA = CPC/CVR
           'actualAdRateEff',     // 广告占比（有效）
           'actualAdRateGMV',     // 广告占比（GMV）
-          'cpaGap',              // 与保本CPA的差
+          'cpaGap',              // 和最大承受广告成本差值
           'safetyMargin'         // ROI相比保本的差值
         ],
         color: '#ff9500',        // 橙色
-        description: '点击单价影响保本阈值、实际表现、安全边际和广告占比'
+        description: '点击单价影响保本阈值、实际表现、和最大CPC差值和广告占比'
       },
       'decAOV': {
         // AOV（客单价）影响的指标
@@ -4069,8 +4066,7 @@
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
           'kpiCritAOV',          // AOV 临界（保本）
           // 安全性与建议模块
-          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
-          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
           'kpiAdvice',           // 建议（基于安全边际）
           // 即时诊断模块
@@ -4079,7 +4075,7 @@
           'safetyMargin'         // ROI相比保本的差值
         ],
         color: '#34c759',        // 绿色
-        description: '客单价影响保本阈值、实际表现、安全边际和收益'
+        description: '客单价影响保本阈值、实际表现、和最大CPC差值和收益'
       },
       'decCPM': {
         // CPM（千次曝光成本）影响的指标（通过CTR转换为CPC）
@@ -4091,15 +4087,14 @@
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
           'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
-          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
-          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
           'kpiAdvice',           // 建议（基于安全边际）
           // 即时诊断模块
           'actualCPA',           // CPA = CPC/CVR
           'actualAdRateEff',     // 广告占比（有效）
           'actualAdRateGMV',     // 广告占比（GMV）
-          'cpaGap',              // 与保本CPA的差
+          'cpaGap',              // 和最大承受广告成本差值
           'safetyMargin'         // ROI相比保本的差值
         ],
         color: '#ff9500',        // 橙色（与CPC相同）
@@ -4115,15 +4110,14 @@
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
           'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
-          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
-          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
           'kpiAdvice',           // 建议（基于安全边际）
           // 即时诊断模块
           'actualCPA',           // CPA = CPC/CVR
           'actualAdRateEff',     // 广告占比（有效）
           'actualAdRateGMV',     // 广告占比（GMV）
-          'cpaGap',              // 与保本CPA的差
+          'cpaGap',              // 和最大承受广告成本差值
           'safetyMargin'         // ROI相比保本的差值
         ],
         color: '#ff9500',        // 橙色（与CPC相同）
@@ -4298,17 +4292,17 @@
       try {
         // 读取CVR-CPC状态和安全边际
         const cvrCpcStatusEl = document.getElementById('kpiCvrCpcStatus');
-        const cvrCpcMarginEl = document.getElementById('kpiCvrCpcMargin');
+        const safetyEl = document.getElementById('kpiSafety');
         
-        if (!cvrCpcStatusEl || !cvrCpcMarginEl) {
+        if (!cvrCpcStatusEl || !safetyEl) {
           console.warn('⚠️ KPI元素未找到，无法生成建议');
           return null;
         }
         
         const statusText = cvrCpcStatusEl.querySelector('.val')?.textContent || '';
-        const marginText = cvrCpcMarginEl.querySelector('.val')?.textContent || '';
+        const safetyText = safetyEl.querySelector('.val')?.textContent || '';
         
-        console.log('🔍 读取KPI数据:', { statusText, marginText });
+        console.log('🔍 读取KPI数据:', { statusText, safetyText });
         
         // 解析状态文本，提取百分比
         let statusPercent = 0;
@@ -4330,10 +4324,10 @@
           }
         }
         
-        // 解析安全边际数值，提取元数
+        // 解析安全边际数值，提取元数（从安全边际卡片读取）
         let marginYuan = 0;
-        if (marginText.includes('元')) {
-          const yuanMatch = marginText.match(/([\d.]+)元/);
+        if (safetyText.includes('元')) {
+          const yuanMatch = safetyText.match(/([\d.]+)元/);
           if (yuanMatch) {
             marginYuan = parseFloat(yuanMatch[1]);
           }
@@ -4344,7 +4338,7 @@
           statusPercent, 
           marginYuan,
           statusText, 
-          marginText 
+          safetyText 
         });
         
         // 分级建议逻辑
@@ -6455,7 +6449,23 @@
 
         const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
         const actROAS = (isFinite(cvr) && isFinite(usedAOV) && isFinite(cpc) && cpc>0) ? (cvr*usedAOV)/cpc : NaN;
-        const safety = (isFinite(maxCPC) && isFinite(cpc)) ? (maxCPC - cpc) : NaN;
+        // 和最大CPC差值计算（优先使用 safetyAnalysis.marginPerClick，降级到 maxCPC - cpc）
+        let safety = NaN;
+        if (isFinite(cvr) && isFinite(cpc) && isFinite(beCPA)) {
+          try {
+            const safetyAnalysis = safetyMarginAnalysis(cpc, cvr, beCPA);
+            if (!safetyAnalysis.error) {
+              safety = safetyAnalysis.marginPerClick; // 使用元/点击口径的安全边际
+            }
+          } catch (error) {
+            console.error('❌ 安全边际计算失败，使用降级计算:', error);
+          }
+        }
+        
+        // 如果 safetyAnalysis 失败，降级到原来的计算方式
+        if (!isFinite(safety)) {
+          safety = (isFinite(maxCPC) && isFinite(cpc)) ? (maxCPC - cpc) : NaN;
+        }
 
         // 三角临界
         const critCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
@@ -6466,8 +6476,7 @@
         const incr = parseFloat(document.getElementById('decIncrementality').value);
         const adjROAS = (isFinite(incr) && incr>=0 && incr<=1) ? (actROAS * incr) : actROAS;
 
-        // CVR-CPC 安全边际分析
-        let cvrCpcMargin = '—';
+        // CVR-CPC 状态分析（安全边际已在上面计算）
         let cvrCpcStatus = '—';
         let cvrCpcStatusClass = '';
         
@@ -6477,9 +6486,6 @@
             console.log('🔍 CVR-CPC 安全边际分析结果:', safetyAnalysis);
             
             if (!safetyAnalysis.error) {
-              // CVR-CPC 安全边际（元/点击）- 使用新的字段
-              cvrCpcMargin = `${fmt(safetyAnalysis.marginPerClick, 2)}元/点击`;
-              
               // 状态显示
               if (safetyAnalysis.isSafe) {
                 const marginPercent = (safetyAnalysis.marginPercent * 100).toFixed(1);
@@ -6500,7 +6506,7 @@
               });
             }
           } catch (error) {
-            console.error('❌ CVR-CPC 安全边际分析失败:', error);
+            console.error('❌ CVR-CPC 状态分析失败:', error);
           }
         }
 
@@ -6540,10 +6546,8 @@
         if (elCritCVR) elCritCVR.textContent = isFinite(critCVR) ? (critCVR*100).toFixed(2) + '%' : '—';
         if (elCritAOV) elCritAOV.textContent = isFinite(critAOV) ? fmt(critAOV,2) : '—';
         
-        // 回填 CVR-CPC 安全边际分析结果
-        const kCvrCpcMargin = document.getElementById('kpiCvrCpcMargin');
+        // 回填 CVR-CPC 状态分析结果
         const kCvrCpcStatus = document.getElementById('kpiCvrCpcStatus');
-        if (kCvrCpcMargin) kCvrCpcMargin.querySelector('.val').textContent = cvrCpcMargin;
         if (kCvrCpcStatus) {
           kCvrCpcStatus.querySelector('.val').textContent = cvrCpcStatus;
           kCvrCpcStatus.classList.remove('good','warn','bad');
@@ -6551,7 +6555,7 @@
         }
         
         console.log('🔺 三角临界：', { basis, usedAOV, beROAS, cvr, cpc, critCPC, critCVR, critAOV });
-        console.log('🔍 CVR-CPC 边界分析显示:', { cvrCpcMargin, cvrCpcStatus, cvrCpcStatusClass });
+        console.log('🔍 CVR-CPC 状态分析显示:', { cvrCpcStatus, cvrCpcStatusClass });
         
         const kAdv = document.getElementById('kpiAdvice');
         kAdv.querySelector('.val').textContent = advice;

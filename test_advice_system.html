@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建议系统测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .kpi { display: inline-block; margin: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #007aff; }
+        .kpi .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .kpi .val { font-size: 14px; font-weight: bold; color: #333; }
+        .btn { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #0056b3; }
+        .result { margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #28a745; }
+        .good { color: #28a745; }
+        .warn { color: #ffc107; }
+        .bad { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 建议系统测试</h1>
+        <p>验证修复后的建议系统是否能正常读取KPI数据并生成建议</p>
+
+        <div class="test-case">
+            <h3>测试用例 1：安全状态</h3>
+            <div class="kpi">
+                <div class="label">CVR-CPC 状态</div>
+                <div class="val" id="status1">安全 (+15.2%)</div>
+            </div>
+            <div class="kpi">
+                <div class="label">和最大CPC差值（元/点击）</div>
+                <div class="val" id="safety1">+0.42</div>
+            </div>
+            <button class="btn" onclick="testAdvice(1)">测试建议生成</button>
+            <div id="result1" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-case">
+            <h3>测试用例 2：危险状态</h3>
+            <div class="kpi">
+                <div class="label">CVR-CPC 状态</div>
+                <div class="val" id="status2">危险 (-8.3%)</div>
+            </div>
+            <div class="kpi">
+                <div class="label">和最大CPC差值（元/点击）</div>
+                <div class="val" id="safety2">-0.15</div>
+            </div>
+            <button class="btn" onclick="testAdvice(2)">测试建议生成</button>
+            <div id="result2" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-case">
+            <h3>测试用例 3：边界状态</h3>
+            <div class="kpi">
+                <div class="label">CVR-CPC 状态</div>
+                <div class="val" id="status3">安全 (+5.1%)</div>
+            </div>
+            <div class="kpi">
+                <div class="label">和最大CPC差值（元/点击）</div>
+                <div class="val" id="safety3">+0.08</div>
+            </div>
+            <button class="btn" onclick="testAdvice(3)">测试建议生成</button>
+            <div id="result3" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-case">
+            <h3>批量测试</h3>
+            <button class="btn" onclick="runAllTests()">运行所有测试</button>
+            <div id="batchResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟 updateAdviceFromKpis 函数
+        function updateAdviceFromKpis() {
+            try {
+                // 读取CVR-CPC状态和安全边际
+                const cvrCpcStatusEl = document.getElementById('kpiCvrCpcStatus');
+                const safetyEl = document.getElementById('kpiSafety');
+                
+                if (!cvrCpcStatusEl || !safetyEl) {
+                    console.warn('⚠️ KPI元素未找到，无法生成建议');
+                    return null;
+                }
+                
+                const statusText = cvrCpcStatusEl.querySelector('.val')?.textContent || '';
+                const safetyText = safetyEl.querySelector('.val')?.textContent || '';
+                
+                console.log('🔍 读取KPI数据:', { statusText, safetyText });
+                
+                // 解析状态文本，提取百分比
+                let statusPercent = 0;
+                let isSafe = false;
+                
+                if (statusText.includes('安全')) {
+                    isSafe = true;
+                    // 提取百分比，如"安全 (+51.6%)" -> 51.6
+                    const percentMatch = statusText.match(/\+([\d.]+)%/);
+                    if (percentMatch) {
+                        statusPercent = parseFloat(percentMatch[1]);
+                    }
+                } else if (statusText.includes('危险') || statusText.includes('风险') || statusText.includes('亏损')) {
+                    isSafe = false;
+                    // 提取负百分比，如"危险 (-12.3%)" -> -12.3
+                    const percentMatch = statusText.match(/-([\d.]+)%/);
+                    if (percentMatch) {
+                        statusPercent = -parseFloat(percentMatch[1]);
+                    }
+                }
+                
+                // 解析安全边际数值，提取元数（从安全边际卡片读取）
+                let marginYuan = 0;
+                if (safetyText.includes('元')) {
+                    const yuanMatch = safetyText.match(/([\d.]+)元/);
+                    if (yuanMatch) {
+                        marginYuan = parseFloat(yuanMatch[1]);
+                    }
+                }
+                
+                console.log('🔍 解析结果:', { 
+                    isSafe, 
+                    statusPercent, 
+                    marginYuan,
+                    statusText, 
+                    safetyText 
+                });
+                
+                // 分级建议逻辑
+                let adviceText = '';
+                let adviceClass = '';
+                
+                if (!isSafe || marginYuan <= 0) {
+                    // 1. 告警：状态包含"不安全/风险/亏损/危险"或元边际 ≤ 0
+                    adviceText = '临近或低于保本：优先降CPC/提CVR/调价';
+                    adviceClass = 'bad';
+                } else if (statusPercent < 10 || marginYuan <= 0.2) {
+                    // 2. 谨慎：ROI 余量 < 10% 或 元边际 ≤ 0.2
+                    adviceText = '接近临界：小幅试探，谨慎加量';
+                    adviceClass = 'warn';
+                } else if (statusPercent < 30 || (marginYuan > 0.2 && marginYuan < 0.5)) {
+                    // 3. 观望：10% ≤ 余量 < 30% 或 0.2 < 元边际 < 0.5
+                    adviceText = '状态良好，稳态观察';
+                    adviceClass = 'warn';
+                } else if (statusPercent < 80 && marginYuan >= 0.5) {
+                    // 4. 适度加量：30% ≤ 余量 < 80% 且 元边际 ≥ 0.5
+                    adviceText = '状态良好，可适度加量';
+                    adviceClass = 'good';
+                } else if (statusPercent >= 80 && marginYuan >= 1.0) {
+                    // 5. 扩量测试：余量 ≥ 80% 且 元边际 ≥ 1.0
+                    adviceText = '安全裕度充足：可加量与扩量测试';
+                    adviceClass = 'good';
+                } else {
+                    // 默认情况
+                    adviceText = '状态良好，可适度加量';
+                    adviceClass = 'good';
+                }
+                
+                console.log('💡 生成建议:', { adviceText, adviceClass, statusPercent, marginYuan });
+                
+                return {
+                    text: adviceText,
+                    class: adviceClass
+                };
+                
+            } catch (error) {
+                console.error('❌ 生成建议失败:', error);
+                // 返回默认建议
+                return {
+                    text: '系统异常，请检查数据',
+                    class: 'warn'
+                };
+            }
+        }
+
+        // 测试单个用例
+        function testAdvice(caseNum) {
+            // 临时设置测试数据
+            const statusEl = document.getElementById(`status${caseNum}`);
+            const safetyEl = document.getElementById(`safety${caseNum}`);
+            
+            // 临时创建测试元素
+            const tempStatus = document.createElement('div');
+            tempStatus.id = 'kpiCvrCpcStatus';
+            tempStatus.innerHTML = `<div class="val">${statusEl.textContent}</div>`;
+            
+            const tempSafety = document.createElement('div');
+            tempSafety.id = 'kpiSafety';
+            tempSafety.innerHTML = `<div class="val">${safetyEl.textContent}</div>`;
+            
+            // 添加到页面
+            document.body.appendChild(tempStatus);
+            document.body.appendChild(tempSafety);
+            
+            try {
+                const adviceResult = updateAdviceFromKpis();
+                const resultDiv = document.getElementById(`result${caseNum}`);
+                
+                if (adviceResult) {
+                    resultDiv.innerHTML = `
+                        <h4>✅ 建议生成成功</h4>
+                        <p><strong>建议内容:</strong> <span class="${adviceResult.class}">${adviceResult.text}</span></p>
+                        <p><strong>样式类:</strong> ${adviceResult.class}</p>
+                        <p><strong>状态文本:</strong> ${statusEl.textContent}</p>
+                        <p><strong>安全边际:</strong> ${safetyEl.textContent}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h4>❌ 建议生成失败</h4>
+                        <p>无法生成建议，请检查KPI数据</p>
+                    `;
+                }
+                
+                resultDiv.style.display = 'block';
+                
+            } finally {
+                // 清理临时元素
+                document.body.removeChild(tempStatus);
+                document.body.removeChild(tempSafety);
+            }
+        }
+
+        // 运行所有测试
+        function runAllTests() {
+            const testCases = [
+                { status: '安全 (+15.2%)', safety: '+0.42', expected: 'good' },
+                { status: '危险 (-8.3%)', safety: '-0.15', expected: 'bad' },
+                { status: '安全 (+5.1%)', safety: '+0.08', expected: 'warn' }
+            ];
+            
+            let allPassed = true;
+            let results = [];
+            
+            testCases.forEach((testCase, index) => {
+                // 临时设置测试数据
+                const tempStatus = document.createElement('div');
+                tempStatus.id = 'kpiCvrCpcStatus';
+                tempStatus.innerHTML = `<div class="val">${testCase.status}</div>`;
+                
+                const tempSafety = document.createElement('div');
+                tempSafety.id = 'kpiSafety';
+                tempSafety.innerHTML = `<div class="val">${testCase.safety}</div>`;
+                
+                document.body.appendChild(tempStatus);
+                document.body.appendChild(tempSafety);
+                
+                try {
+                    const adviceResult = updateAdviceFromKpis();
+                    const passed = adviceResult && adviceResult.class === testCase.expected;
+                    if (!passed) allPassed = false;
+                    
+                    results.push({
+                        case: index + 1,
+                        status: testCase.status,
+                        safety: testCase.safety,
+                        expected: testCase.expected,
+                        actual: adviceResult ? adviceResult.class : 'null',
+                        passed: passed
+                    });
+                    
+                } finally {
+                    document.body.removeChild(tempStatus);
+                    document.body.removeChild(tempSafety);
+                }
+            });
+            
+            const batchResultDiv = document.getElementById('batchResult');
+            let html = `<h4>📊 批量测试结果</h4>`;
+            html += `<p><strong>总体结果:</strong> ${allPassed ? '✅ 全部通过' : '❌ 部分失败'}</p>`;
+            html += '<table border="1" style="border-collapse: collapse; width: 100%; margin-top: 10px;">';
+            html += '<tr><th>用例</th><th>状态</th><th>安全边际</th><th>期望</th><th>实际</th><th>结果</th></tr>';
+            
+            results.forEach(result => {
+                html += `<tr>
+                    <td>${result.case}</td>
+                    <td>${result.status}</td>
+                    <td>${result.safety}</td>
+                    <td>${result.expected}</td>
+                    <td>${result.actual}</td>
+                    <td style="color: ${result.passed ? 'green' : 'red'}">${result.passed ? '✓' : '✗'}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            batchResultDiv.innerHTML = html;
+            batchResultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
