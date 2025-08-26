@@ -514,6 +514,11 @@
           
           // 重新计算所有结果
           recalcAll();
+        } else {
+          // 如果没有保存的数据，添加默认的初始状态
+          addTierRow(); // 添加一个空的满减档位
+          addTargetRow('79.80'); // 添加一个默认价格输入框，填入79.80
+          recalcAll();
         }
       } catch (e) {
         console.warn('恢复数据失败:', e);
