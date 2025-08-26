@@ -33,7 +33,7 @@
     input{
       background:#fff; border:1px solid #d2d2d7; border-radius:10px;
       padding:14px 12px; font-size:28px; font-weight:700; width:120px;
-      outline:none; text-align:right;
+      outline:none; text-align:center;
       box-sizing:border-box; max-width:100%;
     }
     input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,0.2); }
@@ -118,9 +118,72 @@
         </div>
       </div>
     </section>
+    <!-- 毛利率换算（已知某折扣下毛利率 → 另一折扣下毛利率） -->
+    <section class="card" id="margin-convert">
+      <div class="card-head">
+        <h2 style="margin:0;font-size:16px;">毛利率换算（折扣 → 折扣）</h2>
+        <button class="ghost-link" id="mcResetAll" title="恢复默认数值">恢复默认</button>
+      </div>
+      <div class="settings-inline" id="mcInline">
+        <label>日常立减 %</label>
+        <input id="mcBaseDisc" type="number" step="0.01" value="10" placeholder="如 10 表示立减10%">
+        <label>日常毛利率 %</label>
+        <input id="mcBaseGM" type="number" step="0.01" value="30" placeholder="例如 30">
+        <label>活动立减 %</label>
+        <input id="mcTargetDisc" type="number" step="0.01" value="12" placeholder="例如 12">
+        <div id="mcResult" class="value" style="font-size:28px;">活动期毛利率：—</div>
+      </div>
+    </section>
   </main>
 
-  <script>
+  <script type="module">
+    import { convertMarginPercent } from './engine.js';
+    // —— 毛利率换算：UI 绑定与渲染 ——
+    function setupMarginConvertCard(){
+      const baseDisc = document.getElementById('mcBaseDisc');
+      const baseGM   = document.getElementById('mcBaseGM');
+      const targetDi = document.getElementById('mcTargetDisc');
+      const out      = document.getElementById('mcResult');
+      const resetAll = document.getElementById('mcResetAll');
+
+      if (!baseDisc || !baseGM || !targetDi || !out) return;
+
+      [baseDisc, baseGM, targetDi].forEach(el=>{
+        el.addEventListener('focus', ()=> el.select());
+        attachNumericOnly(el, 2);
+        if (!el.dataset.default) el.dataset.default = String(el.value ?? '');
+        attachResetButton(el, ()=>{ render(); autoSave(); });
+      });
+
+      function render(){
+        const mB = convertMarginPercent(baseGM.value, baseDisc.value, targetDi.value);
+        if (!isFinite(mB)) { out.textContent = '活动期毛利率：—'; return; }
+        const mANum = parseFloat(baseGM.value);
+        let deltaText = '';
+        if (isFinite(mANum)){
+          const diff = mANum - Number(mB); // 日常毛利率 - 活动期毛利率
+          const abs = Math.abs(diff).toFixed(2);
+          if (diff > 0) deltaText = `（较日常毛利率下降${abs}%）`;
+          else if (diff < 0) deltaText = `（较日常毛利率上升${abs}%）`;
+          else deltaText = `（与日常毛利率持平）`;
+        }
+        out.textContent = `活动期毛利率：${Number(mB).toFixed(2)}%${deltaText}`;
+      }
+
+      // 供外部调用（load/clear 后刷新）
+      window.recalcMarginCard = render;
+
+      if (resetAll){
+        resetAll.addEventListener('click', ()=>{
+          [baseDisc, baseGM, targetDi].forEach(el=>{ el.value = el.dataset.default || ''; });
+          render();
+          autoSave();
+        });
+      }
+
+      [baseDisc, baseGM, targetDi].forEach(el=> el.addEventListener('input', ()=>{ render(); autoSave(); }));
+      render();
+    }
     // 更精确的金额处理：字符串→整数分；避免浮点误差
     function yuanToCents(y){
       const s = String(y ?? '').trim();
@@ -459,7 +522,12 @@
         const data = {
           discountPct: document.getElementById('discountPct').value,
           tiers: readTiers(),
-          targets: Array.from(document.getElementById('lpTargets').querySelectorAll('input.big-input')).map(inp => inp.value)
+          targets: Array.from(document.getElementById('lpTargets').querySelectorAll('input.big-input')).map(inp => inp.value),
+          marginConv: {
+            baseDisc: document.getElementById('mcBaseDisc')?.value || '',
+            baseGM: document.getElementById('mcBaseGM')?.value || '',
+            targetDisc: document.getElementById('mcTargetDisc')?.value || ''
+          }
         };
         localStorage.setItem('listPriceData', JSON.stringify(data));
       } catch (e) {
@@ -511,6 +579,17 @@
               addTargetRow('79.80');
             }
           }
+
+          // 恢复毛利率换算模块
+          const mcBaseDiscEl = document.getElementById('mcBaseDisc');
+          const mcBaseGMEl   = document.getElementById('mcBaseGM');
+          const mcTargetEl   = document.getElementById('mcTargetDisc');
+          if (data.marginConv && mcBaseDiscEl && mcBaseGMEl && mcTargetEl){
+            if (typeof data.marginConv.baseDisc !== 'undefined') mcBaseDiscEl.value = data.marginConv.baseDisc;
+            if (typeof data.marginConv.baseGM   !== 'undefined') mcBaseGMEl.value   = data.marginConv.baseGM;
+            if (typeof data.marginConv.targetDisc !== 'undefined') mcTargetEl.value = data.marginConv.targetDisc;
+            if (typeof recalcMarginCard === 'function') recalcMarginCard();
+          }
           
           // 重新计算所有结果
           recalcAll();
@@ -518,6 +597,7 @@
           // 如果没有保存的数据，添加默认的初始状态
           addTierRow(); // 添加一个空的满减档位
           addTargetRow('79.80'); // 添加一个默认价格输入框，填入79.80
+          if (typeof recalcMarginCard === 'function') recalcMarginCard();
           recalcAll();
         }
       } catch (e) {
@@ -525,6 +605,7 @@
         // 如果恢复失败，使用默认值
         addTierRow();
         addTargetRow('79.80');
+        if (typeof recalcMarginCard === 'function') recalcMarginCard();
       }
     }
     
@@ -538,27 +619,36 @@
     // 初始化
     document.getElementById('lpAddRow').addEventListener('click', ()=>{ const el=addTargetRow(''); el.focus(); });
     document.getElementById('addTierBtn').addEventListener('click', ()=> addTierRow());
+    // 初始化毛利率换算模块
+    setupMarginConvertCard();
     
     // 清除本地存储数据
     document.getElementById('clearStorage').addEventListener('click', ()=>{
-      if (confirm('确定要清除所有输入的数据吗？此操作不可恢复。')) {
-        localStorage.removeItem('listPriceData');
-        
-        // 重置立减百分比为默认值
-        document.getElementById('discountPct').value = '10';
-        
-        // 清空满减档位，只保留一个空档位
-        tierRows.innerHTML = '';
-        addTierRow();
-        
-        // 清空目标到手价行，只保留一个默认行
-        document.getElementById('lpTargets').innerHTML = '';
-        document.getElementById('lpResults').innerHTML = '';
-        addTargetRow('79.80');
-        
-        // 重新计算
-        recalcAll();
-      }
+      localStorage.removeItem('listPriceData');
+      
+      // 重置立减百分比为默认值
+      document.getElementById('discountPct').value = '10';
+      
+      // 清空满减档位，只保留一个空档位
+      tierRows.innerHTML = '';
+      addTierRow();
+      
+      // 清空目标到手价行，只保留一个默认行
+      document.getElementById('lpTargets').innerHTML = '';
+      document.getElementById('lpResults').innerHTML = '';
+      addTargetRow('79.80');
+
+      // 重置毛利率换算为默认
+      const mcBaseDiscEl = document.getElementById('mcBaseDisc');
+      const mcBaseGMEl   = document.getElementById('mcBaseGM');
+      const mcTargetEl   = document.getElementById('mcTargetDisc');
+      if (mcBaseDiscEl) mcBaseDiscEl.value = mcBaseDiscEl.dataset.default || '10';
+      if (mcBaseGMEl)   mcBaseGMEl.value   = mcBaseGMEl.dataset.default   || '30';
+      if (mcTargetEl)   mcTargetEl.value   = mcTargetEl.dataset.default   || '15';
+      if (typeof recalcMarginCard === 'function') recalcMarginCard();
+      
+      // 重新计算
+      recalcAll();
     });
     
     // 页面加载时恢复数据

@@ -978,3 +978,28 @@ export function safetyMarginAnalysis(currentCpc, currentCvr, breakevenAdCost) {
     cpcDelta: marginPerClick
   };
 }
+
+/**
+ * 毛利率换算
+ * 已知：在立减 a% 的成交价下，毛利率为 mA%（以成交价为分母）
+ * 求：在立减 b% 的成交价下的毛利率 mB%
+ * 公式：mB = ( mA*(1-a) + (a-b) ) / (1-b)
+ *
+ * @param {number} mA_pct - 基准毛利率百分数（例如 30 表示 30%）
+ * @param {number} a_pct  - 基准立减百分数（例如 10 表示 立减10%）
+ * @param {number} b_pct  - 目标立减百分数（例如 15 表示 立减15%）
+ * @returns {number} - 目标毛利率百分数
+ */
+export function convertMarginPercent(mA_pct, a_pct, b_pct){
+  const clamp01 = (x)=> Math.min(100, Math.max(-100, parseFloat(x)||0));
+  const a = Math.min(100, Math.max(0, parseFloat(a_pct)||0)) / 100;
+  const b = Math.min(100, Math.max(0, parseFloat(b_pct)||0)) / 100;
+  const mA = clamp01(mA_pct) / 100;
+
+  if (b >= 1) return NaN; // 立减100%无意义
+
+  const num = mA * (1 - a) + (a - b);
+  const den = (1 - b);
+
+  return (num / den) * 100; // 返回百分数
+}
