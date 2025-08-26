@@ -1659,16 +1659,6 @@
             <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
           </div>
 
-          <!-- 已合并：投放三角分析结果（由投放决策条参数计算并回填） -->
-          <div class="decision-subsection" id="triangleResults" style="margin-top: 12px;">
-            <h5 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">🔺 投放三角分析结果</h5>
-            <div class="kpi-band">
-              <div class="kpi"><div class="label">保本ROI</div><div class="val" id="valueRoiResult">—</div></div>
-              <div class="kpi"><div class="label">CPC临界值</div><div class="val" id="valueCpcResult">—</div></div>
-              <div class="kpi"><div class="label">CVR临界值</div><div class="val" id="valueCvrResult">—</div></div>
-              <div class="kpi"><div class="label">客单价临界值</div><div class="val" id="valueAovResult">—</div></div>
-            </div>
-          </div>
 
           <!-- 已合并：即时诊断结果（基于投放决策条输入计算） -->
           <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
@@ -1778,6 +1768,7 @@
             <button class="btn" onclick="window.calculateTargetAnalysis()">计算目标推演</button>
           </div>
           <div class="kpi-band">
+            <div class="kpi" id="kpiActualMargin"><div class="label">当前产品参数下的实际利润率</div><div class="val" id="actualMarginResult">—</div></div>
             <div class="kpi" id="kpiTargetPrice"><div class="label">所需售价</div><div class="val" id="targetPriceResult">—</div></div>
             <div class="kpi" id="kpiTargetCost"><div class="label">可接受进货价</div><div class="val" id="targetCostResult">—</div></div>
             <div class="kpi" id="kpiTargetTax"><div class="label">净税负占比</div><div class="val" id="taxResult">—</div></div>
@@ -4173,8 +4164,8 @@
           });
           
           updateFilterStatus();
-          
-        } catch (error) {
+        
+      } catch (error) {
           console.error('筛选过程中出错:', error);
           showMessage('筛选过程中出错: ' + error.message, 'error');
         } finally {
@@ -4408,8 +4399,8 @@
           });
           
           updateFilterStatus();
-          
-        } catch (error) {
+        
+      } catch (error) {
           console.error('排序过程中出错:', error);
           showMessage('排序过程中出错: ' + error.message, 'error');
         } finally {
@@ -5792,6 +5783,8 @@
     // —— 投放决策条 逻辑 ——
     // 当前分析面板对应的表格行ID
     let CURRENT_ANALYSIS_ROW_ID = null;
+    // 标记：用户是否手动编辑过 CPC（若为 true，则不被自动回填覆盖；当 CVR 变更时重置为 false）
+    let DEC_CPC_USER_EDITED = false;
     
     // 自动换算函数：将用户输入的百分比数值转换为小数
     window.convertToDecimal = function(inputElement, fieldId) {
@@ -6090,6 +6083,14 @@
         document.querySelector('#kpiBEROAS .val').textContent = fmt(beROAS,2);
         document.querySelector('#kpiBECPA .val').textContent  = fmt(beCPA,2);
         document.querySelector('#kpiMaxCPC .val').textContent = fmt(maxCPC,2);
+        // 若用户未手动编辑 CPC，则将 Max CPC 自动回填至 CPC 输入框（只在按 CPC 买量模式下回填）
+        try {
+          const modeNow = document.getElementById('decBuyMode').value;
+          const cpcInputEl = document.getElementById('decCPC');
+          if (modeNow === 'cpc' && cpcInputEl && !DEC_CPC_USER_EDITED && isFinite(maxCPC)) {
+            cpcInputEl.value = maxCPC.toFixed(2);
+          }
+        } catch(_) {}
         // 显示"当前预估 ROAS（增量修正后）"
         document.querySelector('#kpiActROAS .val').textContent = isFinite(adjROAS)? fmt(adjROAS,2) : '—';
         document.querySelector('#kpiSafety .val').textContent = isFinite(safety)? fmt(safety,2) : '—';
@@ -6132,14 +6133,32 @@
           console.warn('⚠️ 图表更新失败:', chartError);
         }
 
-        // 同步计算“投放三角分析结果”（与决策条同口径、同参数）
+        // 自动填入CVR临界值：当CPC已输入但CVR为空时
         try {
-          if (typeof window.calculateValueAnalysis === 'function') {
-            window.calculateValueAnalysis();
+          const cpcInput = document.getElementById('decCPC');
+          const cvrInput = document.getElementById('decCVR');
+          const mode = document.getElementById('decBuyMode').value;
+          
+          // 检查CPC是否有值（包括CPM模式下的推导值）
+          let hasCpcValue = false;
+          if (mode === 'cpc') {
+            hasCpcValue = cpcInput && cpcInput.value.trim() !== '';
+          } else if (mode === 'cpm') {
+            const cpmVal = parseFloat(document.getElementById('decCPM')?.value || '');
+            const ctrVal = parseFloat(document.getElementById('decCTR')?.value || '');
+            hasCpcValue = isFinite(cpmVal) && isFinite(ctrVal) && ctrVal > 0;
           }
-        } catch (vaError) {
-          console.warn('⚠️ 投放三角分析结果联动失败:', vaError);
+          
+          // 如果CPC有值但CVR为空，且已计算出CVR临界值，则自动填入
+          if (hasCpcValue && cvrInput && cvrInput.value.trim() === '' && isFinite(critCVR)) {
+            cvrInput.value = (critCVR * 100).toFixed(2); // 转换为百分数格式
+            console.log('🔄 自动填入CVR临界值:', (critCVR * 100).toFixed(2) + '%');
+          }
+        } catch (autoFillError) {
+          console.warn('⚠️ 自动填入CVR失败:', autoFillError);
         }
+
+        // 取消对已删除的“投放三角分析结果”区块的联动计算，避免重复展示
         
       } catch (error) {
         console.error('❌ 计算过程中发生错误:', error);
@@ -6391,7 +6410,7 @@
     // 清空分析结果
     function clearAnalysisResults() {
       const elements = [
-        'targetPriceResult', 'targetCostResult', 'taxResult',
+        'targetPriceResult', 'targetCostResult', 'taxResult', 'actualMarginResult',
         'valueRoiResult', 'valueCpcResult', 'valueCvrResult', 'valueAovResult'
       ];
       elements.forEach(id => {
@@ -6516,6 +6535,93 @@
       }
     };
 
+    // 计算实际利润率：基于当前产品参数和广告占比，反推实际能达到的利润率
+    window.calculateActualProfitMargin = function() {
+      if (!currentAnalysisData) {
+        return;
+      }
+      
+      try {
+        // 获取输入参数
+        const basis = document.getElementById('targetBasis').value;
+        const rRaw = document.getElementById('targetR').value;
+        const aRaw = document.getElementById('targetA').value;
+        
+        // 解析参数（支持百分比和小数输入）
+        const rNum = parseFloat(rRaw);
+        const r = isFinite(rNum) ? (rNum > 1 ? rNum/100 : rNum) : NaN;
+        const aNum = parseFloat(aRaw);
+        const a = isFinite(aNum) ? (aNum > 1 ? aNum/100 : aNum) : NaN;
+        
+        if (!isFinite(r) || !isFinite(a)) {
+          return;
+        }
+        
+        // 构建参数对象
+        const params = {
+          sellingPrice: currentAnalysisData.price,
+          returnRate: currentAnalysisData.returnRate,
+          costPrice: currentAnalysisData.cost,
+          inputTaxRate: valNum('inputTaxRate') / 100,
+          outputTaxRate: valNum('outputTaxRate') / 100,
+          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valNum('salesTaxRate') / 100,
+          serviceVATRate: valNum('serviceVATRate') / 100,
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        };
+        
+        // 计算实际利润率
+        const actualMargin = calculateActualProfitMarginFromParams(params, r, a, basis);
+        
+        if (isFinite(actualMargin)) {
+          document.getElementById('actualMarginResult').textContent = `${(actualMargin * 100).toFixed(2)}%`;
+        } else {
+          document.getElementById('actualMarginResult').textContent = '参数无效/不可解';
+        }
+        
+      } catch (error) {
+        console.error('计算实际利润率失败:', error);
+      }
+    };
+
+    // 辅助函数：基于参数计算实际利润率
+    function calculateActualProfitMarginFromParams(params, r, a, basis) {
+      try {
+        const S = params.sellingPrice; // 售价
+        const C = params.costPrice;    // 进货价
+        const Rev = S * r;             // 有效营收
+        
+        // 计算各项成本
+        const goodsCost = C * (1 + params.inputTaxRate) * (params.goodsMode === 'canReturn' ? r : 1);
+        const othersCost = params.shippingCost + params.shippingInsurance + params.otherCost;
+        const commission = S * params.platformRate * r;
+        
+        // 计算各项税费
+        const VAT_out = Rev / (1 + params.salesTaxRate) * params.salesTaxRate;
+        const VAT_in_goods = C * params.outputTaxRate * (params.goodsMode === 'canReturn' ? r : 1);
+        const VAT_in_comm = commission / (1 + params.serviceVATRate) * params.serviceVATRate;
+        
+        // 广告成本（按口径计算）
+        const base = (basis === 'gmv') ? S : Rev;
+        const adCost = base * a;
+        const VAT_in_ad = adCost / (1 + params.serviceVATRate) * params.serviceVATRate;
+        
+        // 计算净利润
+        const netProfit = Rev - goodsCost - othersCost - commission - adCost - VAT_out + VAT_in_goods + VAT_in_comm + VAT_in_ad;
+        
+        // 计算利润率（净利润 / 有效营收）
+        const profitMargin = (Rev > 0) ? (netProfit / Rev) : NaN;
+        
+        return isFinite(profitMargin) ? profitMargin : NaN;
+        
+      } catch (error) {
+        console.error('calculateActualProfitMarginFromParams error:', error);
+        return NaN;
+      }
+    }
 
     
     // 进阶推演：投放三角（三选二倒算第三个），与决策条完全同口径
@@ -6549,7 +6655,8 @@
 
         // 3) 保本ROI按口径取值
         const beROAS = (basis === 'effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
-        document.getElementById('valueRoiResult').textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
+        const vRoiEl = document.getElementById('valueRoiResult');
+        if (vRoiEl) vRoiEl.textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
 
         // 4) 读取三角三项输入（CVR/CPC/AOV），允许留空两选其二（统一读取投放决策条）
         const mode = document.getElementById('decBuyMode').value; // cpc | cpm
@@ -6908,6 +7015,18 @@
         }
       }, 500);
 
+      const debouncedActualMarginCalc = debounce(() => {
+        if (currentAnalysisData && typeof window.calculateActualProfitMargin === 'function') {
+          // 检查是否满足计算条件：有效率和广告占比都已填写
+          const rInput = (document.getElementById('targetR')?.value || '').trim();
+          const aInput = (document.getElementById('targetA')?.value || '').trim();
+          
+          if (rInput !== '' && aInput !== '') {
+            window.calculateActualProfitMargin();
+          }
+        }
+      }, 500);
+
       const debouncedValueCalc = debounce(() => {
         if (window.CURRENT_ANALYSIS_ROW_ID && typeof window.calculateValueAnalysis === 'function') {
           window.calculateValueAnalysis();
@@ -6950,6 +7069,9 @@
         if (el) {
           el.addEventListener('input', debouncedTargetCalc);
           el.addEventListener('change', debouncedTargetCalc);
+          // 同时绑定实时计算实际利润率
+          el.addEventListener('input', debouncedActualMarginCalc);
+          el.addEventListener('change', debouncedActualMarginCalc);
         }
       });
 
@@ -6969,7 +7091,24 @@
         debouncedDecisionCalc(); // 再触发计算
       });
       document.getElementById('targetBasis')?.addEventListener('change', debouncedTargetCalc);
+      document.getElementById('targetBasis')?.addEventListener('change', debouncedActualMarginCalc);
       document.getElementById('valueBasis')?.addEventListener('change', debouncedValueCalc);
+
+      // 监听 CVR 改变：重置“用户已编辑 CPC”标记，允许自动回填 Max CPC
+      const decCVREl = document.getElementById('decCVR');
+      if (decCVREl) {
+        const resetCpcEdited = () => { DEC_CPC_USER_EDITED = false; };
+        decCVREl.addEventListener('input', resetCpcEdited);
+        decCVREl.addEventListener('change', resetCpcEdited);
+      }
+
+      // 监听 CPC 输入：一旦用户手动变更，则标记为手动编辑
+      const decCPCEl = document.getElementById('decCPC');
+      if (decCPCEl) {
+        const markEdited = () => { DEC_CPC_USER_EDITED = true; };
+        decCPCEl.addEventListener('input', markEdited);
+        decCPCEl.addEventListener('change', markEdited);
+      }
     }
 
     // 在页面加载完成后设置自动计算
