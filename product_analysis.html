@@ -404,12 +404,6 @@
       .products-table.gmv-visible td.col-roi-gmv {
         display: table-cell;
       }
-      
-      /* 确保表头也正确显示 */
-      .products-table.gmv-visible th.col-ad-gmv,
-      .products-table.gmv-visible th.col-roi-gmv {
-        display: table-cell;
-      }
     }
     
     /* 大屏幕下，用户手动隐藏GMV列时的样式 */
@@ -1718,6 +1712,16 @@
     console.log('=== 模块加载时的测试 ===');
     console.log('getPlatformRate 函数是否已定义:', typeof getPlatformRate);
     
+    // 🆕 统一的自动计算防抖函数
+    let autoCalcTimer = null;
+    function debounceAutoCalc(delay = 200) {
+      clearTimeout(autoCalcTimer);
+      autoCalcTimer = setTimeout(() => {
+        console.log('🔄 防抖触发自动计算');
+        autoCalculate();
+      }, delay);
+    }
+    
     // 工具函数
     function valNum(id) {
       const el = $(id);
@@ -1851,7 +1855,7 @@
         </td>
         <td>
           <select class="platform-select" data-row-id="${rowId}">
-            <option value="淘宝" ${product && product.platform === '淘宝' ? 'selected' : 'selected'}>淘宝</option>
+            <option value="淘宝" ${!product || product.platform === '淘宝' ? 'selected' : ''}>淘宝</option>
             <option value="天猫" ${product && product.platform === '天猫' ? 'selected' : ''}>天猫</option>
             <option value="京东" ${product && product.platform === '京东' ? 'selected' : ''}>京东</option>
             <option value="拼多多" ${product && product.platform === '拼多多' ? 'selected' : ''}>拼多多</option>
@@ -1952,7 +1956,7 @@
         // 没有数据行，显示提示
         if (!noDataRow) {
           console.log('显示"暂无商品数据"提示');
-          tbody.innerHTML = '<tr id="no-data-row"><td colspan="17" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+          tbody.innerHTML = '<tr id="no-data-row"><td colspan="18" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         } else {
           console.log('提示行已存在，无需重复添加');
         }
@@ -2045,9 +2049,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      setTimeout(() => {
-        autoCalculate();
-      }, 100);
+      debounceAutoCalc(100);
     }
 
     // 添加示例商品
@@ -2056,9 +2058,34 @@
       
       // 检测重复数据
       const duplicateCheck = checkDuplicateData(examples);
+      
+      // 🆕 构建重复提示信息
+      let duplicateMessage = '';
+      let hasBlockingDuplicates = false;
+      
       if (duplicateCheck.hasDuplicates) {
         const duplicateSkus = duplicateCheck.duplicates.join(', ');
-        if (!confirm(`检测到重复的货号：${duplicateSkus}\n\n是否继续添加示例数据？重复的货号将被跳过。`)) {
+        duplicateMessage += `⚠️ 检测到重复的货号：${duplicateSkus}\n\n`;
+        hasBlockingDuplicates = true;
+      }
+      
+      if (duplicateCheck.hasDuplicateNamePlatforms) {
+        const duplicateNamePlatforms = duplicateCheck.duplicateNamePlatforms
+          .map(item => `"${item.name}" (${item.platform})`)
+          .join(', ');
+        duplicateMessage += `⚠️ 检测到可能的重复商品（名称+平台相同）：${duplicateNamePlatforms}\n\n`;
+        // 名称+平台重复不阻断导入，仅提示
+      }
+      
+      if (hasBlockingDuplicates) {
+        duplicateMessage += '是否继续添加示例数据？重复的货号将被跳过。';
+        if (!confirm(duplicateMessage)) {
+          return;
+        }
+      } else if (duplicateCheck.hasDuplicateNamePlatforms) {
+        // 只有名称+平台重复时，显示提示但不阻断
+        duplicateMessage += '这些可能是重复商品，建议检查后决定是否继续导入。\n\n是否继续添加示例数据？';
+        if (!confirm(duplicateMessage)) {
           return;
         }
       }
@@ -2095,7 +2122,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
       
       // 示例数据添加完成后，重新应用当前的筛选条件
       setTimeout(() => {
@@ -2139,8 +2166,7 @@
       saveToLocalStorage();
 
       // 触发自动计算（即使是空行，也保证计算状态一致）
-      clearTimeout(window.autoCalcTimer);
-      window.autoCalcTimer = setTimeout(autoCalculate, 100);
+      debounceAutoCalc(100);
       
       // 空行添加完成后，重新应用当前的筛选条件
       setTimeout(() => {
@@ -2166,7 +2192,7 @@
         
         // 直接清空表格并显示提示，使用 #no-data-row 机制
         const tableBody = document.getElementById('productsTableBody');
-        tableBody.innerHTML = '<tr id="no-data-row"><td colspan="16" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+        tableBody.innerHTML = '<tr id="no-data-row"><td colspan="18" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         
         showMessage('所有数据已清空', 'success');
         // 清空localStorage
@@ -2178,9 +2204,7 @@
         console.log('清空操作完成');
         
         // 触发自动计算，确保所有结果显示被清空
-        setTimeout(() => {
-          autoCalculate();
-        }, 100);
+        debounceAutoCalc(100);
         
         // 清空数据后，重置筛选状态
         setTimeout(() => {
@@ -2211,7 +2235,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
     };
     
     // 🆕 全局测试函数（供开发者测试SKU变更功能）
@@ -2229,7 +2253,7 @@
       if (btn) btn.classList.toggle('active');
       // 持久化并触发相关刷新
       saveToLocalStorage();
-      autoCalculate();
+      debounceAutoCalc();
     };
 
     window.addTierPrice = function(rowId) {
@@ -2276,7 +2300,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
     };
 
     window.removeTierPrice = function(rowId, button) {
@@ -2329,7 +2353,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
     };
 
     window.addTierCost = function(rowId) {
@@ -2376,7 +2400,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
     };
 
     window.removeTierCost = function(rowId, button) {
@@ -2426,7 +2450,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
     };
 
     // 删除行（统一的行删除函数）
@@ -2438,7 +2462,7 @@
       // 获取商品名称，用于确认对话框
       const productNameInput = row.querySelector('.product-name');
       const productName = productNameInput ? productNameInput.value.trim() : '未知商品';
-      const skuInput = row.querySelector('.sku-input');
+      const skuInput = row.querySelector('.product-sku');
       const sku = skuInput ? skuInput.value.trim() : '';
       
       // 构建确认信息
@@ -2464,7 +2488,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
       
       // 行删除完成后，重新应用当前的筛选条件
       setTimeout(() => {
@@ -3011,14 +3035,41 @@
           const duplicateCheck = checkDuplicateData(parsedData);
           console.log('重复检测结果:', duplicateCheck);
           
+          // 🆕 构建重复提示信息
+          let duplicateMessage = '';
+          let hasBlockingDuplicates = false;
+          
           if (duplicateCheck.hasDuplicates) {
             console.warn('⚠️ 检测到重复的货号:', duplicateCheck.duplicates);
             const duplicateSkus = duplicateCheck.duplicates.join(', ');
-            if (!confirm(`检测到重复的货号：${duplicateSkus}\n\n是否继续导入？重复的货号将被跳过。`)) {
+            duplicateMessage += `⚠️ 检测到重复的货号：${duplicateSkus}\n\n`;
+            hasBlockingDuplicates = true;
+          }
+          
+          if (duplicateCheck.hasDuplicateNamePlatforms) {
+            console.warn('⚠️ 检测到可能的重复商品（名称+平台相同）:', duplicateCheck.duplicateNamePlatforms);
+            const duplicateNamePlatforms = duplicateCheck.duplicateNamePlatforms
+              .map(item => `"${item.name}" (${item.platform})`)
+              .join(', ');
+            duplicateMessage += `⚠️ 检测到可能的重复商品（名称+平台相同）：${duplicateNamePlatforms}\n\n`;
+            // 名称+平台重复不阻断导入，仅提示
+          }
+          
+          if (hasBlockingDuplicates) {
+            duplicateMessage += '是否继续导入？重复的货号将被跳过。';
+            if (!confirm(duplicateMessage)) {
               console.log('用户取消了导入操作');
               return;
             }
             console.log('用户选择继续导入，重复货号将被跳过');
+          } else if (duplicateCheck.hasDuplicateNamePlatforms) {
+            // 只有名称+平台重复时，显示提示但不阻断
+            duplicateMessage += '这些可能是重复商品，建议检查后决定是否继续导入。\n\n是否继续导入？';
+            if (!confirm(duplicateMessage)) {
+              console.log('用户取消了导入操作');
+              return;
+            }
+            console.log('用户选择继续导入，名称+平台重复的商品将被导入');
           }
           
           // 过滤掉重复的货号
@@ -3049,7 +3100,7 @@
           saveToLocalStorage();
           
           // 触发自动计算
-          autoCalculate();
+          debounceAutoCalc();
           
         } catch (error) {
           console.error('❌ 解析CSV文件失败:', error);
@@ -3295,7 +3346,7 @@
         </td>
         <td>
           <select class="platform-select" data-row-id="${rowId}">
-            <option value="淘宝" ${data['平台'] === '淘宝' ? 'selected' : 'selected'}>淘宝</option>
+            <option value="淘宝" ${!data['平台'] || data['平台'] === '淘宝' ? 'selected' : ''}>淘宝</option>
             <option value="天猫" ${data['平台'] === '天猫' ? 'selected' : ''}>天猫</option>
             <option value="京东" ${data['平台'] === '京东' ? 'selected' : ''}>京东</option>
             <option value="拼多多" ${data['平台'] === '拼多多' ? 'selected' : ''}>拼多多</option>
@@ -3644,7 +3695,7 @@
       saveToLocalStorage();
       
       // 触发自动计算
-      autoCalculate();
+      debounceAutoCalc();
     }
 
     // 事件监听器
@@ -4660,9 +4711,7 @@
       el.addEventListener('change', () => {
         updateSystemParams();
         // 触发自动计算，确保系统参数变化后保本ROI和广告比例实时更新
-        setTimeout(() => {
-          autoCalculate();
-        }, 100);
+        debounceAutoCalc(100);
       });
     });
 
@@ -4711,8 +4760,7 @@
       tableBody.addEventListener('input', function(e) {
         if (e.target.matches('.product-name, .product-sku, .single-price, .single-cost, .return-rate, .tier-price-input, .tier-cost-input')) {
           // 延迟执行，避免频繁计算
-          clearTimeout(window.autoCalcTimer);
-          window.autoCalcTimer = setTimeout(autoCalculate, 500);
+          debounceAutoCalc(500);
         }
       });
       
@@ -4723,16 +4771,14 @@
           const row = e.target.closest('tr');
 
           
-          clearTimeout(window.autoCalcTimer);
-          window.autoCalcTimer = setTimeout(autoCalculate, 500);
+          debounceAutoCalc(500);
         }
       });
       
       // 监听主推款变化
       tableBody.addEventListener('click', function(e) {
         if (e.target.matches('.main-toggle')) {
-          clearTimeout(window.autoCalcTimer);
-          window.autoCalcTimer = setTimeout(autoCalculate, 500);
+          debounceAutoCalc(500);
         }
       });
       
@@ -4878,9 +4924,7 @@
           }, 50);
           
           // 触发自动计算，确保保本ROI和广告比例实时更新
-          setTimeout(() => {
-            autoCalculate();
-          }, 100); // 延迟100ms确保DOM完全渲染
+          debounceAutoCalc(100); // 延迟100ms确保DOM完全渲染
           
           // 数据加载完成后，重新应用当前的筛选条件
           setTimeout(() => {
@@ -4940,7 +4984,7 @@
         </td>
         <td>
           <select class="platform-select" data-row-id="${rowId}">
-            <option value="淘宝" ${data.platform === '淘宝' ? 'selected' : 'selected'}>淘宝</option>
+            <option value="淘宝" ${!data.platform || data.platform === '淘宝' ? 'selected' : ''}>淘宝</option>
             <option value="天猫" ${data.platform === '天猫' ? 'selected' : ''}>天猫</option>
             <option value="京东" ${data.platform === '京东' ? 'selected' : ''}>京东</option>
             <option value="拼多多" ${data.platform === '拼多多' ? 'selected' : ''}>拼多多</option>
@@ -5046,6 +5090,21 @@
       console.log('现有表格中的有效货号:', existingSkus);
       console.log('现有货号数量:', existingSkus.length);
       
+      // 🆕 获取现有表格中的"名称+平台"组合
+      console.log('--- 查询现有表格中的"名称+平台"组合 ---');
+      const existingNamePlatforms = Array.from(existingRows).map((row, index) => {
+        const nameElement = row.querySelector('.product-name');
+        const platformElement = row.querySelector('.platform-select');
+        const nameValue = nameElement ? nameElement.value.trim() : '';
+        const platformValue = platformElement ? platformElement.value : '';
+        const namePlatform = `${nameValue}|${platformValue}`;
+        console.log(`第${index + 1}行名称+平台: "${nameValue}" + "${platformValue}" = "${namePlatform}"`);
+        return { name: nameValue, platform: platformValue, namePlatform };
+      }).filter(item => item.name && item.platform);
+      
+      console.log('现有表格中的"名称+平台"组合:', existingNamePlatforms);
+      console.log('现有"名称+平台"组合数量:', existingNamePlatforms.length);
+      
       // 获取新数据中的货号
       console.log('--- 分析新数据中的货号 ---');
       const newSkus = newData.map((item, index) => {
@@ -5057,9 +5116,22 @@
       console.log('新数据中的有效货号:', newSkus);
       console.log('新货号数量:', newSkus.length);
       
-      // 检测重复
+      // 🆕 获取新数据中的"名称+平台"组合
+      console.log('--- 分析新数据中的"名称+平台"组合 ---');
+      const newNamePlatforms = newData.map((item, index) => {
+        const nameValue = item['商品名称'] || item.name || '';
+        const platformValue = item['平台'] || item.platform || '';
+        const namePlatform = `${nameValue}|${platformValue}`;
+        console.log(`新数据第${index + 1}行名称+平台: "${nameValue}" + "${platformValue}" = "${namePlatform}"`);
+        return { name: nameValue, platform: platformValue, namePlatform, index };
+      }).filter(item => item.name && item.platform);
+      
+      console.log('新数据中的"名称+平台"组合:', newNamePlatforms);
+      console.log('新"名称+平台"组合数量:', newNamePlatforms.length);
+      
+      // 检测重复货号
       console.log('--- 开始检测重复货号 ---');
-      const duplicates = newSkus.filter(sku => {
+      const duplicateSkus = newSkus.filter(sku => {
         const isDuplicate = existingSkus.includes(sku);
         if (isDuplicate) {
           console.warn(`⚠️ 发现重复货号: "${sku}"`);
@@ -5067,19 +5139,40 @@
         return isDuplicate;
       });
       
-      console.log('检测到的重复货号:', duplicates);
-      console.log('重复货号数量:', duplicates.length);
+      console.log('检测到的重复货号:', duplicateSkus);
+      console.log('重复货号数量:', duplicateSkus.length);
+      
+      // 🆕 检测重复的"名称+平台"组合
+      console.log('--- 开始检测重复的"名称+平台"组合 ---');
+      const duplicateNamePlatforms = newNamePlatforms.filter(newItem => {
+        const isDuplicate = existingNamePlatforms.some(existingItem => 
+          existingItem.namePlatform === newItem.namePlatform
+        );
+        if (isDuplicate) {
+          console.warn(`⚠️ 发现重复的"名称+平台"组合: "${newItem.name}" + "${newItem.platform}"`);
+        }
+        return isDuplicate;
+      });
+      
+      console.log('检测到的重复"名称+平台"组合:', duplicateNamePlatforms);
+      console.log('重复"名称+平台"组合数量:', duplicateNamePlatforms.length);
       
       const result = {
-        hasDuplicates: duplicates.length > 0,
-        duplicates: duplicates
+        hasDuplicates: duplicateSkus.length > 0,
+        duplicates: duplicateSkus,
+        hasDuplicateNamePlatforms: duplicateNamePlatforms.length > 0,
+        duplicateNamePlatforms: duplicateNamePlatforms
       };
       
       console.log('重复检测结果:', result);
       if (result.hasDuplicates) {
         console.warn('⚠️ 存在重复货号，需要用户确认是否继续导入');
-      } else {
-        console.log('✅ 未发现重复货号，可以安全导入');
+      }
+      if (result.hasDuplicateNamePlatforms) {
+        console.warn('⚠️ 存在重复的"名称+平台"组合，建议用户检查是否重复商品');
+      }
+      if (!result.hasDuplicates && !result.hasDuplicateNamePlatforms) {
+        console.log('✅ 未发现重复数据，可以安全导入');
       }
       
       return result;
@@ -5246,14 +5339,41 @@
           const duplicateCheck = checkDuplicateData(convertedData);
           console.log('重复检测结果:', duplicateCheck);
           
+          // 🆕 构建重复提示信息
+          let duplicateMessage = '';
+          let hasBlockingDuplicates = false;
+          
           if (duplicateCheck.hasDuplicates) {
             console.warn('⚠️ 检测到重复的货号:', duplicateCheck.duplicates);
             const duplicateSkus = duplicateCheck.duplicates.join(', ');
-            if (!confirm(`检测到重复的货号：${duplicateSkus}\n\n是否继续导入？重复的货号将被跳过。`)) {
+            duplicateMessage += `⚠️ 检测到重复的货号：${duplicateSkus}\n\n`;
+            hasBlockingDuplicates = true;
+          }
+          
+          if (duplicateCheck.hasDuplicateNamePlatforms) {
+            console.warn('⚠️ 检测到可能的重复商品（名称+平台相同）:', duplicateCheck.duplicateNamePlatforms);
+            const duplicateNamePlatforms = duplicateCheck.duplicateNamePlatforms
+              .map(item => `"${item.name}" (${item.platform})`)
+              .join(', ');
+            duplicateMessage += `⚠️ 检测到可能的重复商品（名称+平台相同）：${duplicateNamePlatforms}\n\n`;
+            // 名称+平台重复不阻断导入，仅提示
+          }
+          
+          if (hasBlockingDuplicates) {
+            duplicateMessage += '是否继续导入？重复的货号将被跳过。';
+            if (!confirm(duplicateMessage)) {
               console.log('用户取消了导入操作');
               return;
             }
             console.log('用户选择继续导入，重复货号将被跳过');
+          } else if (duplicateCheck.hasDuplicateNamePlatforms) {
+            // 只有名称+平台重复时，显示提示但不阻断
+            duplicateMessage += '这些可能是重复商品，建议检查后决定是否继续导入。\n\n是否继续导入？';
+            if (!confirm(duplicateMessage)) {
+              console.log('用户取消了导入操作');
+              return;
+            }
+            console.log('用户选择继续导入，名称+平台重复的商品将被导入');
           }
           
           // 过滤掉重复的货号
@@ -5284,7 +5404,7 @@
           saveToLocalStorage();
           
           // 触发自动计算
-          autoCalculate();
+          debounceAutoCalc();
           
         } catch (error) {
           console.error('❌ 解析Excel文件失败:', error);
@@ -6922,8 +7042,7 @@
       }, 500);
     });
 
-
-  </script>
+    </script>
   
   <!-- TODO: 快捷筛选按钮选中状态功能已完成
     - 为每个快捷筛选按钮添加了唯一ID
