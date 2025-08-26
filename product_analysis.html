@@ -206,38 +206,38 @@
     }
     
     .analysis-panel-overlay.fullscreen .analysis-panel-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 32px 48px;
+      padding: 28px 40px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 48px;
+      grid-template-columns: 1.2fr 0.8fr; /* 主内容更宽，侧栏用于决策条 */
+      grid-template-areas:
+        "basic decision"
+        "chart decision"
+        "target decision"
+        "value decision";
+      gap: 28px;
       align-items: start;
     }
-    
-    .analysis-panel-overlay.fullscreen .tier-selector {
-      grid-column: 1 / -1;
-      margin-bottom: 32px;
+
+    /* ===== 全屏模式区域布局映射（仅在全屏生效） ===== */
+    .analysis-panel-overlay.fullscreen .basic-info { grid-area: basic; margin-bottom: 0; }
+    .analysis-panel-overlay.fullscreen #cvrCpcVisualizationCard { grid-area: chart; }
+    .analysis-panel-overlay.fullscreen #targetCard { grid-area: target; margin-bottom: 0; }
+    .analysis-panel-overlay.fullscreen #valueCard { grid-area: value; margin-bottom: 0; }
+    .analysis-panel-overlay.fullscreen #decisionCard {
+      grid-area: decision;
+      position: sticky; /* 右侧决策条跟随视窗 */
+      top: 16px;
+      align-self: start;
     }
-    
-    .analysis-panel-overlay.fullscreen .basic-info {
-      margin-bottom: 0;
-    }
-    
-    .analysis-panel-overlay.fullscreen .target-analysis {
-      margin-bottom: 0;
-    }
-    
-    .analysis-panel-overlay.fullscreen .extended-analysis {
-      grid-column: 1 / -1;
-      margin-bottom: 0;
-      margin-top: 32px;
-    }
+    /* 档位选择器跨两列显示 */
+    .analysis-panel-overlay.fullscreen .tier-selector { grid-column: 1 / -1; margin-bottom: 24px; }
     
     /* 全屏模式下的图表和表格优化 */
     .analysis-panel-overlay.fullscreen .chart-container {
-      height: 400px; /* 在全屏模式下提供更大的图表空间 */
+      height: 520px; /* 在全屏模式下提供更大的图表空间 */
     }
+    .analysis-panel-overlay.fullscreen .kpi-band { gap: 8px; }
+    .analysis-panel-overlay.fullscreen .kpi .val { font-size: 16px; }
     
     .analysis-panel-overlay.fullscreen .analysis-table {
       font-size: 14px; /* 稍大的字体便于阅读 */
