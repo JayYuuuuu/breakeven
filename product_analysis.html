@@ -1640,12 +1640,49 @@
             </div>
             <div class="decision-actions">
               <button class="btn secondary" onclick="window.calculateValueAnalysis()">计算临界值</button>
+              <button class="btn primary" onclick="window.calculateInstantDiagnosis()" style="margin-left: 8px;">即时诊断</button>
             </div>
+            
+            <!-- 临界值显示区域 -->
             <div class="kpi-band">
               <div class="kpi"><div class="label">保本ROI</div><div class="val" id="valueRoiResult">—</div></div>
               <div class="kpi"><div class="label">CPC临界值</div><div class="val" id="valueCpcResult">—</div></div>
               <div class="kpi"><div class="label">CVR临界值</div><div class="val" id="valueCvrResult">—</div></div>
               <div class="kpi"><div class="label">客单价临界值</div><div class="val" id="valueAovResult">—</div></div>
+            </div>
+            
+            <!-- 即时诊断结果区域 -->
+            <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📊 基于 CPC/CVR/客单价 的即时诊断</h5>
+              
+              <!-- 实际ROI指标 -->
+              <div class="kpi-band" style="margin-bottom: 12px;">
+                <div class="kpi"><div class="label">实际ROI（有效）</div><div class="val" id="actualROIEffective">—</div></div>
+                <div class="kpi"><div class="label">实际ROI（GMV）</div><div class="val" id="actualROIGMV">—</div></div>
+                <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
+              </div>
+              
+              <!-- 实际广告占比 -->
+              <div class="kpi-band" style="margin-bottom: 12px;">
+                <div class="kpi"><div class="label">实际广告占比（有效）</div><div class="val" id="actualAdRateEff">—</div></div>
+                <div class="kpi"><div class="label">实际广告占比（GMV）</div><div class="val" id="actualAdRateGMV">—</div></div>
+                <div class="kpi"><div class="label">与保本CPA的差</div><div class="val" id="cpaGap">—</div></div>
+              </div>
+              
+              <!-- 收益与安全指标 -->
+              <div class="kpi-band" style="margin-bottom: 12px;">
+                <div class="kpi"><div class="label">每点击收益（有效）</div><div class="val" id="rpcEffective">—</div></div>
+                <div class="kpi"><div class="label">每点击收益（GMV）</div><div class="val" id="rpcGMV">—</div></div>
+                <div class="kpi"><div class="label">安全边际（ROI）</div><div class="val" id="safetyMargin">—</div></div>
+              </div>
+              
+              <!-- 优化建议与敏感度分析 -->
+              <div id="optimizationSuggestions" style="margin-top: 16px;">
+                <h6 style="margin: 8px 0 6px 0; font-size: 13px; color: #333;">💡 优化建议 & 敏感度分析</h6>
+                <div id="suggestionContent" style="font-size: 12px; color: #666; line-height: 1.5;">
+                  <!-- 动态内容 -->
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -6304,6 +6341,197 @@
         showMessage('计算失败: ' + error.message, 'error');
       }
     };
+
+    // 即时诊断功能：基于 CPC/CVR/客单价 的全面分析
+    window.calculateInstantDiagnosis = function() {
+      console.log('📊 即时诊断开始');
+      if (!window.CURRENT_ANALYSIS_ROW_ID) {
+        showMessage('请先选择要分析的商品行', 'error');
+        return;
+      }
+      
+      try {
+        // 1) 获取商品数据和保本阈值
+        updateSystemParams();
+        const product = getRowProductForAnalysis(window.CURRENT_ANALYSIS_ROW_ID);
+        if (!product || !isFinite(product.singlePrice) || !isFinite(product.singleCost)) {
+          showMessage('请先完善该行的售价与进货价（或选择有效档位）', 'error');
+          return;
+        }
+        const be = computeBEForProduct(product);
+        if (!be) {
+          showMessage('计算保本阈值失败，请检查输入。', 'error');
+          return;
+        }
+
+        // 2) 读取输入参数
+        const basis = document.getElementById('decBasis').value; // 与决策条统一
+        const r = isFinite(product.returnRate) ? product.returnRate : 0;
+        const cvrPctInput = document.getElementById('valueCvr').value.trim();
+        const cpcInput = document.getElementById('valueCpc').value.trim();
+        const aovInput = document.getElementById('valueAov').value.trim();
+        
+        // 解析输入值
+        const cvrIn = cvrPctInput === '' ? NaN : parseFloat(cvrPctInput);
+        const cpcIn = cpcInput === '' ? NaN : parseFloat(cpcInput);
+        let aovIn = aovInput === '' ? NaN : parseFloat(aovInput);
+        if (!isFinite(aovIn)) aovIn = product.singlePrice || NaN; // AOV留空用售价
+        
+        // 3) 验证输入完整性
+        if (!isFinite(cvrIn) || !isFinite(cpcIn) || !isFinite(aovIn) || cvrIn <= 0 || cpcIn <= 0 || aovIn <= 0) {
+          showMessage('即时诊断需要填写完整的 CVR、CPC 和客单价，且均需大于0', 'error');
+          return;
+        }
+
+        // 4) 计算基础指标
+        const S = product.singlePrice; // 售价
+        const rEff = 1 - r; // 有效率
+        const Rev = S * rEff; // 有效营收
+        const ROI_be_eff = be.ROI_BE_effective; // 保本ROI（有效）
+        const ROI_be_gmv = be.ROI_BE_gmv; // 保本ROI（GMV）
+        const adCostBreakEven = be.adCostBreakEven; // 保本广告费
+        
+        // 5) 计算实际投放指标
+        const CPA = cpcIn / cvrIn; // 每单广告成本（CPC/CVR）
+        const RPC_eff = aovIn * rEff * cvrIn; // 每点击有效收益
+        const RPC_gmv = aovIn * cvrIn; // 每点击GMV收益
+        
+        // 6) 计算实际ROI和广告占比
+        const adRate_eff_act = (Rev > 0) ? (CPA / Rev) : NaN; // 实际广告占比（有效）
+        const adRate_gmv_act = (S > 0) ? (CPA / S) : NaN; // 实际广告占比（GMV）
+        const ROI_eff_act = (adRate_eff_act > 0) ? (1 / adRate_eff_act) : NaN; // 实际ROI（有效）
+        const ROI_gmv_act = (adRate_gmv_act > 0) ? (1 / adRate_gmv_act) : NaN; // 实际ROI（GMV）
+        
+        // 7) 计算安全边际
+        const cpaGap = adCostBreakEven - CPA; // CPA差值（正数=安全，负数=超支）
+        const headroom_eff = (ROI_be_eff > 0 && ROI_eff_act > 0) ? (ROI_eff_act / ROI_be_eff - 1) : NaN; // ROI安全边际（有效）
+        const headroom_gmv = (ROI_be_gmv > 0 && ROI_gmv_act > 0) ? (ROI_gmv_act / ROI_be_gmv - 1) : NaN; // ROI安全边际（GMV）
+        
+        // 8) 更新UI显示
+        document.getElementById('actualROIEffective').textContent = isFinite(ROI_eff_act) ? ROI_eff_act.toFixed(2) : '—';
+        document.getElementById('actualROIGMV').textContent = isFinite(ROI_gmv_act) ? ROI_gmv_act.toFixed(2) : '—';
+        document.getElementById('actualCPA').textContent = isFinite(CPA) ? `¥${CPA.toFixed(2)}` : '—';
+        
+        document.getElementById('actualAdRateEff').textContent = isFinite(adRate_eff_act) ? `${(adRate_eff_act * 100).toFixed(2)}%` : '—';
+        document.getElementById('actualAdRateGMV').textContent = isFinite(adRate_gmv_act) ? `${(adRate_gmv_act * 100).toFixed(2)}%` : '—';
+        
+        // CPA差值显示（带颜色）
+        const cpaGapEl = document.getElementById('cpaGap');
+        if (isFinite(cpaGap)) {
+          const cpaGapText = (cpaGap >= 0 ? '+' : '') + cpaGap.toFixed(2) + '元';
+          cpaGapEl.textContent = cpaGapText;
+          cpaGapEl.style.color = cpaGap >= 0 ? '#34c759' : '#ff3b30'; // 绿色/红色
+        } else {
+          cpaGapEl.textContent = '—';
+          cpaGapEl.style.color = '';
+        }
+        
+        document.getElementById('rpcEffective').textContent = isFinite(RPC_eff) ? `¥${RPC_eff.toFixed(2)}` : '—';
+        document.getElementById('rpcGMV').textContent = isFinite(RPC_gmv) ? `¥${RPC_gmv.toFixed(2)}` : '—';
+        
+        // 安全边际显示（使用有效口径）
+        const safetyMarginEl = document.getElementById('safetyMargin');
+        if (isFinite(headroom_eff)) {
+          const marginText = (headroom_eff >= 0 ? '+' : '') + (headroom_eff * 100).toFixed(2) + '%';
+          safetyMarginEl.textContent = marginText;
+          safetyMarginEl.style.color = headroom_eff >= 0 ? '#34c759' : '#ff3b30';
+        } else {
+          safetyMarginEl.textContent = '—';
+          safetyMarginEl.style.color = '';
+        }
+        
+        // 9) 生成优化建议和敏感度分析
+        generateOptimizationSuggestions(basis, ROI_be_eff, ROI_be_gmv, cvrIn, cpcIn, aovIn, r, cpaGap, headroom_eff);
+        
+        // 10) 显示结果区域
+        document.getElementById('instantDiagnosisResult').style.display = 'block';
+        
+        console.log('📊 即时诊断完成：', { 
+          basis, ROI_be_eff, ROI_be_gmv, cvrIn, cpcIn, aovIn, CPA, 
+          ROI_eff_act, ROI_gmv_act, cpaGap, headroom_eff 
+        });
+        showMessage('即时诊断完成', 'success');
+        
+      } catch (error) {
+        console.error('即时诊断失败:', error);
+        showMessage('诊断失败: ' + error.message, 'error');
+      }
+    };
+
+    // 生成优化建议和敏感度分析内容
+    function generateOptimizationSuggestions(basis, ROI_be_eff, ROI_be_gmv, cvrIn, cpcIn, aovIn, returnRate, cpaGap, headroom_eff) {
+      const ROIbe = (basis === 'effective') ? ROI_be_eff : ROI_be_gmv;
+      const r = 1 - returnRate; // 有效率
+      
+      // 敏感度计算（线性近似）
+      const baseAOV = isFinite(aovIn) ? aovIn : NaN;
+      const baseCVR = isFinite(cvrIn) ? cvrIn : NaN;
+      
+      const dCPC_per_1pp_CVR = (isFinite(baseAOV) && ROIbe > 0) ? (baseAOV / ROIbe * 0.01) : NaN; // CVR每提升1pp，可承受CPC的提升量
+      const dCPC_per_1yuan_AOV = (isFinite(baseCVR) && ROIbe > 0) ? (baseCVR / ROIbe) : NaN; // 客单价每提高1元，可承受CPC的提升量
+      const dCVR_per_01yuan_CPC = (isFinite(baseAOV) && baseAOV > 0 && ROIbe > 0) ? ((0.1 * ROIbe) / baseAOV) : NaN; // CPC每降低0.1元，等价于CVR的提升量
+      const dAOV_per_01yuan_CPC = (isFinite(baseCVR) && baseCVR > 0 && ROIbe > 0) ? ((0.1 * ROIbe) / baseCVR) : NaN; // CPC每降低0.1元，等价于客单价的提升量
+      
+      // 构建建议内容
+      let suggestions = [];
+      
+      // 基础状态描述
+      const basisText = basis === 'effective' ? '有效营收' : 'GMV';
+      suggestions.push(`当前保本ROI（${basisText}口径）= <strong>${ROIbe.toFixed(2)}</strong>`);
+      
+      // 安全状态评估
+      if (isFinite(cpaGap)) {
+        if (cpaGap >= 0) {
+          suggestions.push(`✅ <span style="color: #34c759;"><strong>投放安全</strong></span>：还有 ${cpaGap.toFixed(2)} 元/单的安全空间`);
+        } else {
+          suggestions.push(`⚠️ <span style="color: #ff3b30;"><strong>投放超支</strong></span>：超出保本线 ${Math.abs(cpaGap).toFixed(2)} 元/单，需要优化`);
+        }
+      }
+      
+      // 敏感度分析
+      suggestions.push('<br><strong>敏感度分析（优化方向）：</strong>');
+      const sensitivityItems = [];
+      
+      if (isFinite(dCPC_per_1pp_CVR)) {
+        sensitivityItems.push(`CVR每提升 <strong>1pp</strong>，可将可承受CPC提升约 <strong>${dCPC_per_1pp_CVR.toFixed(3)} 元</strong>`);
+      }
+      if (isFinite(dCPC_per_1yuan_AOV)) {
+        sensitivityItems.push(`客单价每提高 <strong>1 元</strong>，可将可承受CPC提升约 <strong>${dCPC_per_1yuan_AOV.toFixed(3)} 元</strong>`);
+      }
+      if (isFinite(dCVR_per_01yuan_CPC)) {
+        sensitivityItems.push(`CPC每降低 <strong>0.10 元</strong>，等价于CVR提升约 <strong>${(dCVR_per_01yuan_CPC * 100).toFixed(2)} pp</strong>`);
+      }
+      if (isFinite(dAOV_per_01yuan_CPC)) {
+        sensitivityItems.push(`CPC每降低 <strong>0.10 元</strong>，等价于客单价提升约 <strong>${dAOV_per_01yuan_CPC.toFixed(2)} 元</strong>`);
+      }
+      
+      // 添加敏感度分析项目
+      sensitivityItems.forEach(item => {
+        suggestions.push(`• ${item}`);
+      });
+      
+      // 具体优化建议
+      if (isFinite(cpaGap) && cpaGap < 0) {
+        suggestions.push('<br><strong>优化建议：</strong>');
+        suggestions.push('• <strong>提升转化率</strong>：优化落地页、商品详情、客服话术');
+        suggestions.push('• <strong>降低CPC</strong>：优化关键词质量分、调整出价策略、优化创意CTR');
+        suggestions.push('• <strong>提高客单价</strong>：商品组合销售、增值服务、价格策略优化');
+        
+        // 基于退货率的建议
+        if (returnRate > 0.1) {
+          suggestions.push('• <strong>降低退货率</strong>：当前退货率较高，降低退货率可直接提升有效营收和保本能力');
+        }
+      } else if (isFinite(cpaGap) && cpaGap > 0) {
+        suggestions.push('<br><strong>扩展建议：</strong>');
+        suggestions.push('• 当前投放较为安全，可考虑适度提升出价以获取更多流量');
+        suggestions.push('• 可尝试拓展更多关键词或投放渠道');
+      }
+      
+      suggestions.push('<br><div style="color: #999; font-size: 11px;">提示：上述为线性近似，适用于小幅调整的判断；大幅调整请结合利润推演验证。</div>');
+      
+      // 更新UI
+      document.getElementById('suggestionContent').innerHTML = suggestions.join('<br>');
+    }
     
     // 点击面板外部关闭面板
     document.addEventListener('click', function(event) {
@@ -6375,6 +6603,19 @@
         }
       }, 500);
 
+      const debouncedInstantDiagnosis = debounce(() => {
+        if (window.CURRENT_ANALYSIS_ROW_ID && typeof window.calculateInstantDiagnosis === 'function') {
+          // 检查是否所有三个参数都已填写
+          const cvrInput = document.getElementById('valueCvr').value.trim();
+          const cpcInput = document.getElementById('valueCpc').value.trim();
+          const aovInput = document.getElementById('valueAov').value.trim();
+          
+          if (cvrInput !== '' && cpcInput !== '' && aovInput !== '') {
+            window.calculateInstantDiagnosis();
+          }
+        }
+      }, 800); // 稍长的延迟，避免频繁触发
+
       // 绑定投放决策条输入框事件
       decisionInputs.forEach(id => {
         const el = document.getElementById(id);
@@ -6399,6 +6640,9 @@
         if (el) {
           el.addEventListener('input', debouncedValueCalc);
           el.addEventListener('change', debouncedValueCalc);
+          // 同时绑定即时诊断的自动触发
+          el.addEventListener('input', debouncedInstantDiagnosis);
+          el.addEventListener('change', debouncedInstantDiagnosis);
         }
       });
 
