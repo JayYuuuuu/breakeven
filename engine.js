@@ -926,32 +926,55 @@ export function cpcCvrCurve(breakevenAdCost, opts = {}){
 export function safetyMarginAnalysis(currentCpc, currentCvr, breakevenAdCost) {
   const cpc = Number(currentCpc) || 0;
   const cvr = _toDecimalMaybe(Number(currentCvr) || 0);
-  const A = Number(breakevenAdCost) || 0;
+  const A = Number(breakevenAdCost) || 0; // BE-CPA（元/单）
   
   if (cpc <= 0 || cvr <= 0 || A <= 0) {
     return { 
       error: '参数无效',
       isSafe: false,
+      // 旧字段（兼容）
       margin: 0,
+      marginPercent: 0,
       currentAdCostPerOrder: 0,
-      maxAdCostPerOrder: A
+      maxAdCostPerOrder: A,
+      breakevenCpc: 0,
+      breakevenCvr: 0,
+      status: 'danger',
+      // 新字段（推荐）
+      marginPerOrder: 0,  // = BE-CPA - CPA（元/单）
+      marginPerClick: 0,  // = MaxCPC - CPC（元/点击）
+      cpaDelta: 0,
+      cpcDelta: 0
     };
   }
   
-  const currentAdCostPerOrder = cpc / cvr; // 当前每单广告费
-  const maxAdCostPerOrder = A; // 最大允许每单广告费（保本）
-  const margin = maxAdCostPerOrder - currentAdCostPerOrder; // 安全边际
-  const isSafe = currentAdCostPerOrder <= maxAdCostPerOrder; // 是否安全
-  const marginPercent = maxAdCostPerOrder > 0 ? (margin / maxAdCostPerOrder) : 0; // 安全边际百分比
+  const currentAdCostPerOrder = cpc / cvr;  // 实际CPA（元/单）
+  const maxAdCostPerOrder = A;              // BE-CPA（元/单）
+  const breakevenCpc = A * cvr;             // MaxCPC（元/点击）
+  const breakevenCvr = cpc / A;             // CVR临界（小数）
+
+  // 两种口径的边际
+  const marginPerOrder = maxAdCostPerOrder - currentAdCostPerOrder; // 元/单
+  const marginPerClick = breakevenCpc - cpc;                         // 元/点击
+
+  // 旧字段保持"元/单"语义，避免破坏现有调用
+  const margin = marginPerOrder;
+  const marginPercent = maxAdCostPerOrder > 0 ? (marginPerOrder / maxAdCostPerOrder) : 0;
   
   return {
-    isSafe,
-    margin, // 安全边际（元）
+    isSafe: currentAdCostPerOrder <= maxAdCostPerOrder,
+    // 旧字段（兼容）
+    margin, // 安全边际（元/单）
     marginPercent, // 安全边际百分比
     currentAdCostPerOrder, // 当前每单广告费
     maxAdCostPerOrder, // 最大允许每单广告费
-    breakevenCpc: A * cvr, // 保本CPC临界值
-    breakevenCvr: cpc / A, // 保本CVR临界值
-    status: isSafe ? 'safe' : 'danger' // 状态：安全或危险
+    breakevenCpc, // 保本CPC临界值
+    breakevenCvr, // 保本CVR临界值
+    status: (currentAdCostPerOrder <= maxAdCostPerOrder) ? 'safe' : 'danger', // 状态：安全或危险
+    // 新字段（推荐 UI 使用）
+    marginPerOrder,  // 与保本CPA的差（元/单）
+    marginPerClick,  // CVR-CPC安全边际（元/点击）
+    cpaDelta: marginPerOrder,
+    cpcDelta: marginPerClick
   };
 }

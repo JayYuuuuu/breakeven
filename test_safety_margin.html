@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全边际分析测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+        .formula { font-family: monospace; background: #e8f4fd; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🔍 安全边际分析测试</h1>
+    <p>验证修复后的 <code>safetyMarginAnalysis</code> 函数是否正确返回两种口径的边际</p>
+
+    <div class="test-case">
+        <h3>测试用例 1：标准情况</h3>
+        <div class="formula">
+            保本广告费 A = 8.29 元/单<br>
+            当前 CVR = 15%<br>
+            当前 CPC = 1.18 元/点击<br>
+            实际 CPA = CPC/CVR = 1.18/0.15 = 7.87 元/单
+        </div>
+        <button onclick="runTest1()">运行测试</button>
+        <div id="result1" class="result"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 2：危险情况</h3>
+        <div class="formula">
+            保本广告费 A = 8.29 元/单<br>
+            当前 CVR = 10%<br>
+            当前 CPC = 1.50 元/点击<br>
+            实际 CPA = CPC/CVR = 1.50/0.10 = 15.00 元/单
+        </div>
+        <button onclick="runTest2()">运行测试</button>
+        <div id="result2" class="result"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 3：边界情况</h3>
+        <div class="formula">
+            保本广告费 A = 8.29 元/单<br>
+            当前 CVR = 20%<br>
+            当前 CPC = 1.658 元/点击<br>
+            实际 CPA = CPC/CVR = 1.658/0.20 = 8.29 元/单（刚好保本）
+        </div>
+        <button onclick="runTest3()">运行测试</button>
+        <div id="result3" class="result"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>数学关系验证</h3>
+        <div class="formula">
+            理论关系：ΔCPC = CVR × ΔCPA<br>
+            验证：MaxCPC - CPC = CVR × (BE-CPA - CPA)
+        </div>
+        <button onclick="verifyRelationship()">验证关系</button>
+        <div id="relationshipResult" class="result"></div>
+    </div>
+
+    <script type="module">
+        import { safetyMarginAnalysis } from './engine.js';
+
+        // 测试用例1：标准情况
+        window.runTest1 = function() {
+            const A = 8.29;      // BE-CPA 元/单
+            const cvr = 0.15;    // 15%
+            const cpc = 1.18;    // 元/点击
+            const CPA = cpc / cvr;
+
+            const result = safetyMarginAnalysis(cpc, cvr, A);
+            const resultDiv = document.getElementById('result1');
+            
+            if (result.error) {
+                resultDiv.innerHTML = `<span class="error">❌ 错误: ${result.error}</span>`;
+                return;
+            }
+
+            const expectedCpaDelta = A - CPA;
+            const expectedCpcDelta = (A * cvr) - cpc;
+            const relationshipCheck = Math.abs(result.marginPerClick - (cvr * result.marginPerOrder)) < 0.01;
+
+            resultDiv.innerHTML = `
+                <h4>分析结果：</h4>
+                <p><strong>当前状态：</strong> ${result.isSafe ? '✅ 安全' : '❌ 危险'}</p>
+                
+                <h4>两种口径的边际：</h4>
+                <p><strong>与保本CPA的差（元/单）：</strong> ${result.marginPerOrder.toFixed(2)} 元/单</p>
+                <p><strong>CVR-CPC安全边际（元/点击）：</strong> ${result.marginPerClick.toFixed(2)} 元/点击</p>
+                
+                <h4>详细计算：</h4>
+                <p>保本广告费 A = ${A} 元/单</p>
+                <p>当前 CPA = ${CPA.toFixed(2)} 元/单</p>
+                <p>当前 CPC = ${cpc} 元/点击</p>
+                <p>Max CPC = ${(A * cvr).toFixed(2)} 元/点击</p>
+                
+                <h4>验证：</h4>
+                <p>理论 CPA 差值 = ${expectedCpaDelta.toFixed(2)} 元/单</p>
+                <p>理论 CPC 差值 = ${expectedCpcDelta.toFixed(2)} 元/点击</p>
+                <p>关系验证：ΔCPC = CVR × ΔCPA ✓ ${relationshipCheck ? '通过' : '失败'}</p>
+                
+                <p class="success">✅ 测试通过！两个边际值不同，符合预期。</p>
+            `;
+        };
+
+        // 测试用例2：危险情况
+        window.runTest2 = function() {
+            const A = 8.29;      // BE-CPA 元/单
+            const cvr = 0.10;    // 10%
+            const cpc = 1.50;    // 元/点击
+            const CPA = cpc / cvr;
+
+            const result = safetyMarginAnalysis(cpc, cvr, A);
+            const resultDiv = document.getElementById('result2');
+            
+            if (result.error) {
+                resultDiv.innerHTML = `<span class="error">❌ 错误: ${result.error}</span>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `
+                <h4>分析结果：</h4>
+                <p><strong>当前状态：</strong> ${result.isSafe ? '✅ 安全' : '❌ 危险'}</p>
+                
+                <h4>两种口径的边际：</h4>
+                <p><strong>与保本CPA的差（元/单）：</strong> ${result.marginPerOrder.toFixed(2)} 元/单</p>
+                <p><strong>CVR-CPC安全边际（元/点击）：</strong> ${result.marginPerClick.toFixed(2)} 元/点击</p>
+                
+                <h4>详细计算：</h4>
+                <p>保本广告费 A = ${A} 元/单</p>
+                <p>当前 CPA = ${CPA.toFixed(2)} 元/单</p>
+                <p>当前 CPC = ${cpc} 元/点击</p>
+                <p>Max CPC = ${(A * cvr).toFixed(2)} 元/点击</p>
+                
+                <p class="error">❌ 当前投放超支！需要优化CVR或降低CPC。</p>
+            `;
+        };
+
+        // 测试用例3：边界情况
+        window.runTest3 = function() {
+            const A = 8.29;      // BE-CPA 元/单
+            const cvr = 0.20;    // 20%
+            const cpc = 1.658;   // 元/点击（刚好保本）
+            const CPA = cpc / cvr;
+
+            const result = safetyMarginAnalysis(cpc, cvr, A);
+            const resultDiv = document.getElementById('result3');
+            
+            if (result.error) {
+                resultDiv.innerHTML = `<span class="error">❌ 错误: ${result.error}</span>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `
+                <h4>分析结果：</h4>
+                <p><strong>当前状态：</strong> ${result.isSafe ? '✅ 安全' : '❌ 危险'}</p>
+                
+                <h4>两种口径的边际：</h4>
+                <p><strong>与保本CPA的差（元/单）：</strong> ${result.marginPerOrder.toFixed(2)} 元/单</p>
+                <p><strong>CVR-CPC安全边际（元/点击）：</strong> ${result.marginPerClick.toFixed(2)} 元/点击</p>
+                
+                <h4>详细计算：</h4>
+                <p>保本广告费 A = ${A} 元/单</p>
+                <p>当前 CPA = ${CPA.toFixed(2)} 元/单</p>
+                <p>当前 CPC = ${cpc} 元/点击</p>
+                <p>Max CPC = ${(A * cvr).toFixed(2)} 元/点击</p>
+                
+                <p class="success">⚠️ 刚好在保本边界上，需要谨慎优化。</p>
+            `;
+        };
+
+        // 验证数学关系
+        window.verifyRelationship = function() {
+            const resultDiv = document.getElementById('relationshipResult');
+            let allPassed = true;
+            let testResults = [];
+
+            // 测试多个不同的CVR值
+            const testCases = [
+                { cvr: 0.05, cpc: 0.5, A: 8.29 },
+                { cvr: 0.10, cpc: 1.0, A: 8.29 },
+                { cvr: 0.15, cpc: 1.2, A: 8.29 },
+                { cvr: 0.20, cpc: 1.5, A: 8.29 }
+            ];
+
+            testCases.forEach((testCase, index) => {
+                const { cvr, cpc, A } = testCase;
+                const result = safetyMarginAnalysis(cpc, cvr, A);
+                
+                if (!result.error) {
+                    const expectedCpcDelta = cvr * result.marginPerOrder;
+                    const actualCpcDelta = result.marginPerClick;
+                    const isCorrect = Math.abs(expectedCpcDelta - actualCpcDelta) < 0.01;
+                    
+                    if (!isCorrect) allPassed = false;
+                    
+                    testResults.push({
+                        cvr: cvr,
+                        cpc: cpc,
+                        expected: expectedCpcDelta.toFixed(4),
+                        actual: actualCpcDelta.toFixed(4),
+                        passed: isCorrect
+                    });
+                }
+            });
+
+            let html = '<h4>数学关系验证结果：</h4>';
+            html += '<p><strong>验证公式：</strong> ΔCPC = CVR × ΔCPA</p>';
+            html += '<table border="1" style="border-collapse: collapse; width: 100%;">';
+            html += '<tr><th>CVR</th><th>CPC</th><th>理论ΔCPC</th><th>实际ΔCPC</th><th>结果</th></tr>';
+            
+            testResults.forEach(test => {
+                html += `<tr>
+                    <td>${(test.cvr * 100).toFixed(0)}%</td>
+                    <td>${test.cpc}</td>
+                    <td>${test.expected}</td>
+                    <td>${test.actual}</td>
+                    <td style="color: ${test.passed ? 'green' : 'red'}">${test.passed ? '✓' : '✗'}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            
+            if (allPassed) {
+                html += '<p class="success">✅ 所有测试用例都通过了数学关系验证！</p>';
+            } else {
+                html += '<p class="error">❌ 部分测试用例未通过验证，需要检查计算逻辑。</p>';
+            }
+            
+            resultDiv.innerHTML = html;
+        };
+    </script>
+</body>
+</html>

@@ -1656,7 +1656,7 @@
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
           <div class="kpi-band" style="margin-bottom: 12px;">
             <div class="kpi" id="kpiSafety"><div class="label">安全边际（MaxCPC−实际CPC）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiCvrCpcMargin"><div class="label">CVR-CPC 安全边际</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiCvrCpcMargin"><div class="label">CVR-CPC 安全边际（元/点击）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态</div><div class="val">—</div></div>
             <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
           </div>
@@ -6477,8 +6477,8 @@
             console.log('🔍 CVR-CPC 安全边际分析结果:', safetyAnalysis);
             
             if (!safetyAnalysis.error) {
-              // 安全边际（元）
-              cvrCpcMargin = `${fmt(safetyAnalysis.margin, 2)}元`;
+              // CVR-CPC 安全边际（元/点击）- 使用新的字段
+              cvrCpcMargin = `${fmt(safetyAnalysis.marginPerClick, 2)}元/点击`;
               
               // 状态显示
               if (safetyAnalysis.isSafe) {
@@ -6494,7 +6494,8 @@
               console.log('💡 CVR-CPC 边界分析:', {
                 当前每单广告费: safetyAnalysis.currentAdCostPerOrder.toFixed(2),
                 保本每单广告费: safetyAnalysis.maxAdCostPerOrder.toFixed(2),
-                安全边际: safetyAnalysis.margin.toFixed(2),
+                CPA安全边际: safetyAnalysis.marginPerOrder.toFixed(2) + '元/单',
+                CPC安全边际: safetyAnalysis.marginPerClick.toFixed(2) + '元/点击',
                 状态: safetyAnalysis.status
               });
             }
