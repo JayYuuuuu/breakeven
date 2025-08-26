@@ -1670,7 +1670,7 @@
             <!-- 第一行：成本相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
               <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
-              <div class="kpi"><div class="label">和最大承受广告成本差值（元/单）</div><div class="val" id="cpaGap">—</div></div>
+              <div class="kpi"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—</div></div>
               <div class="kpi"><div class="label">实际广告占比</div><div class="val" id="actualAdRate">—</div></div>
             </div>
             
@@ -1843,6 +1843,21 @@
       return v >= 0
         ? `还有 ${n} 元/点击提价空间`
         : `比保本高了 ${n} 元/点击`;
+    }
+
+    /**
+     * 格式化CPA差值，将数值转换为更直观的描述
+     * @param {number} delta - CPA差值（元/单）
+     * @param {number} digits - 小数位数，默认2位
+     * @returns {string} 格式化的描述文本
+     */
+    function formatCpaDelta(delta, digits = 2) {
+      const v = Number(delta);
+      if (!isFinite(v)) return '—';
+      const n = Math.abs(v).toFixed(digits);
+      return v >= 0
+        ? `还有 ${n} 元/单空间`
+        : `比保本高了 ${n} 元/单`;
     }
 
     function showMessage(message, type = 'info') {
@@ -7320,15 +7335,25 @@
         // 显示CPA
         document.getElementById('actualCPA').textContent = isFinite(CPA) ? `¥${CPA.toFixed(2)}` : '—';
         
-        // CPA差值显示（带颜色）
+        // CPA差值显示（使用格式化函数，带颜色联动）
         const cpaGapEl = document.getElementById('cpaGap');
-        if (isFinite(cpaGap)) {
-          const cpaGapText = (cpaGap >= 0 ? '+' : '') + cpaGap.toFixed(2) + '元';
-          cpaGapEl.textContent = cpaGapText;
-          cpaGapEl.style.color = cpaGap >= 0 ? '#34c759' : '#ff3b30'; // 绿色/红色
-        } else {
-          cpaGapEl.textContent = '—';
-          cpaGapEl.style.color = '';
+        cpaGapEl.textContent = formatCpaDelta(cpaGap, 2);
+        // 根据数值设置颜色：正数=绿色（安全），负数=红色（危险）
+        // 需要将CSS类添加到父级kpi元素上，而不是直接添加到val元素上
+        const kpiElement = cpaGapEl.closest('.kpi');
+        if (kpiElement) {
+          kpiElement.classList.remove('good', 'bad');
+          if (isFinite(cpaGap)) {
+            const isPositive = cpaGap >= 0;
+            kpiElement.classList.add(isPositive ? 'good' : 'bad');
+            console.log('🎨 CPA差值颜色联动:', isPositive ? '绿色(安全)' : '红色(危险)', '差值:', cpaGap, 'CSS类:', isPositive ? 'good' : 'bad');
+            
+            // 验证CSS类是否正确应用
+            setTimeout(() => {
+              const appliedClass = kpiElement.className.includes('good') ? 'good' : (kpiElement.className.includes('bad') ? 'bad' : 'none');
+              console.log('🔍 CSS类应用验证:', appliedClass, '父元素类名:', kpiElement.className);
+            }, 100);
+          }
         }
         
         // 安全边际显示（根据选择的口径）
