@@ -1670,7 +1670,7 @@
             <div class="kpi-band" style="margin-bottom: 12px;">
               <div class="kpi"><div class="label">每点击收益（有效）</div><div class="val" id="rpcEffective">—</div></div>
               <div class="kpi"><div class="label">每点击收益（GMV）</div><div class="val" id="rpcGMV">—</div></div>
-              <div class="kpi"><div class="label">安全边际（ROI）</div><div class="val" id="safetyMargin">—</div></div>
+              <div class="kpi"><div class="label">当前ROI相比保本ROI</div><div class="val" id="safetyMargin">—</div></div>
             </div>
             <!-- 优化建议与敏感度分析 -->
             <div id="optimizationSuggestions" style="margin-top: 16px;">
@@ -3986,6 +3986,111 @@
       }
     }
     
+    /**
+     * 基于KPI结果自动生成分级建议
+     * 读取CVR-CPC状态和安全边际，给出智能建议
+     * @returns {Object} {text: 建议文本, class: CSS样式类}
+     */
+    function updateAdviceFromKpis() {
+      try {
+        // 读取CVR-CPC状态和安全边际
+        const cvrCpcStatusEl = document.getElementById('kpiCvrCpcStatus');
+        const cvrCpcMarginEl = document.getElementById('kpiCvrCpcMargin');
+        
+        if (!cvrCpcStatusEl || !cvrCpcMarginEl) {
+          console.warn('⚠️ KPI元素未找到，无法生成建议');
+          return null;
+        }
+        
+        const statusText = cvrCpcStatusEl.querySelector('.val')?.textContent || '';
+        const marginText = cvrCpcMarginEl.querySelector('.val')?.textContent || '';
+        
+        console.log('🔍 读取KPI数据:', { statusText, marginText });
+        
+        // 解析状态文本，提取百分比
+        let statusPercent = 0;
+        let isSafe = false;
+        
+        if (statusText.includes('安全')) {
+          isSafe = true;
+          // 提取百分比，如"安全 (+51.6%)" -> 51.6
+          const percentMatch = statusText.match(/\+([\d.]+)%/);
+          if (percentMatch) {
+            statusPercent = parseFloat(percentMatch[1]);
+          }
+        } else if (statusText.includes('危险') || statusText.includes('风险') || statusText.includes('亏损')) {
+          isSafe = false;
+          // 提取负百分比，如"危险 (-12.3%)" -> -12.3
+          const percentMatch = statusText.match(/-([\d.]+)%/);
+          if (percentMatch) {
+            statusPercent = -parseFloat(percentMatch[1]);
+          }
+        }
+        
+        // 解析安全边际数值，提取元数
+        let marginYuan = 0;
+        if (marginText.includes('元')) {
+          const yuanMatch = marginText.match(/([\d.]+)元/);
+          if (yuanMatch) {
+            marginYuan = parseFloat(yuanMatch[1]);
+          }
+        }
+        
+        console.log('🔍 解析结果:', { 
+          isSafe, 
+          statusPercent, 
+          marginYuan,
+          statusText, 
+          marginText 
+        });
+        
+        // 分级建议逻辑
+        let adviceText = '';
+        let adviceClass = '';
+        
+        if (!isSafe || marginYuan <= 0) {
+          // 1. 告警：状态包含"不安全/风险/亏损/危险"或元边际 ≤ 0
+          adviceText = '临近或低于保本：优先降CPC/提CVR/调价';
+          adviceClass = 'bad';
+        } else if (statusPercent < 10 || marginYuan <= 0.2) {
+          // 2. 谨慎：ROI 余量 < 10% 或 元边际 ≤ 0.2
+          adviceText = '接近临界：小幅试探，谨慎加量';
+          adviceClass = 'warn';
+        } else if (statusPercent < 30 || (marginYuan > 0.2 && marginYuan < 0.5)) {
+          // 3. 观望：10% ≤ 余量 < 30% 或 0.2 < 元边际 < 0.5
+          adviceText = '状态良好，稳态观察';
+          adviceClass = 'warn';
+        } else if (statusPercent < 80 && marginYuan >= 0.5) {
+          // 4. 适度加量：30% ≤ 余量 < 80% 且 元边际 ≥ 0.5
+          adviceText = '状态良好，可适度加量';
+          adviceClass = 'good';
+        } else if (statusPercent >= 80 && marginYuan >= 1.0) {
+          // 5. 扩量测试：余量 ≥ 80% 且 元边际 ≥ 1.0
+          adviceText = '安全裕度充足：可加量与扩量测试';
+          adviceClass = 'good';
+        } else {
+          // 默认情况
+          adviceText = '状态良好，可适度加量';
+          adviceClass = 'good';
+        }
+        
+        console.log('💡 生成建议:', { adviceText, adviceClass, statusPercent, marginYuan });
+        
+        return {
+          text: adviceText,
+          class: adviceClass
+        };
+        
+      } catch (error) {
+        console.error('❌ 生成建议失败:', error);
+        // 返回默认建议
+        return {
+          text: '状态良好，可适度加量',
+          class: 'good'
+        };
+      }
+    }
+    
     // 搜索功能
     function performSearch() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -6095,14 +6200,15 @@
           }
         }
 
-        // 建议
+        // 建议 - 使用分级建议系统
         let advice = '—';
         let adviceClass = '';
-        if (isFinite(adjROAS) && isFinite(beROAS)) {
-          const target = beROAS; // 仅以保本阈值作为判断线
-          if (adjROAS >= target) { advice='可放量'; adviceClass='good'; }
-          else if (adjROAS >= beROAS*0.9) { advice='小幅尝试/优化页与定向'; adviceClass='warn'; }
-          else { advice='止损或收窄预算'; adviceClass='bad'; }
+        
+        // 调用分级建议函数，基于CVR-CPC状态和安全边际自动判断
+        const adviceResult = updateAdviceFromKpis();
+        if (adviceResult) {
+          advice = adviceResult.text;
+          adviceClass = adviceResult.class;
         }
 
         // 回填
@@ -6891,6 +6997,24 @@
         // 10) 显示结果区域
         document.getElementById('instantDiagnosisResult').style.display = 'block';
         
+        // 11) 更新投放决策条的建议（基于最新计算结果）
+        try {
+          if (typeof updateAdviceFromKpis === 'function') {
+            const adviceResult = updateAdviceFromKpis();
+            if (adviceResult) {
+              const kAdv = document.getElementById('kpiAdvice');
+              if (kAdv) {
+                kAdv.querySelector('.val').textContent = adviceResult.text;
+                kAdv.classList.remove('good', 'warn', 'bad');
+                kAdv.classList.add(adviceResult.class);
+                console.log('🔄 即时诊断后更新建议:', adviceResult);
+              }
+            }
+          }
+        } catch (adviceError) {
+          console.warn('⚠️ 更新建议失败:', adviceError);
+        }
+        
         console.log('📊 即时诊断完成：', { 
           basis, ROI_be_eff, ROI_be_gmv, cvrIn, cpcIn, aovIn, CPA, 
           ROI_eff_act, ROI_gmv_act, cpaGap, headroom_eff 
@@ -7417,6 +7541,22 @@
           window.updateCvrCpcChart();
         }
       }, 500);
+      
+      // 初始化建议系统（延迟执行确保KPI元素已渲染）
+      setTimeout(() => {
+        if (typeof updateAdviceFromKpis === 'function') {
+          const adviceResult = updateAdviceFromKpis();
+          if (adviceResult) {
+            const kAdv = document.getElementById('kpiAdvice');
+            if (kAdv) {
+              kAdv.querySelector('.val').textContent = adviceResult.text;
+              kAdv.classList.remove('good', 'warn', 'bad');
+              kAdv.classList.add(adviceResult.class);
+              console.log('🚀 页面初始化建议:', adviceResult);
+            }
+          }
+        }
+      }, 1000);
     });
 
     </script>
