@@ -465,10 +465,16 @@
     
 
     
-    /* 小屏幕设备适配 - 默认隐藏保本广告(GMV)和保本ROI(GMV)列 */
-    /* 当屏幕宽度小于等于1680px时，默认隐藏这两列以节省空间 */
+    /* 小屏幕设备适配 - 默认隐藏佣金率、保本广告(GMV)和保本ROI(GMV)列 */
+    /* 当屏幕宽度小于等于1680px时，默认隐藏这些列以节省空间 */
     /* 适用于：MacBook Air 13"、iPad Pro 11"、iPad mini 7等所有小屏幕设备 */
     @media (max-width: 1680px) {
+      /* 默认隐藏佣金率列 - 使用语义化类名 */
+      .products-table th.col-commission,
+      .products-table td.col-commission {
+        display: none;
+      }
+      
       /* 默认隐藏保本广告(GMV)列 - 使用语义化类名 */
       .products-table th.col-ad-gmv,
       .products-table td.col-ad-gmv {
@@ -488,6 +494,12 @@
       .products-table.gmv-visible td.col-roi-gmv {
         display: table-cell;
       }
+      
+      /* 佣金列始终在小屏幕下隐藏，不受GMV列显示状态影响 */
+      .products-table.gmv-visible th.col-commission,
+      .products-table.gmv-visible td.col-commission {
+        display: none;
+      }
     }
     
     /* 大屏幕下，用户手动隐藏GMV列时的样式 */
@@ -496,6 +508,12 @@
     .products-table.gmv-hidden th.col-roi-gmv,
     .products-table.gmv-hidden td.col-roi-gmv {
       display: none;
+    }
+    
+    /* 大屏幕下，佣金列正常显示 */
+    .products-table th.col-commission,
+    .products-table td.col-commission {
+      display: table-cell;
     }
     
     /* 低调的图标按钮样式 */
@@ -813,6 +831,24 @@
         transform: translateX(100%);
         opacity: 0;
       }
+    }
+    
+    /* 佣金率数值样式（仅数据单元格） */
+    .products-table td.col-commission {
+      text-align: center;
+      white-space: nowrap;
+    }
+    
+    /* 数字徽章：与系统浅灰卡片风格一致 */
+    .commission-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #f8f9fa;
+      border: 1px solid #e5e5ea;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--ink);
     }
     
     /* 响应式设计 */
@@ -1466,7 +1502,7 @@
                 <th>商品名称</th>
                 <th>货号</th>
                 <th>平台</th>
-                <th>佣金率</th>
+                <th class="col-commission">佣金率</th>
                 <th>主推款</th>
                 <th>含税售价P</th>
                 <th>含税售价（多档）</th>
@@ -1964,22 +2000,23 @@
             <option value="小红书" ${product && product.platform === '小红书' ? 'selected' : ''}>小红书</option>
           </select>
         </td>
-        <td>
-          <div class="platform-rate-display" style="text-align: center; color: var(--muted); font-size: 12px;">
-            ${(() => {
-              const platform = product ? product.platform : '淘宝';
-              // 直接使用平台佣金率映射，避免函数调用问题
-              const platformRates = {
-                '淘宝': 0,
-                '天猫': 0.055,
-                '抖音': 0.05,
-                '京东': 0.05,
-                '拼多多': 0.05,
-                '小红书': 0.05
-              };
-              const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
-              return `${(rate * 100).toFixed(1)}%`;
-            })()}
+        <td class="col-commission">
+          <div class="platform-rate-display">
+            <span class="commission-badge">
+              ${(() => {
+                const platform = product ? product.platform : '淘宝';
+                const platformRates = {
+                  '淘宝': 0,
+                  '天猫': 0.055,
+                  '抖音': 0.05,
+                  '京东': 0.05,
+                  '拼多多': 0.05,
+                  '小红书': 0.05
+                };
+                const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
+                return `${(rate * 100).toFixed(1)}%`;
+              })()}
+            </span>
           </div>
         </td>
         <td>
@@ -5128,22 +5165,23 @@
             <option value="小红书" ${data.platform === '小红书' ? 'selected' : ''}>小红书</option>
           </select>
         </td>
-        <td>
-          <div class="platform-rate-display" style="text-align: center; color: var(--muted); font-size: 12px;">
-            ${(() => {
-              const platform = data.platform || '淘宝';
-              // 直接使用平台佣金率映射，避免函数调用问题
-              const platformRates = {
-                '淘宝': 0,
-                '天猫': 0.055,
-                '抖音': 0.05,
-                '京东': 0.05,
-                '拼多多': 0.05,
-                '小红书': 0.05
-              };
-              const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
-              return `${(rate * 100).toFixed(1)}%`;
-            })()}
+        <td class="col-commission">
+          <div class="platform-rate-display">
+            <span class="commission-badge">
+              ${(() => {
+                const platform = data.platform || '淘宝';
+                const platformRates = {
+                  '淘宝': 0,
+                  '天猫': 0.055,
+                  '抖音': 0.05,
+                  '京东': 0.05,
+                  '拼多多': 0.05,
+                  '小红书': 0.05
+                };
+                const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
+                return `${(rate * 100).toFixed(1)}%`;
+              })()}
+            </span>
           </div>
         </td>
         <td>
