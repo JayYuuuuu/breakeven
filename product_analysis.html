@@ -1628,8 +1628,8 @@
               <input type="number" id="decAOV" step="0.01" placeholder="79.8">
             </div>
             <div class="decision-item">
-              <label>增量系数（0-1，可选）</label>
-              <input type="number" id="decIncrementality" step="0.01" min="0" max="1" placeholder="1">
+              <label>连带购买率（%）</label>
+              <input type="number" id="decBundleRate" step="0.01" min="0" max="100" placeholder="10">
             </div>
           </div>
           <div class="decision-actions">
@@ -1637,6 +1637,7 @@
             <button class="btn primary" style="margin-left: 8px;" onclick="window.calculateInstantDiagnosis()">即时诊断</button>
                           <span class="tiny-hint" style="color: #007aff; font-weight: 600; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #007aff;">（AOV 可手动假设，模拟不同客单价场景）</span>
               <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
+              <span class="tiny-hint">连带购买率用于放大 AOV：AOV′ = AOV × (1 + 连带率)</span>
           </div>
           <!-- A. 决策链路（上半部分） -->
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🎯 核心保本阈值</h5>
@@ -1828,6 +1829,16 @@
     
     function valRate(id) {
       return valNum(id) / 100;
+    }
+
+    /**
+     * 读取百分比输入值并转换为小数
+     * @param {string} id - 输入框ID
+     * @returns {number} 百分比对应的小数值（如10%返回0.10）
+     */
+    function valPercent(id) {
+      const v = parseFloat(document.getElementById(id)?.value);
+      return isFinite(v) ? v / 100 : 0;
     }
 
     /**
@@ -6465,14 +6476,30 @@
           cpc = (isFinite(cpm) && isFinite(ctr) && ctr>0) ? (cpm/(ctr*1000)) : NaN;
         }
 
+        // 读取基础AOV（留空用当前售价）
         let aov = parseFloat(document.getElementById('decAOV').value);
         if (!isFinite(aov)) aov = product.singlePrice || NaN;
+
+        // 读取连带购买率并放大AOV
+        const bundleRate = valPercent('decBundleRate'); // 10% -> 0.10
+        let aovWithBundle = aov * (1 + bundleRate);
+        console.log('📦 连带购买率:', bundleRate, '基础AOV:', aov, '放大后AOV:', aovWithBundle);
+        
+        // 调试：验证连带购买率是否正确读取
+        const bundleRateRaw = document.getElementById('decBundleRate')?.value;
+        console.log('🔍 连带购买率调试:', {
+          原始输入值: bundleRateRaw,
+          转换后小数: bundleRate,
+          基础AOV: aov,
+          放大后AOV: aovWithBundle,
+          放大倍数: (1 + bundleRate)
+        });
 
         // —— 口径对齐 ——
         // 若选择"有效营收"口径，则把 AOV 折成"有效AOV = AOV × (1 - 退货率)"
         const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
-          ? (aov * (1 - product.returnRate))
-          : aov;
+          ? (aovWithBundle * (1 - product.returnRate))
+          : aovWithBundle;
 
         const beROAS = (basis==='effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
         const beCPA  = be.adCostBreakEven;
@@ -6502,9 +6529,8 @@
         const critCVR = (isFinite(cpc) && isFinite(usedAOV) && usedAOV>0) ? (cpc*beROAS)/usedAOV : NaN;
         const critAOV = (isFinite(cpc) && isFinite(cvr) && cvr>0) ? (cpc*beROAS)/cvr : NaN;
 
-        // 增量修正（0-1，可选）
-        const incr = parseFloat(document.getElementById('decIncrementality').value);
-        const adjROAS = (isFinite(incr) && incr>=0 && incr<=1) ? (actROAS * incr) : actROAS;
+        // 连带购买率已在上面的AOV放大中处理，这里直接使用实际ROAS
+        const adjROAS = actROAS;
 
         // CVR-CPC 状态分析（安全边际已在上面计算）
         let cvrCpcStatus = '—';
@@ -7274,6 +7300,21 @@
         let aovIn = aovInput === '' ? NaN : parseFloat(aovInput);
         if (!isFinite(aovIn)) aovIn = product.singlePrice || NaN; // AOV留空用售价
         
+        // 读取连带购买率并放大AOV
+        const bundleRate = valPercent('decBundleRate'); // 10% -> 0.10
+        let aovWithBundle = aovIn * (1 + bundleRate);
+        console.log('📦 即时诊断连带购买率:', bundleRate, '基础AOV:', aovIn, '放大后AOV:', aovWithBundle);
+        
+        // 调试：验证连带购买率是否正确读取
+        const bundleRateRaw = document.getElementById('decBundleRate')?.value;
+        console.log('🔍 即时诊断连带购买率调试:', {
+          原始输入值: bundleRateRaw,
+          转换后小数: bundleRate,
+          基础AOV: aovIn,
+          放大后AOV: aovWithBundle,
+          放大倍数: (1 + bundleRate)
+        });
+        
         // 3) 验证输入完整性
         if (!isFinite(cvrIn) || !isFinite(cpcIn) || !isFinite(aovIn) || cvrIn <= 0 || cpcIn <= 0 || aovIn <= 0) {
           showMessage('即时诊断需要填写完整的 CVR、CPC 和客单价，且均需大于0', 'error');
@@ -7290,12 +7331,15 @@
         
         // 5) 计算实际投放指标
         const CPA = cpcIn / cvrIn; // 每单广告成本（CPC/CVR）
-        const RPC_eff = aovIn * rEff * cvrIn; // 每点击有效收益
-        const RPC_gmv = aovIn * cvrIn; // 每点击GMV收益
+        const RPC_eff = aovWithBundle * rEff * cvrIn; // 每点击有效收益（考虑连带购买）
+        const RPC_gmv = aovWithBundle * cvrIn; // 每点击GMV收益（考虑连带购买）
         
         // 6) 计算实际ROI和广告占比
         const adRate_eff_act = (Rev > 0) ? (CPA / Rev) : NaN; // 实际广告占比（有效）
         const adRate_gmv_act = (S > 0) ? (CPA / S) : NaN; // 实际广告占比（GMV）
+        
+        // 注意：这里使用放大后的AOV计算，但广告占比的分母仍用原始售价
+        // 因为广告占比 = 广告成本 / 收入，收入应该用实际售价，而不是放大后的AOV
         const ROI_eff_act = (adRate_eff_act > 0) ? (1 / adRate_eff_act) : NaN; // 实际ROI（有效）
         const ROI_gmv_act = (adRate_gmv_act > 0) ? (1 / adRate_gmv_act) : NaN; // 实际ROI（GMV）
         
@@ -7680,6 +7724,13 @@
         const markEdited = () => { DEC_CPC_USER_EDITED = true; };
         decCPCEl.addEventListener('input', markEdited);
         decCPCEl.addEventListener('change', markEdited);
+      }
+      
+      // 监听连带购买率改变：当用户改变连带购买率时，自动触发计算
+      const decBundleRateEl = document.getElementById('decBundleRate');
+      if (decBundleRateEl) {
+        decBundleRateEl.addEventListener('input', debouncedDecisionCalc);
+        decBundleRateEl.addEventListener('change', debouncedDecisionCalc);
       }
     }
 
