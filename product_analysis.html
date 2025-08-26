@@ -278,6 +278,7 @@
       margin-bottom: 32px;
     }
     
+    
     .basic-info h4, .target-analysis h4 {
       margin: 0 0 16px 0;
       font-size: 16px;
@@ -1636,14 +1637,24 @@
             <button class="btn primary" style="margin-left: 8px;" onclick="window.calculateInstantDiagnosis()">即时诊断</button>
             <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
           </div>
-          <div class="kpi-band">
+          <!-- A. 决策链路（上半部分） -->
+          <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🎯 核心保本阈值</h5>
+          <div class="kpi-band" style="margin-bottom: 12px;">
             <div class="kpi" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiBECPA"><div class="label">BE-CPA（可承受每单广告额）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS</div><div class="val">—</div></div>
+          </div>
+
+          <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📐 实际与临界值对比</h5>
+          <div class="kpi-band" style="margin-bottom: 12px;">
+            <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS（广告支出回报率）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCritCPC"><div class="label">CPC 临界（保本）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本）</div><div class="val">—</div></div>
+          </div>
+
+          <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
+          <div class="kpi-band" style="margin-bottom: 12px;">
             <div class="kpi" id="kpiSafety"><div class="label">安全边际（MaxCPC−实际CPC）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCvrCpcMargin"><div class="label">CVR-CPC 安全边际</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态</div><div class="val">—</div></div>
@@ -1651,26 +1662,30 @@
           </div>
 
 
-          <!-- 已合并：即时诊断结果（基于投放决策条输入计算） -->
+          <!-- B. 即时诊断（下半部分） -->
           <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
-            <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📊 基于 CPC/CVR/客单价 的即时诊断</h5>
-            <!-- 实际ROI指标 -->
+            <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🔍 即时诊断</h5>
+            <span class="tiny-hint">基于 CPC/CVR/客单价 的"成本–效率–收益"链路分析</span>
+            
+            <!-- 第一行：成本相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
+              <div class="kpi"><div class="label">与保本CPA的差</div><div class="val" id="cpaGap">—</div></div>
+              <div class="kpi"><div class="label">实际广告占比（有效）</div><div class="val" id="actualAdRateEff">—</div></div>
+            </div>
+            
+            <!-- 第二行：效率相关指标 -->
+            <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi"><div class="label">实际广告占比（GMV）</div><div class="val" id="actualAdRateGMV">—</div></div>
               <div class="kpi"><div class="label">实际ROI（有效）</div><div class="val" id="actualROIEffective">—</div></div>
               <div class="kpi"><div class="label">实际ROI（GMV）</div><div class="val" id="actualROIGMV">—</div></div>
-              <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
             </div>
-            <!-- 实际广告占比 -->
-            <div class="kpi-band" style="margin-bottom: 12px;">
-              <div class="kpi"><div class="label">实际广告占比（有效）</div><div class="val" id="actualAdRateEff">—</div></div>
-              <div class="kpi"><div class="label">实际广告占比（GMV）</div><div class="val" id="actualAdRateGMV">—</div></div>
-              <div class="kpi"><div class="label">与保本CPA的差</div><div class="val" id="cpaGap">—</div></div>
-            </div>
-            <!-- 收益与安全指标 -->
+            
+            <!-- 第三行：收益相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
               <div class="kpi"><div class="label">每点击收益（有效）</div><div class="val" id="rpcEffective">—</div></div>
               <div class="kpi"><div class="label">每点击收益（GMV）</div><div class="val" id="rpcGMV">—</div></div>
-              <div class="kpi"><div class="label">当前ROI相比保本ROI</div><div class="val" id="safetyMargin">—</div></div>
+              <div class="kpi"><div class="label">ROI相比保本的差值</div><div class="val" id="safetyMargin">—</div></div>
             </div>
             <!-- 优化建议与敏感度分析 -->
             <div id="optimizationSuggestions" style="margin-top: 16px;">
