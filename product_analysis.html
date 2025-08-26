@@ -274,24 +274,17 @@
       min-width: 120px;
     }
     
-    .basic-info, .target-analysis, .extended-analysis {
+    .basic-info, .target-analysis {
       margin-bottom: 32px;
     }
     
-    .basic-info h4, .target-analysis h4, .extended-analysis h4 {
+    .basic-info h4, .target-analysis h4 {
       margin: 0 0 16px 0;
       font-size: 16px;
       font-weight: 600;
       color: var(--ink);
       border-bottom: 2px solid var(--accent);
       padding-bottom: 8px;
-    }
-    
-    .extended-analysis h5 {
-      margin: 20px 0 12px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--ink);
     }
     
     .info-grid {
@@ -1042,9 +1035,7 @@
         gap: 24px;
       }
       
-      .analysis-panel-overlay.fullscreen .extended-analysis {
-        margin-top: 24px;
-      }
+
       
       /* 隐藏移动端全屏按钮（太小的屏幕不需要） */
       .fullscreen-btn {
@@ -1775,10 +1766,6 @@
           </div>
         </div>
         
-        <!-- 扩展分析区域（已合并到投放决策条：仅保留结果展示） -->
-        <div class="extended-analysis">
-          <h4>扩展分析</h4>
-          <div class="tiny-hint" style="margin: 6px 0 10px 0; color:#666;">已与上方“投放决策条”合并：请在投放决策条填写/调整参数，结果会在该处统一显示。</div>
         </div>
       </div>
     </div>
@@ -1963,15 +1950,8 @@
             <span class="commission-badge">
               ${(() => {
                 const platform = product ? product.platform : '淘宝';
-                const platformRates = {
-                  '淘宝': 0,
-                  '天猫': 0.055,
-                  '抖音': 0.05,
-                  '京东': 0.05,
-                  '拼多多': 0.05,
-                  '小红书': 0.05
-                };
-                const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
+                // 使用引擎的getPlatformRate函数，确保佣金率口径统一，支持系统参数变动
+                const rate = getPlatformRate(platform, systemParams);
                 return `${(rate * 100).toFixed(1)}%`;
               })()}
             </span>
@@ -2070,7 +2050,7 @@
         // 没有数据行，显示提示
         if (!noDataRow) {
           console.log('显示"暂无商品数据"提示');
-          tbody.innerHTML = '<tr id="no-data-row"><td colspan="18" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+          tbody.innerHTML = '<tr id="no-data-row"><td colspan="19" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         } else {
           console.log('提示行已存在，无需重复添加');
         }
@@ -2306,7 +2286,7 @@
         
         // 直接清空表格并显示提示，使用 #no-data-row 机制
         const tableBody = document.getElementById('productsTableBody');
-        tableBody.innerHTML = '<tr id="no-data-row"><td colspan="18" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
+        tableBody.innerHTML = '<tr id="no-data-row"><td colspan="19" style="text-align: center; color: var(--muted); padding: 40px;">暂无商品数据，请添加商品或导入示例数据</td></tr>';
         
         showMessage('所有数据已清空', 'success');
         // 清空localStorage
@@ -3796,10 +3776,13 @@
     // GMV列显示/隐藏切换
     document.getElementById('toggleGmvColumns').addEventListener('click', toggleGmvColumns);
     
-    // 监听窗口大小变化，自动调整GMV列状态
+    // 监听窗口大小变化，自动调整GMV列状态和分析面板显示模式
     window.addEventListener('resize', debounce(() => {
       // 延迟执行，避免频繁触发
-      setTimeout(adjustGmvColumnsForScreenSize, 100);
+      setTimeout(() => {
+        adjustGmvColumnsForScreenSize();
+        adjustAnalysisPanelForScreenSize();
+      }, 100);
     }, 250));
     
     // 搜索和筛选功能的事件监听器
@@ -3968,6 +3951,37 @@
           toggleText.textContent = '👁️';
           toggleBtn.classList.remove('active');
           toggleBtn.title = '隐藏GMV列';
+        }
+      }
+    }
+    
+    // 根据屏幕尺寸自动调整分析面板显示模式
+    function adjustAnalysisPanelForScreenSize() {
+      const panel = document.getElementById('analysisPanel');
+      const fullscreenIcon = document.getElementById('fullscreenIcon');
+      
+      if (!panel || !fullscreenIcon) {
+        return;
+      }
+      
+      // 只有当分析面板处于显示状态时才进行调整
+      if (panel.style.display === 'flex') {
+        const isLargeScreen = window.innerWidth > 1680;
+        
+        if (isLargeScreen) {
+          // 大屏幕（>1680px）自动使用全屏模式
+          if (!panel.classList.contains('fullscreen')) {
+            panel.classList.add('fullscreen');
+            fullscreenIcon.textContent = '🗗'; // 退出全屏图标
+            console.log('🔄 窗口调整：大屏幕检测到，自动启用全屏模式');
+          }
+        } else {
+          // 小屏幕（≤1680px）自动退出全屏模式
+          if (panel.classList.contains('fullscreen')) {
+            panel.classList.remove('fullscreen');
+            fullscreenIcon.textContent = '⛶'; // 全屏图标
+            console.log('🔄 窗口调整：小屏幕检测到，自动退出全屏模式');
+          }
         }
       }
     }
@@ -4863,6 +4877,9 @@
         if (e.target.matches('.product-name, .product-sku, .single-price, .single-cost, .return-rate, .tier-price-input, .tier-cost-input')) {
           // 延迟执行，避免频繁计算
           debounceAutoCalc(500);
+          
+          // 保存输入变化到本地存储，确保刷新后能恢复
+          saveToLocalStorage();
         }
       });
       
@@ -4896,11 +4913,24 @@
           // 如果有佣金率显示元素，更新它
           const rateDisplay = row.querySelector('.platform-rate-display');
           if (rateDisplay) {
-            const oldValue = rateDisplay.textContent;
-            const newValue = `${(platformRate * 100).toFixed(1)}%`;
-            rateDisplay.textContent = newValue;
-            console.log(`📊 佣金率显示更新: ${oldValue} → ${newValue}`);
+            // 查找佣金率徽章元素，保持HTML结构完整
+            const commissionBadge = rateDisplay.querySelector('.commission-badge');
+            if (commissionBadge) {
+              const oldValue = commissionBadge.textContent;
+              const newValue = `${(platformRate * 100).toFixed(1)}%`;
+              commissionBadge.textContent = newValue;
+              console.log(`📊 佣金率徽章更新: ${oldValue} → ${newValue}`);
+            } else {
+              // 如果没有找到徽章元素，说明结构可能被破坏了，重新构建
+              console.warn('佣金率徽章元素未找到，重新构建HTML结构');
+              const newValue = `${(platformRate * 100).toFixed(1)}%`;
+              rateDisplay.innerHTML = `<span class="commission-badge">${newValue}</span>`;
+              console.log(`🔄 佣金率徽章重新构建: ${newValue}`);
+            }
           }
+          
+          // 保存平台选择到本地存储，确保刷新后能恢复
+          saveToLocalStorage();
           
           debounceAutoCalc(500);
         }
@@ -4909,6 +4939,9 @@
       // 监听主推款变化
       tableBody.addEventListener('click', function(e) {
         if (e.target.matches('.main-toggle')) {
+          // 保存主推款状态到本地存储，确保刷新后能恢复
+          saveToLocalStorage();
+          
           debounceAutoCalc(500);
         }
       });
@@ -5128,15 +5161,8 @@
             <span class="commission-badge">
               ${(() => {
                 const platform = data.platform || '淘宝';
-                const platformRates = {
-                  '淘宝': 0,
-                  '天猫': 0.055,
-                  '抖音': 0.05,
-                  '京东': 0.05,
-                  '拼多多': 0.05,
-                  '小红书': 0.05
-                };
-                const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
+                // 使用引擎的getPlatformRate函数，确保佣金率口径统一，支持系统参数变动
+                const rate = getPlatformRate(platform, systemParams);
                 return `${(rate * 100).toFixed(1)}%`;
               })()}
             </span>
@@ -5380,6 +5406,9 @@
     
     // 绑定一次决策条控件切换（保障首次加载时 UI 同步）
     bindDecisionControls();
+    
+    // 初始化分析面板显示模式（根据当前屏幕尺寸）
+    adjustAnalysisPanelForScreenSize();
     
     // 🆕 绑定测试按钮事件
     document.getElementById('testSkuChange')?.addEventListener('click', () => {
@@ -6194,6 +6223,19 @@
       
       // 显示面板
       document.getElementById('analysisPanel').style.display = 'flex';
+      
+      // 根据屏幕尺寸自动选择显示模式
+      const isLargeScreen = window.innerWidth > 1680;
+      if (isLargeScreen) {
+        // 大屏幕（>1680px）自动使用全屏模式
+        const panel = document.getElementById('analysisPanel');
+        const fullscreenIcon = document.getElementById('fullscreenIcon');
+        panel.classList.add('fullscreen');
+        if (fullscreenIcon) {
+          fullscreenIcon.textContent = '🗗'; // 退出全屏图标
+        }
+        console.log('大屏幕检测到，自动启用全屏模式');
+      }
       
       // 设置投放决策条的当前行ID并绑定控件
       window.CURRENT_ANALYSIS_ROW_ID = rowId;
