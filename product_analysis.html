@@ -1644,21 +1644,21 @@
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🎯 核心保本阈值</h5>
           <div class="kpi-band" style="margin-bottom: 12px;">
             <div class="kpi" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiBECPA"><div class="label">BE-CPA（可承受每单广告额）</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiBECPA"><div class="label">BE-CPA（每单最多广告费）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
           </div>
 
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📐 实际与临界值对比</h5>
                       <div class="kpi-band" style="margin-bottom: 12px;">
               <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—</div></div>
-              <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本）</div><div class="val">—</div></div>
+              <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本转化率）</div><div class="val">—</div></div>
               <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—</div></div>
             </div>
 
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
           <div class="kpi-band" style="margin-bottom: 12px;">
             <div class="kpi" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态</div><div class="val">—</div></div>
+            <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态（出价安全指数）</div><div class="val">—</div></div>
             <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
           </div>
 
@@ -1671,21 +1671,21 @@
             
             <!-- 第一行：成本相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
-              <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
+              <div class="kpi"><div class="label">CPA（每单广告成本）=CPC/CVR</div><div class="val" id="actualCPA">—</div></div>
               <div class="kpi"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—</div></div>
-              <div class="kpi"><div class="label">实际广告占比</div><div class="val" id="actualAdRate">—</div></div>
+              <div class="kpi"><div class="label">实际广告占比=CPA/（AOV*有效率）</div><div class="val" id="actualAdRate">—</div></div>
             </div>
             
             <!-- 第二行：效率相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
-              <div class="kpi"><div class="label">实际ROI</div><div class="val" id="actualROI">—</div></div>
+              <div class="kpi"><div class="label">实际ROI（每点击收益/CPC）</div><div class="val" id="actualROI">—</div></div>
               <div class="kpi"><div class="label">保本ROI</div><div class="val" id="breakevenROI">—</div></div>
               <div class="kpi"><div class="label">ROI安全边际</div><div class="val" id="safetyMargin">—</div></div>
             </div>
             
             <!-- 第三行：收益相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
-              <div class="kpi"><div class="label">每点击收益</div><div class="val" id="rpcPerClick">—</div></div>
+              <div class="kpi"><div class="label">RPC（每点击收益）=CVR*AOV</div><div class="val" id="rpcPerClick">—</div></div>
               <div class="kpi"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
               <div class="kpi"><div class="label">状态</div><div class="val" id="statusIndicator">—</div></div>
             </div>
@@ -6582,11 +6582,59 @@
         let advice = '—';
         let adviceClass = '';
         
-        // 调用分级建议函数，基于CVR-CPC状态和安全边际自动判断
-        const adviceResult = updateAdviceFromKpis();
-        if (adviceResult) {
-          advice = adviceResult.text;
-          adviceClass = adviceResult.class;
+        // 直接基于计算结果生成建议，而不是调用 updateAdviceFromKpis()
+        if (isFinite(cvr) && isFinite(cpc) && isFinite(beCPA)) {
+          try {
+            const safetyAnalysis = safetyMarginAnalysis(cpc, cvr, beCPA);
+            if (!safetyAnalysis.error) {
+              // 分级建议逻辑
+              const statusPercent = safetyAnalysis.marginPercent * 100;
+              const marginYuan = safetyAnalysis.marginPerClick;
+              
+              if (!safetyAnalysis.isSafe || marginYuan <= 0) {
+                // 1. 告警：状态不安全或元边际 ≤ 0
+                advice = '临近或低于保本：优先降CPC/提CVR/调价';
+                adviceClass = 'bad';
+              } else if (statusPercent < 10 || marginYuan <= 0.2) {
+                // 2. 谨慎：ROI 余量 < 10% 或 元边际 ≤ 0.2
+                advice = '接近临界：小幅试探，谨慎加量';
+                adviceClass = 'warn';
+              } else if (statusPercent < 30 || (marginYuan > 0.2 && marginYuan < 0.5)) {
+                // 3. 观望：10% ≤ 余量 < 30% 或 0.2 < 元边际 < 0.5
+                advice = '状态良好，稳态观察';
+                adviceClass = 'warn';
+              } else if (statusPercent < 80 && marginYuan >= 0.5) {
+                // 4. 适度加量：30% ≤ 余量 < 80% 且 元边际 ≥ 0.5
+                advice = '状态良好，可适度加量';
+                adviceClass = 'good';
+              } else if (statusPercent >= 80 && marginYuan >= 1.0) {
+                // 5. 扩量测试：余量 ≥ 80% 且 元边际 ≥ 1.0
+                advice = '安全裕度充足：可加量与扩量测试';
+                adviceClass = 'good';
+              } else {
+                // 默认情况
+                advice = '状态良好，可适度加量';
+                adviceClass = 'good';
+              }
+              
+              console.log('💡 直接生成建议:', { advice, adviceClass, statusPercent, marginYuan });
+            }
+          } catch (error) {
+            console.error('❌ 直接生成建议失败:', error);
+            // 降级到 updateAdviceFromKpis
+            const adviceResult = updateAdviceFromKpis();
+            if (adviceResult) {
+              advice = adviceResult.text;
+              adviceClass = adviceResult.class;
+            }
+          }
+        } else {
+          // 如果数据不完整，使用 updateAdviceFromKpis 作为后备
+          const adviceResult = updateAdviceFromKpis();
+          if (adviceResult) {
+            advice = adviceResult.text;
+            adviceClass = adviceResult.class;
+          }
         }
 
         // 回填
@@ -7457,15 +7505,55 @@
         
         // 11) 更新投放决策条的建议（基于最新计算结果）
         try {
-          if (typeof updateAdviceFromKpis === 'function') {
-            const adviceResult = updateAdviceFromKpis();
-            if (adviceResult) {
-              const kAdv = document.getElementById('kpiAdvice');
-              if (kAdv) {
-                kAdv.querySelector('.val').textContent = adviceResult.text;
-                kAdv.classList.remove('good', 'warn', 'bad');
-                kAdv.classList.add(adviceResult.class);
-                console.log('🔄 即时诊断后更新建议:', adviceResult);
+          // 直接基于即时诊断的计算结果生成建议
+          let adviceText = '—';
+          let adviceClass = '';
+          
+          if (isFinite(cpaGap)) {
+            // 基于 CPA 差值生成建议
+            if (cpaGap >= 0) {
+              // 安全状态
+              if (cpaGap >= 1.0) {
+                adviceText = '安全裕度充足：可加量与扩量测试';
+                adviceClass = 'good';
+              } else if (cpaGap >= 0.5) {
+                adviceText = '状态良好，可适度加量';
+                adviceClass = 'good';
+              } else if (cpaGap >= 0.2) {
+                adviceText = '状态良好，稳态观察';
+                adviceClass = 'warn';
+              } else {
+                adviceText = '接近临界：小幅试探，谨慎加量';
+                adviceClass = 'warn';
+              }
+            } else {
+              // 超支状态
+              adviceText = '临近或低于保本：优先降CPC/提CVR/调价';
+              adviceClass = 'bad';
+            }
+            
+            console.log('💡 即时诊断直接生成建议:', { adviceText, adviceClass, cpaGap });
+            
+            // 更新建议卡片
+            const kAdv = document.getElementById('kpiAdvice');
+            if (kAdv) {
+              kAdv.querySelector('.val').textContent = adviceText;
+              kAdv.classList.remove('good', 'warn', 'bad');
+              kAdv.classList.add(adviceClass);
+              console.log('🔄 即时诊断后更新建议:', { text: adviceText, class: adviceClass });
+            }
+          } else {
+            // 如果数据不完整，使用 updateAdviceFromKpis 作为后备
+            if (typeof updateAdviceFromKpis === 'function') {
+              const adviceResult = updateAdviceFromKpis();
+              if (adviceResult) {
+                const kAdv = document.getElementById('kpiAdvice');
+                if (kAdv) {
+                  kAdv.querySelector('.val').textContent = adviceResult.text;
+                  kAdv.classList.remove('good', 'warn', 'bad');
+                  kAdv.classList.add(adviceResult.class);
+                  console.log('🔄 即时诊断后备建议:', adviceResult);
+                }
               }
             }
           }
