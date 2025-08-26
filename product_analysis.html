@@ -1652,7 +1652,7 @@
                       <div class="kpi-band" style="margin-bottom: 12px;">
               <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—</div></div>
               <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本）</div><div class="val">—</div></div>
-              <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本）</div><div class="val">—</div></div>
+              <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—</div></div>
             </div>
 
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
@@ -4063,7 +4063,7 @@
           // 实际与临界值对比模块
           'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
-          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          'kpiCritAOV',          // AOV 临界（保本客单价）= 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
           'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
@@ -4088,7 +4088,7 @@
           // 实际与临界值对比模块
           'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
-          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          'kpiCritAOV',          // AOV 临界（保本客单价）= 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
           'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
@@ -4113,7 +4113,7 @@
           // 实际与临界值对比模块
           'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
-          'kpiCritAOV',          // AOV 临界（保本）
+          'kpiCritAOV',          // AOV 临界（保本客单价）
           // 安全性与建议模块
           'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
@@ -4134,7 +4134,7 @@
           // 实际与临界值对比模块
           'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
-          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          'kpiCritAOV',          // AOV 临界（保本客单价）= 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
           'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
@@ -4157,7 +4157,7 @@
           // 实际与临界值对比模块
           'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
           'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
-          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          'kpiCritAOV',          // AOV 临界（保本客单价）= 保本广告费/(CVR×保本ROI)
           // 安全性与建议模块
           'kpiSafety',           // 和最大CPC差值 = MaxCPC-实际CPC
           'kpiCvrCpcStatus',     // CVR-CPC 状态
@@ -6488,30 +6488,32 @@
         let aov = parseFloat(document.getElementById('decAOV').value);
         if (!isFinite(aov)) aov = product.singlePrice || NaN;
 
-        // 读取连带购买率并放大AOV
+        // 读取连带购买率
         const bundleRate = valPercent('decBundleRate'); // 10% -> 0.10
-        let aovWithBundle = aov * (1 + bundleRate);
-        console.log('📦 连带购买率:', bundleRate, '基础AOV:', aov, '放大后AOV:', aovWithBundle);
         
-        // 调试：验证连带购买率是否正确读取
-        const bundleRateRaw = document.getElementById('decBundleRate')?.value;
-        console.log('🔍 连带购买率调试:', {
-          原始输入值: bundleRateRaw,
-          转换后小数: bundleRate,
-          基础AOV: aov,
-          放大后AOV: aovWithBundle,
-          放大倍数: (1 + bundleRate)
-        });
-
-        // —— 口径对齐 ——
-        // 若选择"有效营收"口径，则把 AOV 折成"有效AOV = AOV × (1 - 退货率)"
+        // —— 两套 AOV 计算逻辑 ——
+        // 1. 结构口径 AOV：用于计算 BE-ROAS（不随连带率变化）
+        const aovStructural = (basis === 'effective' && isFinite(product.returnRate))
+          ? (aov * (1 - product.returnRate))
+          : aov;
+        
+        // 2. 连带放大后 AOV：用于计算 BE-CPA、Max CPC、ROAS 等（随连带率变化）
+        let aovWithBundle = aov * (1 + bundleRate);
         const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
           ? (aovWithBundle * (1 - product.returnRate))
           : aovWithBundle;
+        
+        console.log('📦 连带购买率:', bundleRate, '基础AOV:', aov, '放大后AOV:', aovWithBundle);
+        console.log('🔍 AOV 两套逻辑:', {
+          结构口径AOV: aovStructural, // 用于 BE-ROAS
+          连带放大AOV: usedAOV,       // 用于 BE-CPA/MaxCPC/ROAS
+          放大倍数: (1 + bundleRate)
+        });
 
         // 保本ROI不随连带率变化（只与成本结构相关）
         const beROAS = (basis==='effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
-        // 保本CPA应随AOV变动：BE-CPA = usedAOV / BE-ROAS
+        // 保本CPA应随连带率变化：BE-CPA = usedAOV / BE-ROAS
+        // 注意：这里 usedAOV 已经包含了连带购买率的放大效果
         const beCPA  = (isFinite(beROAS) && beROAS > 0 && isFinite(usedAOV)) ? (usedAOV / beROAS) : NaN;
 
         const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
@@ -7310,18 +7312,25 @@
         let aovIn = aovInput === '' ? NaN : parseFloat(aovInput);
         if (!isFinite(aovIn)) aovIn = product.singlePrice || NaN; // AOV留空用售价
         
-        // 读取连带购买率并放大AOV
+        // 读取连带购买率
         const bundleRate = valPercent('decBundleRate'); // 10% -> 0.10
-        let aovWithBundle = aovIn * (1 + bundleRate);
-        console.log('📦 即时诊断连带购买率:', bundleRate, '基础AOV:', aovIn, '放大后AOV:', aovWithBundle);
         
-        // 调试：验证连带购买率是否正确读取
-        const bundleRateRaw = document.getElementById('decBundleRate')?.value;
-        console.log('🔍 即时诊断连带购买率调试:', {
-          原始输入值: bundleRateRaw,
-          转换后小数: bundleRate,
-          基础AOV: aovIn,
-          放大后AOV: aovWithBundle,
+        // —— 两套 AOV 计算逻辑（即时诊断）——
+        // 1. 结构口径 AOV：用于计算 BE-ROAS（不随连带率变化）
+        const aovStructural = (basis === 'effective' && isFinite(product.returnRate))
+          ? (aovIn * (1 - product.returnRate))
+          : aovIn;
+        
+        // 2. 连带放大后 AOV：用于计算 BE-CPA、Max CPC、ROAS 等（随连带率变化）
+        let aovWithBundle = aovIn * (1 + bundleRate);
+        const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
+          ? (aovWithBundle * (1 - product.returnRate))
+          : aovWithBundle;
+        
+        console.log('📦 即时诊断连带购买率:', bundleRate, '基础AOV:', aovIn, '放大后AOV:', aovWithBundle);
+        console.log('🔍 即时诊断AOV两套逻辑:', {
+          结构口径AOV: aovStructural, // 用于 BE-ROAS
+          连带放大AOV: usedAOV,       // 用于 BE-CPA/MaxCPC/ROAS
           放大倍数: (1 + bundleRate)
         });
         
