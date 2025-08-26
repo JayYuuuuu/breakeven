@@ -1635,7 +1635,8 @@
           <div class="decision-actions">
             <button class="btn" id="decCalcBtn" onclick="console.log('🔘 按钮被点击了'); window.calculateDecisionBar();">计算投放阈值</button>
             <button class="btn primary" style="margin-left: 8px;" onclick="window.calculateInstantDiagnosis()">即时诊断</button>
-            <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
+                          <span class="tiny-hint" style="color: #007aff; font-weight: 600; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #007aff;">（AOV 可手动假设，模拟不同客单价场景）</span>
+              <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
           </div>
           <!-- A. 决策链路（上半部分） -->
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🎯 核心保本阈值</h5>
@@ -1646,12 +1647,11 @@
           </div>
 
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📐 实际与临界值对比</h5>
-          <div class="kpi-band" style="margin-bottom: 12px;">
-            <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS（广告支出回报率）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiCritCPC"><div class="label">CPC 临界（保本）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本）</div><div class="val">—</div></div>
-            <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本）</div><div class="val">—</div></div>
-          </div>
+                      <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—</div></div>
+              <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本）</div><div class="val">—</div></div>
+              <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本）</div><div class="val">—</div></div>
+            </div>
 
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
           <div class="kpi-band" style="margin-bottom: 12px;">
@@ -1664,8 +1664,9 @@
 
           <!-- B. 即时诊断（下半部分） -->
           <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
-            <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🔍 即时诊断</h5>
-            <span class="tiny-hint">基于 CPC/CVR/客单价 的"成本–效率–收益"链路分析</span>
+                          <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🔍 即时诊断</h5>
+              <span class="tiny-hint">基于 CPC/CVR/客单价 的"成本–效率–收益"链路分析</span>
+              <span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ff6b35;">（基于商品当前售价计算，不受 AOV 输入影响）</span>
             
             <!-- 第一行：成本相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
@@ -4001,6 +4002,293 @@
       }
     }
     
+    /**
+     * 指标影响关系映射
+     * 定义每个输入指标会影响哪些KPI卡片（扩展到所有三个模块）
+     */
+    const INDICATOR_IMPACT_MAP = {
+      'decCVR': {
+        // CVR（转化率）影响的指标
+        affectedKpis: [
+          // 核心保本阈值模块
+          'kpiMaxCPC',           // Max CPC = 保本广告费 × CVR
+          // 实际与临界值对比模块
+          'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
+          'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
+          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          // 安全性与建议模块
+          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
+          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiCvrCpcStatus',     // CVR-CPC 状态
+          'kpiAdvice',           // 建议（基于安全边际）
+          // 即时诊断模块
+          'actualCPA',           // CPA = CPC/CVR
+          'actualAdRateEff',     // 广告占比（有效）
+          'actualAdRateGMV',     // 广告占比（GMV）
+          'rpcEffective',        // 每点击收益（有效）
+          'rpcGMV',              // 每点击收益（GMV）
+          'cpaGap',              // 与保本CPA的差
+          'safetyMargin'         // ROI相比保本的差值
+        ],
+        color: '#007aff',        // 蓝色
+        description: '转化率影响保本阈值、实际表现、安全边际和ROI'
+      },
+      'decCPC': {
+        // CPC（点击单价）影响的指标
+        affectedKpis: [
+          // 核心保本阈值模块
+          'kpiMaxCPC',           // Max CPC（不亏临界）
+          // 实际与临界值对比模块
+          'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
+          'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
+          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          // 安全性与建议模块
+          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
+          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiCvrCpcStatus',     // CVR-CPC 状态
+          'kpiAdvice',           // 建议（基于安全边际）
+          // 即时诊断模块
+          'actualCPA',           // CPA = CPC/CVR
+          'actualAdRateEff',     // 广告占比（有效）
+          'actualAdRateGMV',     // 广告占比（GMV）
+          'cpaGap',              // 与保本CPA的差
+          'safetyMargin'         // ROI相比保本的差值
+        ],
+        color: '#ff9500',        // 橙色
+        description: '点击单价影响保本阈值、实际表现、安全边际和广告占比'
+      },
+      'decAOV': {
+        // AOV（客单价）影响的指标
+        affectedKpis: [
+          // 核心保本阈值模块
+          'kpiBEROAS',           // BE-ROAS = AOV/保本广告费
+          'kpiBECPA',            // BE-CPA = AOV/保本ROI
+          'kpiMaxCPC',           // Max CPC = 保本广告费 × CVR
+          // 实际与临界值对比模块
+          'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
+          'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
+          'kpiCritAOV',          // AOV 临界（保本）
+          // 安全性与建议模块
+          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
+          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiCvrCpcStatus',     // CVR-CPC 状态
+          'kpiAdvice',           // 建议（基于安全边际）
+          // 即时诊断模块
+          'rpcEffective',        // 每点击收益（有效）
+          'rpcGMV',              // 每点击收益（GMV）
+          'safetyMargin'         // ROI相比保本的差值
+        ],
+        color: '#34c759',        // 绿色
+        description: '客单价影响保本阈值、实际表现、安全边际和收益'
+      },
+      'decCPM': {
+        // CPM（千次曝光成本）影响的指标（通过CTR转换为CPC）
+        affectedKpis: [
+          // 核心保本阈值模块
+          'kpiMaxCPC',           // Max CPC（不亏临界）
+          // 实际与临界值对比模块
+          'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
+          'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
+          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          // 安全性与建议模块
+          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
+          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiCvrCpcStatus',     // CVR-CPC 状态
+          'kpiAdvice',           // 建议（基于安全边际）
+          // 即时诊断模块
+          'actualCPA',           // CPA = CPC/CVR
+          'actualAdRateEff',     // 广告占比（有效）
+          'actualAdRateGMV',     // 广告占比（GMV）
+          'cpaGap',              // 与保本CPA的差
+          'safetyMargin'         // ROI相比保本的差值
+        ],
+        color: '#ff9500',        // 橙色（与CPC相同）
+        description: 'CPM通过CTR影响等效CPC，进而影响相关指标'
+      },
+      'decCTR': {
+        // CTR（点击率）影响的指标（通过CPM转换为CPC）
+        affectedKpis: [
+          // 核心保本阈值模块
+          'kpiMaxCPC',           // Max CPC（不亏临界）
+          // 实际与临界值对比模块
+          'kpiActROAS',          // 当前预估 ROAS = (CVR×AOV)/CPC
+          'kpiCritCVR',          // CVR 临界 = CPC/保本广告费
+          'kpiCritAOV',          // AOV 临界 = 保本广告费/(CVR×保本ROI)
+          // 安全性与建议模块
+          'kpiSafety',           // 安全边际 = MaxCPC-实际CPC
+          'kpiCvrCpcMargin',     // CVR-CPC 安全边际
+          'kpiCvrCpcStatus',     // CVR-CPC 状态
+          'kpiAdvice',           // 建议（基于安全边际）
+          // 即时诊断模块
+          'actualCPA',           // CPA = CPC/CVR
+          'actualAdRateEff',     // 广告占比（有效）
+          'actualAdRateGMV',     // 广告占比（GMV）
+          'cpaGap',              // 与保本CPA的差
+          'safetyMargin'         // ROI相比保本的差值
+        ],
+        color: '#ff9500',        // 橙色（与CPC相同）
+        description: 'CTR通过CPM影响等效CPC，进而影响相关指标'
+      }
+    };
+
+    /**
+     * 高亮显示受指定指标影响的KPI卡片
+     * @param {string} indicatorId - 指标输入框的ID
+     */
+    function highlightAffectedKpis(indicatorId) {
+      const impact = INDICATOR_IMPACT_MAP[indicatorId];
+      if (!impact) return;
+      
+      // 高亮受影响的KPI卡片（整个卡片边框变色）
+      impact.affectedKpis.forEach(kpiId => {
+        const kpiElement = document.getElementById(kpiId);
+        if (kpiElement) {
+          // 找到包含该数值的整个KPI卡片
+          const kpiCard = kpiElement.closest('.kpi');
+          if (kpiCard) {
+            // 为整个卡片添加高亮样式
+            kpiCard.style.border = `3px solid ${impact.color}`;
+            kpiCard.style.boxShadow = `0 0 12px ${impact.color}60`;
+            kpiCard.style.transform = 'scale(1.02)';
+            kpiCard.style.transition = 'all 0.3s ease';
+            kpiCard.style.zIndex = '10';
+          }
+        }
+      });
+      
+      // 显示影响说明
+      showImpactDescription(indicatorId, impact);
+      
+      console.log(`🎯 高亮显示受 ${indicatorId} 影响的指标:`, impact.affectedKpis);
+    }
+
+    /**
+     * 清除所有高亮效果
+     */
+    function clearAllHighlights() {
+      // 所有可能被高亮的KPI元素（包括所有三个模块）
+      const allKpis = [
+        // 核心保本阈值模块
+        'kpiBEROAS', 'kpiBECPA', 'kpiMaxCPC',
+        // 实际与临界值对比模块
+        'kpiActROAS', 'kpiCritCVR', 'kpiCritAOV',
+        // 安全性与建议模块
+        'kpiSafety', 'kpiCvrCpcMargin', 'kpiCvrCpcStatus', 'kpiAdvice',
+        // 即时诊断模块
+        'actualCPA', 'actualAdRateEff', 'actualAdRateGMV', 'rpcEffective', 
+        'rpcGMV', 'cpaGap', 'safetyMargin'
+      ];
+      
+      allKpis.forEach(kpiId => {
+        const kpiElement = document.getElementById(kpiId);
+        if (kpiElement) {
+          // 找到包含该数值的整个KPI卡片
+          const kpiCard = kpiElement.closest('.kpi');
+          if (kpiCard) {
+            // 恢复整个卡片的样式属性
+            kpiCard.style.border = '';
+            kpiCard.style.boxShadow = '';
+            kpiCard.style.transform = '';
+            kpiCard.style.zIndex = '';
+          }
+        }
+      });
+      
+      // 隐藏影响说明
+      hideImpactDescription();
+    }
+
+    /**
+     * 显示指标影响说明
+     * @param {string} indicatorId - 指标ID
+     * @param {Object} impact - 影响信息
+     */
+    function showImpactDescription(indicatorId, impact) {
+      let indicatorName = '';
+      switch(indicatorId) {
+        case 'decCVR': indicatorName = '转化率 (CVR)'; break;
+        case 'decCPC': indicatorName = '点击单价 (CPC)'; break;
+        case 'decAOV': indicatorName = '客单价 (AOV)'; break;
+        case 'decCPM': indicatorName = '千次曝光成本 (CPM)'; break;
+        case 'decCTR': indicatorName = '点击率 (CTR)'; break;
+        default: indicatorName = indicatorId;
+      }
+      
+      // 创建或更新影响说明
+      let impactTip = document.getElementById('impactTip');
+      if (!impactTip) {
+        impactTip = document.createElement('div');
+        impactTip.id = 'impactTip';
+        impactTip.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: ${impact.color};
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 1000;
+          max-width: 300px;
+          line-height: 1.4;
+        `;
+        document.body.appendChild(impactTip);
+      }
+      
+      impactTip.innerHTML = `
+        <div style="margin-bottom: 8px; font-weight: 600;">🎯 ${indicatorName}</div>
+        <div>${impact.description}</div>
+        <div style="margin-top: 8px; font-size: 12px; opacity: 0.9;">
+          受影响的指标已用 <span style="color: ${impact.color}; font-weight: 600;">${impact.color}</span> 边框高亮
+        </div>
+      `;
+      impactTip.style.display = 'block';
+    }
+
+    /**
+     * 隐藏指标影响说明
+     */
+    function hideImpactDescription() {
+      const impactTip = document.getElementById('impactTip');
+      if (impactTip) {
+        impactTip.style.display = 'none';
+      }
+    }
+
+    /**
+     * 为指标输入框添加影响高亮功能
+     */
+    function setupIndicatorImpactHighlighting() {
+      const indicators = ['decCVR', 'decCPC', 'decAOV', 'decCPM', 'decCTR'];
+      
+      indicators.forEach(indicatorId => {
+        const element = document.getElementById(indicatorId);
+        if (element) {
+          // 鼠标悬停时高亮
+          element.addEventListener('mouseenter', () => {
+            highlightAffectedKpis(indicatorId);
+          });
+          
+          // 鼠标移开时清除高亮
+          element.addEventListener('mouseleave', () => {
+            clearAllHighlights();
+          });
+          
+          // 鼠标悬停时显示提示
+          element.addEventListener('mouseenter', () => {
+            const impact = INDICATOR_IMPACT_MAP[indicatorId];
+            if (impact) {
+              element.title = `悬停查看 ${impact.description}`;
+            }
+          });
+        }
+      });
+      
+      console.log('🎯 指标影响高亮功能已启用（鼠标悬停触发）');
+    }
+
     /**
      * 基于KPI结果自动生成分级建议
      * 读取CVR-CPC状态和安全边际，给出智能建议
@@ -7572,6 +7860,13 @@
           }
         }
       }, 1000);
+      
+      // 初始化指标影响高亮功能（延迟执行确保DOM完全渲染）
+      setTimeout(() => {
+        if (typeof setupIndicatorImpactHighlighting === 'function') {
+          setupIndicatorImpactHighlighting();
+        }
+      }, 1500);
     });
 
     </script>
