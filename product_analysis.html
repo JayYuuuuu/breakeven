@@ -1205,7 +1205,7 @@
       padding:10px 12px;
     }
     .kpi .label { font-size:12px; color:#6e6e73; }
-    .kpi .val { font-size:18px; font-weight:700; margin-top:4px; }
+    .kpi .val { font-size:16px; font-weight:700; margin-top:4px; }
     .kpi.good .val { color:#34c759; }
     .kpi.warn .val { color:#ff9f0a; }
     .kpi.bad  .val { color:#ff3b30; }
@@ -1638,6 +1638,7 @@
                           <span class="tiny-hint" style="color: #007aff; font-weight: 600; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #007aff;">（AOV 可手动假设，模拟不同客单价场景）</span>
               <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
               <span class="tiny-hint">连带购买率用于放大 AOV：AOV′ = AOV × (1 + 连带率)</span>
+        <br><span class="tiny-hint">连带购买率会放大 AOV，从而影响 BE-CPA、Max CPC、ROAS 等指标</span>
           </div>
           <!-- A. 决策链路（上半部分） -->
           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🎯 核心保本阈值</h5>
@@ -1687,6 +1688,13 @@
               <div class="kpi"><div class="label">每点击收益</div><div class="val" id="rpcPerClick">—</div></div>
               <div class="kpi"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
               <div class="kpi"><div class="label">状态</div><div class="val" id="statusIndicator">—</div></div>
+            </div>
+            <!-- 第四行：计算说明 -->
+            <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi" style="grid-column: 1 / -1; text-align: center;">
+                <div class="label" style="font-size: 12px; color: #666;">计算说明</div>
+                <div class="val" style="font-size: 11px; color: #888;">诊断中广告占比仍按售价口径，不随连带率放大</div>
+              </div>
             </div>
             <!-- 优化建议与敏感度分析 -->
             <div id="optimizationSuggestions" style="margin-top: 16px;">
@@ -6501,8 +6509,10 @@
           ? (aovWithBundle * (1 - product.returnRate))
           : aovWithBundle;
 
+        // 保本ROI不随连带率变化（只与成本结构相关）
         const beROAS = (basis==='effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
-        const beCPA  = be.adCostBreakEven;
+        // 保本CPA应随AOV变动：BE-CPA = usedAOV / BE-ROAS
+        const beCPA  = (isFinite(beROAS) && beROAS > 0 && isFinite(usedAOV)) ? (usedAOV / beROAS) : NaN;
 
         const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
         const actROAS = (isFinite(cvr) && isFinite(usedAOV) && isFinite(cpc) && cpc>0) ? (cvr*usedAOV)/cpc : NaN;
@@ -7325,9 +7335,12 @@
         const S = product.singlePrice; // 售价
         const rEff = 1 - r; // 有效率
         const Rev = S * rEff; // 有效营收
-        const ROI_be_eff = be.ROI_BE_effective; // 保本ROI（有效）
-        const ROI_be_gmv = be.ROI_BE_gmv; // 保本ROI（GMV）
-        const adCostBreakEven = be.adCostBreakEven; // 保本广告费
+        const ROI_be_eff = be.ROI_BE_effective; // 保本ROI（有效）——不随连带率变化
+        const ROI_be_gmv = be.ROI_BE_gmv; // 保本ROI（GMV）——不随连带率变化
+        // 保本广告费需随AOV放大而变化：BE-CPA = AOV' / ROI_BE（按口径）
+        const adCostBreakEven = (basis === 'effective')
+          ? ((isFinite(ROI_be_eff) && ROI_be_eff>0) ? (aovWithBundle * rEff) / ROI_be_eff : NaN)
+          : ((isFinite(ROI_be_gmv) && ROI_be_gmv>0) ? (aovWithBundle) / ROI_be_gmv : NaN);
         
         // 5) 计算实际投放指标
         const CPA = cpcIn / cvrIn; // 每单广告成本（CPC/CVR）
@@ -7726,11 +7739,18 @@
         decCPCEl.addEventListener('change', markEdited);
       }
       
-      // 监听连带购买率改变：当用户改变连带购买率时，自动触发计算
+      // 监听连带购买率改变：当用户改变连带购买率时，自动触发计算与即时诊断刷新
       const decBundleRateEl = document.getElementById('decBundleRate');
       if (decBundleRateEl) {
-        decBundleRateEl.addEventListener('input', debouncedDecisionCalc);
-        decBundleRateEl.addEventListener('change', debouncedDecisionCalc);
+        const onBundleRateChange = () => {
+          debouncedDecisionCalc();
+          const instantDiagnosisEl = document.getElementById('instantDiagnosisResult');
+          if (instantDiagnosisEl && instantDiagnosisEl.style.display !== 'none') {
+            window.calculateInstantDiagnosis();
+          }
+        };
+        decBundleRateEl.addEventListener('input', onBundleRateChange);
+        decBundleRateEl.addEventListener('change', onBundleRateChange);
       }
     }
 
