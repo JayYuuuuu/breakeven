@@ -469,23 +469,23 @@
         display: none;
       }
       
-      /* 默认隐藏保本广告(GMV)列 - 使用语义化类名 */
-      .products-table th.col-ad-gmv,
-      .products-table td.col-ad-gmv {
+      /* 默认隐藏保本广告(GMV)列 - 使用nth-child精确定位，避免列索引错乱 */
+      .products-table th:nth-child(15),
+      .products-table td:nth-child(15) {
         display: none;
       }
       
-      /* 默认隐藏保本ROI(GMV)列 - 使用语义化类名 */
-      .products-table th.col-roi-gmv,
-      .products-table td.col-roi-gmv {
+      /* 默认隐藏保本ROI(GMV)列 - 使用nth-child精确定位，避免列索引错乱 */
+      .products-table th:nth-child(17),
+      .products-table td:nth-child(17) {
         display: none;
       }
       
       /* 小屏幕下，当用户手动显示GMV列时，覆盖默认隐藏 */
-      .products-table.gmv-visible th.col-ad-gmv,
-      .products-table.gmv-visible td.col-ad-gmv,
-      .products-table.gmv-visible th.col-roi-gmv,
-      .products-table.gmv-visible td.col-roi-gmv {
+      .products-table.gmv-visible th:nth-child(15),
+      .products-table.gmv-visible td:nth-child(15),
+      .products-table.gmv-visible th:nth-child(17),
+      .products-table.gmv-visible td:nth-child(17) {
         display: table-cell;
       }
       
@@ -497,10 +497,10 @@
     }
     
     /* 大屏幕下，用户手动隐藏GMV列时的样式 */
-    .products-table.gmv-hidden th.col-ad-gmv,
-    .products-table.gmv-hidden td.col-ad-gmv,
-    .products-table.gmv-hidden th.col-roi-gmv,
-    .products-table.gmv-hidden td.col-roi-gmv {
+    .products-table.gmv-hidden th:nth-child(15),
+    .products-table.gmv-hidden td:nth-child(15),
+    .products-table.gmv-hidden th:nth-child(17),
+    .products-table.gmv-hidden td:nth-child(17) {
       display: none;
     }
     
@@ -4738,15 +4738,15 @@
       }
     }
     
-    // 根据列名获取对应的数值单元格（添加佣金率列后索引+1）
+    // 根据列名获取对应的数值单元格（修正列索引，确保与表格结构一致）
     function getValueCellByColumn(row, columnName) {
       const columnMap = {
-        'grossMarginRate': 11,      // 毛利率列
-        'adCostBreakEven': 12,      // 保本广告费列
-        'adRateBE_effective': 13,   // 保本广告(有效)列
-        'adRateBE_gmv': 14,         // 保本广告(GMV)列
-        'ROI_BE_effective': 15,     // 保本ROI(有效)列
-        'ROI_BE_gmv': 16            // 保本ROI(GMV)列
+        'grossMarginRate': 12,      // 毛利率列
+        'adCostBreakEven': 13,      // 保本广告费列
+        'adRateBE_effective': 14,   // 保本广告(有效)列
+        'adRateBE_gmv': 15,         // 保本广告(GMV)列
+        'ROI_BE_effective': 16,     // 保本ROI(有效)列
+        'ROI_BE_gmv': 17            // 保本ROI(GMV)列
       };
       
       const columnIndex = columnMap[columnName];
@@ -4897,21 +4897,22 @@
             return null;
         }
       } else if (result.tierAnalysis.length > 0) {
-        // 多档价格模式 - 使用第一档的值进行排序
-        const firstTier = result.tierAnalysis[0];
+        // 多档价格模式 - 使用平均档位的值进行排序，更公平
+        const avgTierFinal = calculateAverageTier(result.tierAnalysis);
+        
         switch (column) {
           case 'grossMarginRate':
-            return firstTier.grossMarginRate * 100;
+            return avgTierFinal.grossMarginRate * 100;
           case 'adCostBreakEven':
-            return firstTier.adCostBreakEven;
+            return avgTierFinal.adCostBreakEven;
           case 'adRateBE_effective':
-            return firstTier.adRateBE_effective * 100;
+            return avgTierFinal.adRateBE_effective * 100;
           case 'adRateBE_gmv':
-            return firstTier.adRateBE_gmv * 100;
+            return avgTierFinal.adRateBE_gmv * 100;
           case 'ROI_BE_effective':
-            return firstTier.ROI_BE_effective;
+            return avgTierFinal.ROI_BE_effective;
           case 'ROI_BE_gmv':
-            return firstTier.ROI_BE_gmv;
+            return avgTierFinal.ROI_BE_gmv;
           default:
             return null;
         }
@@ -4937,6 +4938,47 @@
         default:
           return null;
       }
+    }
+    
+    // 计算多档价格的平均档位数据，避免代码重复
+    function calculateAverageTier(tierAnalysis) {
+      if (!tierAnalysis || tierAnalysis.length === 0) {
+        return null;
+      }
+      
+      const avgTier = tierAnalysis.reduce((acc, tier, index) => {
+        // 计算所有档位的平均值
+        if (index === 0) {
+          return {
+            grossMarginRate: tier.grossMarginRate,
+            adCostBreakEven: tier.adCostBreakEven,
+            adRateBE_effective: tier.adRateBE_effective,
+            adRateBE_gmv: tier.adRateBE_gmv,
+            ROI_BE_effective: tier.ROI_BE_effective,
+            ROI_BE_gmv: tier.ROI_BE_gmv
+          };
+        } else {
+          return {
+            grossMarginRate: acc.grossMarginRate + tier.grossMarginRate,
+            adCostBreakEven: acc.adCostBreakEven + tier.adCostBreakEven,
+            adRateBE_effective: acc.adRateBE_effective + tier.adRateBE_effective,
+            adRateBE_gmv: acc.adRateBE_gmv + tier.adRateBE_gmv,
+            ROI_BE_effective: acc.ROI_BE_effective + tier.ROI_BE_effective,
+            ROI_BE_gmv: acc.ROI_BE_gmv + tier.ROI_BE_gmv
+          };
+        }
+      });
+      
+      // 计算平均值
+      const tierCount = tierAnalysis.length;
+      return {
+        grossMarginRate: avgTier.grossMarginRate / tierCount,
+        adCostBreakEven: avgTier.adCostBreakEven / tierCount,
+        adRateBE_effective: avgTier.adRateBE_effective / tierCount,
+        adRateBE_gmv: avgTier.adRateBE_gmv / tierCount,
+        ROI_BE_effective: avgTier.ROI_BE_effective / tierCount,
+        ROI_BE_gmv: avgTier.ROI_BE_gmv / tierCount
+      };
     }
     
     // 切换排序方向
@@ -5139,17 +5181,18 @@
               roisEffective.push(result.singleAnalysis.ROI_BE_effective);
             }
           } else if (result.tierAnalysis.length > 0) {
-            // 多档价格模式 - 使用第一档的数据
-            const firstTier = result.tierAnalysis[0];
-            if (isFinite(firstTier.grossMarginRate)) {
-              grossMarginRates.push(firstTier.grossMarginRate * 100); // 转换为百分比
-            }
-            if (isFinite(firstTier.adRateBE_effective)) {
-              adRatesEffective.push(firstTier.adRateBE_effective * 100); // 转换为百分比
-            }
-            if (isFinite(firstTier.ROI_BE_effective)) {
-              roisEffective.push(firstTier.ROI_BE_effective);
-            }
+            // 多档价格模式 - 将所有档位的数据都加入统计
+            result.tierAnalysis.forEach(tier => {
+              if (isFinite(tier.grossMarginRate)) {
+                grossMarginRates.push(tier.grossMarginRate * 100); // 转换为百分比
+              }
+              if (isFinite(tier.adRateBE_effective)) {
+                adRatesEffective.push(tier.adRateBE_effective * 100); // 转换为百分比
+              }
+              if (isFinite(tier.ROI_BE_effective)) {
+                roisEffective.push(tier.ROI_BE_effective);
+              }
+            });
           }
         }
       });
@@ -5223,14 +5266,27 @@
             rowData['保本ROI(有效)'] = result.singleAnalysis.ROI_BE_effective.toFixed(2);
             rowData['保本ROI(GMV)'] = result.singleAnalysis.ROI_BE_gmv.toFixed(2);
           } else if (result.tierAnalysis.length > 0) {
-            // 多档价格模式，导出第一档的结果
-            const firstTier = result.tierAnalysis[0];
-            rowData['毛利率(%)'] = (firstTier.grossMarginRate * 100).toFixed(2);
-            rowData['保本广告费'] = firstTier.adCostBreakEven.toFixed(2);
-            rowData['保本广告(有效)(%)'] = (firstTier.adRateBE_effective * 100).toFixed(2);
-            rowData['保本广告(GMV)(%)'] = (firstTier.adRateBE_gmv * 100).toFixed(2);
-            rowData['保本ROI(有效)'] = firstTier.ROI_BE_effective.toFixed(2);
-            rowData['保本ROI(GMV)'] = firstTier.ROI_BE_gmv.toFixed(2);
+            // 多档价格模式，为每一档都创建一行数据
+            result.tierAnalysis.forEach((tier, tierIndex) => {
+              const tierRowData = {
+                '商品名称': result.name,
+                '货号': result.sku,
+                '平台': result.platform,
+                '主推款': result.isMain ? '是' : '否',
+                '退货率(%)': (result.returnRate * 100).toFixed(2),
+                '档位': `档位${tierIndex + 1}`,
+                '售价': tier.price.toFixed(2),
+                '进货价': tier.cost.toFixed(2),
+                '毛利率(%)': (tier.grossMarginRate * 100).toFixed(2),
+                '保本广告费': tier.adCostBreakEven.toFixed(2),
+                '保本广告(有效)(%)': (tier.adRateBE_effective * 100).toFixed(2),
+                '保本广告(GMV)(%)': (tier.adRateBE_gmv * 100).toFixed(2),
+                '保本ROI(有效)': tier.ROI_BE_effective.toFixed(2),
+                '保本ROI(GMV)': tier.ROI_BE_gmv.toFixed(2)
+              };
+              filteredData.push(tierRowData);
+            });
+            return; // 已经处理了多档价格，不需要再添加单一数据
           }
           
           filteredData.push(rowData);
@@ -5252,7 +5308,9 @@
         link.download = `筛选结果_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
         
-        showMessage(`已导出 ${filteredData.length} 行筛选结果`, 'success');
+        // 计算实际导出的行数（包括多档价格的每一档）
+        const actualRowCount = filteredData.length;
+        showMessage(`已导出 ${actualRowCount} 行筛选结果`, 'success');
       }
     }
 
