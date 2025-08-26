@@ -550,8 +550,13 @@
     /* 商品表格样式 */
     .products-table-container {
       overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px); /* 充分利用屏幕高度，减去头部和其他元素的高度 */
       border-radius: 8px;
       border: 1px solid #e5e5ea;
+      position: relative;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch; /* 为iOS设备提供平滑滚动 */
     }
     
     .products-table {
@@ -559,6 +564,22 @@
       border-collapse: collapse;
       background: white;
       font-size: 13px;
+      position: relative;
+      border-spacing: 0;
+    }
+    
+    .products-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #f8f8f8;
+    }
+    
+    /* 确保表头行也有正确的定位 */
+    .products-table thead tr {
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     
     .products-table th {
@@ -569,15 +590,39 @@
       color: var(--ink);
       border-bottom: 1px solid #e5e5ea;
       white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      background: rgba(248, 248, 248, 0.95);
+    }
+    
+    /* 响应式表格高度设置 */
+    @media (max-width: 768px) {
+      .products-table-container {
+        max-height: calc(100vh - 150px); /* 小屏幕下减少头部高度 */
+      }
+    }
+    
+    @media (min-width: 1200px) {
+      .products-table-container {
+        max-height: calc(100vh - 180px); /* 大屏幕下适当调整 */
+      }
     }
     
     .products-table td {
       padding: 8px;
       border-bottom: 1px solid #f0f0f0;
       vertical-align: top;
+      background: white;
     }
     
     .products-table tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .products-table tr:hover td {
       background-color: #f8f9fa;
     }
     
@@ -588,6 +633,20 @@
     .products-table tr.main-product td:first-child::before {
       content: "⭐ ";
       color: #ff9f0a;
+    }
+    
+    /* 表格滚动时的视觉优化 */
+    .products-table tbody {
+      background: white;
+    }
+    
+    /* 确保表格行在滚动时有正确的背景 */
+    .products-table tbody tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+    
+    .products-table tbody tr:nth-child(even):hover {
+      background-color: #f8f9fa;
     }
     
     /* 表格输入框样式 */
