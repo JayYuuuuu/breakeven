@@ -4105,23 +4105,33 @@
             if (valueFilterColumn && result) {
               let shouldShowThisRow = false;
               
-              // 检查是否为NaN数据筛选
-              const isNaNFilter = valueFilterMin === 'NaN' || valueFilterMax === 'NaN';
+              // 检查是否为NaN数据筛选（使用特殊值 -999999 标记）
+              const isNaNFilter = valueFilterMin === '-999999' || valueFilterMax === '-999999';
               
               if (isNaNFilter) {
-                // NaN数据筛选逻辑
+                // NaN数据筛选逻辑 - 检查所有相关列是否有NaN值
+                const allColumns = ['grossMarginRate', 'adCostBreakEven', 'adRateBE_effective', 'adRateBE_gmv', 'ROI_BE_effective', 'ROI_BE_gmv'];
+                
                 if (result.singleAnalysis) {
-                  // 单一价格模式
-                  const value = getValueFromResult(result, valueFilterColumn);
-                  shouldShowThisRow = value === null || isNaN(value);
-                } else if (result.tierAnalysis.length > 0) {
-                  // 多档价格模式 - 检查任意一档是否为NaN
-                  for (let i = 0; i < result.tierAnalysis.length; i++) {
-                    const value = getValueFromResult(result, valueFilterColumn);
+                  // 单一价格模式 - 检查所有列
+                  for (const col of allColumns) {
+                    const value = getValueFromResult(result, col);
                     if (value === null || isNaN(value)) {
                       shouldShowThisRow = true;
-                      break; // 只要有一档是NaN就可以
+                      break; // 只要有一列是NaN就可以
                     }
+                  }
+                } else if (result.tierAnalysis.length > 0) {
+                  // 多档价格模式 - 检查所有档位的所有列
+                  for (let i = 0; i < result.tierAnalysis.length; i++) {
+                    for (const col of allColumns) {
+                      const value = getValueFromTier(result.tierAnalysis[i], col);
+                      if (value === null || isNaN(value)) {
+                        shouldShowThisRow = true;
+                        break; // 只要有一档的任意一列是NaN就可以
+                      }
+                    }
+                    if (shouldShowThisRow) break; // 已经找到NaN，不需要继续检查
                   }
                 }
               } else if (isFinite(valueFilterMin) || isFinite(valueFilterMax)) {
@@ -4215,23 +4225,35 @@
         const valueCell = getValueCellByColumn(row, valueFilterColumn);
         if (!valueCell) return;
         
-        // 检查是否为NaN数据筛选
-        const isNaNFilter = valueFilterMin === 'NaN' || valueFilterMax === 'NaN';
+        // 检查是否为NaN数据筛选（使用特殊值 -999999 标记）
+        const isNaNFilter = valueFilterMin === '-999999' || valueFilterMax === '-999999';
         
         if (isNaNFilter) {
-          // NaN数据筛选 - 高亮NaN值
+          // NaN数据筛选 - 高亮所有包含NaN值的列
+          const allColumns = ['grossMarginRate', 'adCostBreakEven', 'adRateBE_effective', 'adRateBE_gmv', 'ROI_BE_effective', 'ROI_BE_gmv'];
+          
           if (result.singleAnalysis) {
-            const value = getValueFromResult(result, valueFilterColumn);
-            if (value === null || isNaN(value)) {
-              valueCell.classList.add('highlight-match');
+            // 单一价格模式 - 高亮所有NaN列
+            for (const col of allColumns) {
+              const value = getValueFromResult(result, col);
+              if (value === null || isNaN(value)) {
+                const cell = getValueCellByColumn(row, col);
+                if (cell) {
+                  cell.classList.add('highlight-match');
+                }
+              }
             }
           } else if (result.tierAnalysis.length > 0) {
-            // 多档价格模式 - 检查任意一档是否为NaN
+            // 多档价格模式 - 高亮所有档位中所有NaN列
             for (let i = 0; i < result.tierAnalysis.length; i++) {
-              const value = getValueFromResult(result, valueFilterColumn);
-              if (value === null || isNaN(value)) {
-                valueCell.classList.add('highlight-match');
-                break;
+              for (const col of allColumns) {
+                const value = getValueFromTier(result.tierAnalysis[i], col);
+                if (value === null || isNaN(value)) {
+                  const cell = getValueCellByColumn(row, col);
+                  if (cell) {
+                    cell.classList.add('highlight-match');
+                  }
+                }
               }
             }
           }
@@ -5665,10 +5687,11 @@
         case 'nanData':
           if (value === 'show') {
             // 对于NaN数据，我们需要特殊处理，因为NaN无法直接比较
-            // 这里我们设置一个特殊的标记，在筛选逻辑中处理
-            document.getElementById('valueFilterColumn').value = 'adRateBE_effective';
-            document.getElementById('valueFilterMin').value = 'NaN';
-            document.getElementById('valueFilterMax').value = 'NaN';
+            // 使用特殊数值 -999999 来标记NaN筛选，在筛选逻辑中识别
+            // 选择ROI_BE_effective列，因为从图片看NaN值主要出现在ROI相关列
+            document.getElementById('valueFilterColumn').value = 'ROI_BE_effective';
+            document.getElementById('valueFilterMin').value = '-999999';
+            document.getElementById('valueFilterMax').value = '-999999';
           }
           break;
       }
