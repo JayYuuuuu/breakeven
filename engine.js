@@ -828,7 +828,7 @@ export function getPlatformRate(platform) {
     '小红书': 0.05  // 小红书佣金5%（默认）
   };
   
-  return platformRates[platform] || 0.05; // 默认5%
+  return platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
 }
 
 /** ===== CVR–CPC 保本边界分析工具 (基于有效营收口径) =====
@@ -847,7 +847,7 @@ export function getPlatformRate(platform) {
  */
 
 /** 百分比友好转换：0.12 或 12 输入都转成 0.12 */
-function _toDecimalMaybe(x){
+export function _toDecimalMaybe(x){
   if (!Number.isFinite(x)) return 0;
   return x > 1 ? x / 100 : x;
 }

@@ -1466,6 +1466,7 @@
                 <th>商品名称</th>
                 <th>货号</th>
                 <th>平台</th>
+                <th>佣金率</th>
                 <th>主推款</th>
                 <th>含税售价P</th>
                 <th>含税售价（多档）</th>
@@ -1813,16 +1814,11 @@
     let nextRowId = 1; // 行ID计数器
     let calculationRowMap = []; // 与 collectedProducts 对应的行ID映射（保持与分析结果顺序一致）
     
-    // 测试平台佣金率函数
-    console.log('=== 模块加载时的测试 ===');
-    console.log('getPlatformRate 函数是否已定义:', typeof getPlatformRate);
-    
     // 🆕 统一的自动计算防抖函数
     let autoCalcTimer = null;
     function debounceAutoCalc(delay = 200) {
       clearTimeout(autoCalcTimer);
       autoCalcTimer = setTimeout(() => {
-        console.log('🔄 防抖触发自动计算');
         autoCalculate();
       }, delay);
     }
@@ -1967,6 +1963,24 @@
             <option value="抖音" ${product && product.platform === '抖音' ? 'selected' : ''}>抖音</option>
             <option value="小红书" ${product && product.platform === '小红书' ? 'selected' : ''}>小红书</option>
           </select>
+        </td>
+        <td>
+          <div class="platform-rate-display" style="text-align: center; color: var(--muted); font-size: 12px;">
+            ${(() => {
+              const platform = product ? product.platform : '淘宝';
+              // 直接使用平台佣金率映射，避免函数调用问题
+              const platformRates = {
+                '淘宝': 0,
+                '天猫': 0.055,
+                '抖音': 0.05,
+                '京东': 0.05,
+                '拼多多': 0.05,
+                '小红书': 0.05
+              };
+              const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
+              return `${(rate * 100).toFixed(1)}%`;
+            })()}
+          </div>
         </td>
         <td>
           <button class="main-toggle ${product && product.isMain ? 'active' : ''}" 
@@ -2612,20 +2626,15 @@
       const rows = document.querySelectorAll('#productsTableBody tr:not([style*="text-align: center"])');
       const collectedProducts = [];
       
-      console.log('开始收集表格数据，找到行数:', rows.length);
       // 重置结果行映射，每次重新收集数据时重建映射
       calculationRowMap = [];
       
       rows.forEach((row, index) => {
         const rowId = row.id.replace('row-', '');
-        console.log(`处理第${index + 1}行，行ID: ${rowId}`);
         
         // 检查是否是多档价格模式
         const tierPrices = Array.from(row.querySelectorAll('.tier-price-input')).map(input => parseFloat(input.value)).filter(v => isFinite(v) && v > 0);
         const tierCosts = Array.from(row.querySelectorAll('.tier-cost-input')).map(input => parseFloat(input.value)).filter(v => isFinite(v) && v > 0);
-        
-        console.log(`第${index + 1}行 - 多档售价:`, tierPrices);
-        console.log(`第${index + 1}行 - 多档进货价:`, tierCosts);
         
         const singlePriceInput = row.querySelector('.single-price');
         const singleCostInput = row.querySelector('.single-cost');
@@ -2695,10 +2704,21 @@
           }
         }
         
+        // 🔍 平台佣金获取调试
+        const platformElement = row.querySelector('.platform-select');
+        const selectedPlatform = platformElement.value;
+        const platformRate = getPlatformRate(selectedPlatform);
+        
+        console.log(`🏪 第${index + 1}行平台佣金:`, {
+          platform: selectedPlatform,
+          rate: platformRate,
+          ratePercent: `${(platformRate * 100).toFixed(1)}%`
+        });
+        
         const product = {
           name: row.querySelector('.product-name').value.trim(),
           sku: row.querySelector('.product-sku').value.trim(),
-          platform: row.querySelector('.platform-select').value,
+          platform: selectedPlatform,
           isMain: row.querySelector('.main-toggle').classList.contains('active'),
           isNew: row.classList.contains('new-product'),
           singlePrice: finalSinglePrice,
@@ -2710,11 +2730,8 @@
           })(),
           singleCost: finalSingleCost,
           tierCosts: finalTierCosts,
-          platformRate: getPlatformRate(row.querySelector('.platform-select').value) // 添加平台佣金率
+          platformRate: platformRate // 使用调试后的佣金率
         };
-        
-        console.log(`第${index + 1}行 - 构建的商品对象:`, product);
-        console.log(`第${index + 1}行 - 平台: ${product.platform}, 佣金率: ${product.platformRate * 100}%`);
         
         // 验证数据
         const validation = validateProduct(product);
@@ -2726,11 +2743,9 @@
         collectedProducts.push(product);
         // 记录该分析项对应的表格行ID（用于结果回填定位）
         calculationRowMap.push(row.id);
-        console.log(`第${index + 1}行 - 验证通过，已添加到收集列表`);
       });
       
-      console.log('数据收集完成，总共收集商品数:', collectedProducts.length);
-      console.log('收集的商品数据:', collectedProducts);
+      console.log('📦 数据收集完成，总共收集商品数:', collectedProducts.length);
       
       return collectedProducts;
     }
@@ -2757,13 +2772,10 @@
 
     // 更新计算结果
     function updateCalculationResults() {
-      console.log('开始更新计算结果，分析结果数量:', analysisResults.length);
-
       // 先清空所有行的旧结果，防止错位残留
       clearAllResults();
 
       const map = Array.isArray(calculationRowMap) ? calculationRowMap : [];
-      console.log('用于结果回填的行映射:', map);
 
       analysisResults.forEach((result, index) => {
         const rowId = map[index];
@@ -2777,15 +2789,13 @@
           return;
         }
 
-        console.log(`回填第 ${index} 个结果到行 ${row.id}（${result.name}）`);
-
-        // 获取所有计算结果单元格
-        const grossMarginCell = row.cells[10]; // 毛利率列
-        const adCostCell = row.cells[11]; // 保本广告费列
-        const adRateEffectiveCell = row.cells[12]; // 保本广告(有效)列
-        const adRateGmvCell = row.cells[13]; // 保本广告(GMV)列
-        const roiEffectiveCell = row.cells[14]; // 保本ROI(有效)列
-        const roiGmvCell = row.cells[15]; // 保本ROI(GMV)列
+        // 获取所有计算结果单元格（添加佣金率列后索引+1）
+        const grossMarginCell = row.cells[11]; // 毛利率列
+        const adCostCell = row.cells[12]; // 保本广告费列
+        const adRateEffectiveCell = row.cells[13]; // 保本广告(有效)列
+        const adRateGmvCell = row.cells[14]; // 保本广告(GMV)列
+        const roiEffectiveCell = row.cells[15]; // 保本ROI(有效)列
+        const roiGmvCell = row.cells[16]; // 保本ROI(GMV)列
         
         if (!grossMarginCell || !adCostCell || !adRateEffectiveCell || !adRateGmvCell || !roiEffectiveCell || !roiGmvCell) {
           console.log('未找到所有必需的单元格');
@@ -3345,60 +3355,30 @@
     
     // 导入结果总结
     function logImportSummary(dataArray, successCount, failCount, failedRows) {
-      console.log('🎯 ===== 导入结果总结 =====');
-      console.log('📊 总体统计:');
-      console.log(`   总数据行数: ${dataArray.length}`);
-      console.log(`   成功导入: ${successCount} 行`);
-      console.log(`   失败行数: ${failCount} 行`);
-      console.log(`   成功率: ${((successCount / dataArray.length) * 100).toFixed(1)}%`);
+      console.log('📊 导入结果:', {
+        总行数: dataArray.length,
+        成功: successCount,
+        失败: failCount,
+        成功率: `${((successCount / dataArray.length) * 100).toFixed(1)}%`
+      });
       
       if (failCount > 0) {
-        console.log('❌ 失败详情:');
-        failedRows.forEach((failedRow, index) => {
-          console.log(`   第${index + 1}个失败: 第${failedRow.index}行`);
-          console.log(`   失败原因: ${failedRow.reason}`);
-          console.log(`   失败数据:`, failedRow.data);
-        });
+        console.log('❌ 失败行:', failedRows.map(f => `第${f.index}行: ${f.reason}`));
       }
-      
-      if (successCount > 0) {
-        console.log('✅ 成功导入的数据预览:');
-        const successData = dataArray.filter((_, index) => {
-          return !failedRows.some(failed => failed.index === index + 1);
-        });
-        console.log('成功数据:', successData.slice(0, 3));
-        if (successData.length > 3) {
-          console.log(`... 还有 ${successData.length - 3} 行数据`);
-        }
-      }
-      
-      console.log('🎯 ===== 导入总结结束 =====');
     }
     
     // 从导入数据创建行
     function createProductRowFromImportData(data) {
-      console.log('=== 开始创建导入数据行 ===');
-      console.log('导入的原始数据:', data);
-      
       const rowId = nextRowId++;
-      console.log('分配的行ID:', rowId);
       
       const row = document.createElement('tr');
       row.id = `row-${rowId}`;
       row.className = data['主推款'] === '是' ? 'main-product' : '';
-      console.log('行元素创建成功，ID:', row.id, '类名:', row.className);
-      
       // 解析多档价格数据
-      console.log('=== 开始解析多档价格数据 ===');
       const tierPricesText = data['含税售价（多档）'] || '';
       const tierCostsText = data['进货价（多档）'] || '';
-      console.log('多档售价原始文本:', tierPricesText);
-      console.log('多档进货价原始文本:', tierCostsText);
-      
       const tierPrices = parseListNumbers(tierPricesText);
       const tierCosts = parseListNumbers(tierCostsText);
-      console.log('解析后的多档售价:', tierPrices);
-      console.log('解析后的多档进货价:', tierCosts);
       
       const hasTierPrices = tierPrices.length > 0;
       const hasTierCosts = tierCosts.length > 0;
@@ -4276,15 +4256,15 @@
       }
     }
     
-    // 根据列名获取对应的数值单元格
+    // 根据列名获取对应的数值单元格（添加佣金率列后索引+1）
     function getValueCellByColumn(row, columnName) {
       const columnMap = {
-        'grossMarginRate': 10,      // 毛利率列
-        'adCostBreakEven': 11,      // 保本广告费列
-        'adRateBE_effective': 12,   // 保本广告(有效)列
-        'adRateBE_gmv': 13,         // 保本广告(GMV)列
-        'ROI_BE_effective': 14,     // 保本ROI(有效)列
-        'ROI_BE_gmv': 15            // 保本ROI(GMV)列
+        'grossMarginRate': 11,      // 毛利率列
+        'adCostBreakEven': 12,      // 保本广告费列
+        'adRateBE_effective': 13,   // 保本广告(有效)列
+        'adRateBE_gmv': 14,         // 保本广告(GMV)列
+        'ROI_BE_effective': 15,     // 保本ROI(有效)列
+        'ROI_BE_gmv': 16            // 保本ROI(GMV)列
       };
       
       const columnIndex = columnMap[columnName];
@@ -4874,7 +4854,36 @@
         if (e.target.matches('.platform-select')) {
           // 更新平台佣金率显示
           const row = e.target.closest('tr');
-
+          const platform = e.target.value;
+          const platformRate = getPlatformRate(platform);
+          
+          console.log(`🔄 平台切换调试:`, {
+            oldPlatform: row.dataset.oldPlatform || '未知',
+            newPlatform: platform,
+            platformRate: platformRate,
+            platformRatePercent: `${(platformRate * 100).toFixed(1)}%`,
+            getPlatformRateResult: getPlatformRate(platform),
+            directMapping: {
+              '淘宝': 0,
+              '天猫': 0.055,
+              '抖音': 0.05,
+              '京东': 0.05,
+              '拼多多': 0.05,
+              '小红书': 0.05
+            }[platform] || 0.05
+          });
+          
+          // 记录旧平台用于调试
+          row.dataset.oldPlatform = platform;
+          
+          // 如果有佣金率显示元素，更新它
+          const rateDisplay = row.querySelector('.platform-rate-display');
+          if (rateDisplay) {
+            const oldValue = rateDisplay.textContent;
+            const newValue = `${(platformRate * 100).toFixed(1)}%`;
+            rateDisplay.textContent = newValue;
+            console.log(`📊 佣金率显示更新: ${oldValue} → ${newValue}`);
+          }
           
           debounceAutoCalc(500);
         }
@@ -5096,6 +5105,24 @@
             <option value="抖音" ${data.platform === '抖音' ? 'selected' : ''}>抖音</option>
             <option value="小红书" ${data.platform === '小红书' ? 'selected' : ''}>小红书</option>
           </select>
+        </td>
+        <td>
+          <div class="platform-rate-display" style="text-align: center; color: var(--muted); font-size: 12px;">
+            ${(() => {
+              const platform = data.platform || '淘宝';
+              // 直接使用平台佣金率映射，避免函数调用问题
+              const platformRates = {
+                '淘宝': 0,
+                '天猫': 0.055,
+                '抖音': 0.05,
+                '京东': 0.05,
+                '拼多多': 0.05,
+                '小红书': 0.05
+              };
+              const rate = platformRates[platform] !== undefined ? platformRates[platform] : 0.05;
+              return `${(rate * 100).toFixed(1)}%`;
+            })()}
+          </div>
         </td>
         <td>
           <button class="main-toggle ${data.isMain ? 'active' : ''}" 
@@ -5345,39 +5372,23 @@
 
     // 解析Excel文件
     function parseExcelFile(file) {
-      console.log('=== 开始解析Excel文件 ===');
-      console.log('文件名:', file.name);
-      console.log('文件大小:', file.size, '字节');
-      console.log('文件类型:', file.type);
+      console.log('📁 开始解析Excel文件:', file.name);
       
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
-          console.log('Excel文件读取成功，开始解析内容...');
           const data = new Uint8Array(e.target.result);
-          console.log('文件数据转换为Uint8Array，长度:', data.length);
-          
           const workbook = XLSX.read(data, { type: 'array' });
-          console.log('Excel工作簿解析成功');
-          console.log('工作表列表:', workbook.SheetNames);
           
           // 获取第一个工作表
           const firstSheetName = workbook.SheetNames[0];
-          console.log('选择第一个工作表:', firstSheetName);
           
           const worksheet = workbook.Sheets[firstSheetName];
-          console.log('工作表对象:', worksheet);
-          console.log('工作表范围:', worksheet['!ref']);
-          
           // 转换为JSON数据
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          console.log('转换为JSON数据成功');
-          console.log('JSON数据行数:', jsonData.length);
-          console.log('JSON数据预览:', jsonData.slice(0, 3));
           
           if (jsonData.length < 2) {
             console.error('❌ Excel文件格式错误：至少需要包含表头和数据行');
-            console.error('当前数据行数:', jsonData.length);
             showMessage('Excel文件格式错误：至少需要包含表头和数据行', 'error');
             return;
           }
@@ -5385,53 +5396,32 @@
           // 解析数据
           const headers = jsonData[0];
           const rows = jsonData.slice(1);
-          
-          console.log('=== Excel数据解析结果 ===');
-          console.log('表头行:', headers);
-          console.log('数据行数:', rows.length);
-          console.log('前3行数据:', rows.slice(0, 3));
+          console.log('📊 Excel数据解析:', { 表头数量: headers.length, 数据行数: rows.length });
           
           // 验证表头
-          console.log('=== 开始验证表头 ===');
           const requiredHeaders = ['商品名称', '货号', '平台', '主推款', '含税售价P', '含税售价（多档）', '单一进货价', '进货价（多档）', '退货率'];
-          console.log('📋 必需的表头字段（仅此9个）:', requiredHeaders);
-          console.log('💡 注意：其他字段如保本ROI、广告比例等会在导入后自动计算，无需包含');
-          
-          console.log('Excel文件中的表头:', headers);
-          
           const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
-          console.log('缺失的表头字段:', missingHeaders);
           
           if (missingHeaders.length > 0) {
             console.error('❌ Excel文件缺少必要的列:', missingHeaders);
-            console.error('当前表头:', headers);
-            console.error('请确保包含所有必需字段，其他字段会自动生成');
             showMessage(`Excel文件缺少必要的列：${missingHeaders.join(', ')}`, 'error');
             return;
           }
           
-          console.log('✅ 表头验证通过 - 包含所有9个必需字段');
-          
           // 转换数据格式
-          console.log('=== 开始转换数据格式 ===');
           const convertedData = rows.map((row, index) => {
             const rowData = {};
             headers.forEach((header, colIndex) => {
               rowData[header] = row[colIndex] || '';
             });
-            console.log(`第${index + 1}行数据转换:`, rowData);
             return rowData;
           }).filter(rowData => {
             // 过滤空行（所有字段都为空的行）
             const isEmpty = Object.values(rowData).every(value => value === '');
-            if (isEmpty) {
-              console.log('过滤掉空行:', rowData);
-            }
             return !isEmpty;
           });
           
-          console.log('数据转换完成，有效数据行数:', convertedData.length);
-          console.log('转换后的数据:', convertedData);
+          console.log('📋 数据转换完成，有效数据行数:', convertedData.length);
           
           if (convertedData.length === 0) {
             console.error('❌ Excel文件中没有有效数据');
@@ -5440,9 +5430,7 @@
           }
           
           // 检测重复数据
-          console.log('=== 开始检测重复数据 ===');
           const duplicateCheck = checkDuplicateData(convertedData);
-          console.log('重复检测结果:', duplicateCheck);
           
           // 🆕 构建重复提示信息
           let duplicateMessage = '';
