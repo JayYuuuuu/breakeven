@@ -125,13 +125,28 @@
         <button class="ghost-link" id="mcResetAll" title="恢复默认数值">恢复默认</button>
       </div>
       <div class="settings-inline" id="mcInline">
-        <label>日常立减 %</label>
+        <label>日常原价立减 %</label>
         <input id="mcBaseDisc" type="number" step="0.01" value="10" placeholder="如 10 表示立减10%">
         <label>日常毛利率 %</label>
         <input id="mcBaseGM" type="number" step="0.01" value="30" placeholder="例如 30">
-        <label>活动立减 %</label>
-        <input id="mcTargetDisc" type="number" step="0.01" value="12" placeholder="例如 12">
-        <div id="mcResult" class="value" style="font-size:28px;">活动期毛利率：—</div>
+
+        <!-- 方案A：活动立减更深（直接立减%） -->
+        <div id="mcGroupDirect" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label>活动方案A：原价立减 %</label>
+          <input id="mcTargetDisc" type="number" step="0.01" value="12" placeholder="例如 12">
+          <div id="mcResult" class="value" style="font-size:22px;">活动期毛利率（方案A）：—</div>
+        </div>
+
+        <!-- 方案B：在日常原价立减基础上日常价上打折 -->
+        <div id="mcGroupFold" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label>活动方案B：日常价上打折</label>
+          <input id="mcExtraFold" type="number" step="0.01" value="9.8" placeholder="例如 9.8 表示 9.8 折" style="width:110px;">
+          <div id="mcComboText" class="sub" style="font-size:13px;color:#6e6e73;">等效折扣（方案B）：—</div>
+          <div id="mcResultFold" class="value" style="font-size:22px;">活动期毛利率（方案B）：—</div>
+        </div>
+
+        <!-- 总结：哪个方案更优惠、相对价格差多少、各自毛利率较日常下降多少 -->
+        <div id="mcCompareText" class="sub" style="width:100%; font-size:14px; margin-top:6px; color:#6e6e73;">—</div>
       </div>
     </section>
   </main>
@@ -144,11 +159,17 @@
       const baseGM   = document.getElementById('mcBaseGM');
       const targetDi = document.getElementById('mcTargetDisc');
       const out      = document.getElementById('mcResult');
+      const outFold  = document.getElementById('mcResultFold');
+      const extraFld = document.getElementById('mcExtraFold');
+      const comboTxt = document.getElementById('mcComboText');
       const resetAll = document.getElementById('mcResetAll');
+      const groupDirect = document.getElementById('mcGroupDirect');
+      const groupFold   = document.getElementById('mcGroupFold');
+      const compareTxt  = document.getElementById('mcCompareText');
 
-      if (!baseDisc || !baseGM || !targetDi || !out) return;
+      if (!baseDisc || !baseGM || !targetDi || !out || !outFold || !extraFld || !comboTxt || !groupDirect || !groupFold || !compareTxt) return;
 
-      [baseDisc, baseGM, targetDi].forEach(el=>{
+      [baseDisc, baseGM, targetDi, extraFld].forEach(el=>{
         el.addEventListener('focus', ()=> el.select());
         attachNumericOnly(el, 2);
         if (!el.dataset.default) el.dataset.default = String(el.value ?? '');
@@ -156,18 +177,62 @@
       });
 
       function render(){
-        const mB = convertMarginPercent(baseGM.value, baseDisc.value, targetDi.value);
-        if (!isFinite(mB)) { out.textContent = '活动期毛利率：—'; return; }
-        const mANum = parseFloat(baseGM.value);
-        let deltaText = '';
-        if (isFinite(mANum)){
-          const diff = mANum - Number(mB); // 日常毛利率 - 活动期毛利率
-          const abs = Math.abs(diff).toFixed(2);
-          if (diff > 0) deltaText = `（较日常毛利率下降${abs}%）`;
-          else if (diff < 0) deltaText = `（较日常毛利率上升${abs}%）`;
-          else deltaText = `（与日常毛利率持平）`;
+        const a = Math.max(0, Math.min(100, parseFloat(baseDisc.value)||0)) / 100; // 日常原价立减 a
+        const mA = Math.max(-100, Math.min(100, parseFloat(baseGM.value)||0)) / 100; // 日常毛利率 mA
+
+        // —— 方案A：活动立减（直接立减 b） ——
+        const b = Math.max(0, Math.min(100, parseFloat(targetDi.value)||0)) / 100;
+        const mDirect = convertMarginPercent(baseGM.value, baseDisc.value, targetDi.value); // 百分数
+        if (!isFinite(mDirect)) {
+          out.textContent = '活动期毛利率（方案A）：—';
+        } else {
+          const dropA = (mA*100 - Number(mDirect)); // pp
+          const deltaTextA = isFinite(dropA) ? `（较日常毛利率${dropA>=0? '下降':'上升'}${Math.abs(dropA).toFixed(2)}%）` : '';
+          out.textContent = `活动期毛利率（方案A）：${Number(mDirect).toFixed(2)}%${deltaTextA}`;
         }
-        out.textContent = `活动期毛利率：${Number(mB).toFixed(2)}%${deltaText}`;
+        const factorDirect = 1 - b; // 直接立减的成交系数
+
+        // —— 方案B：在日常原价立减基础上再打折（几折 d） ——
+        const dRaw = parseFloat(extraFld.value);
+        const d = Math.max(0, Math.min(10, isFinite(dRaw)? dRaw: 0)) / 10; // 0..1
+        if (d === 0){
+          outFold.textContent = '活动期毛利率（方案B）：—';
+          comboTxt.textContent = '等效折扣（方案B）：—';
+          compareTxt.textContent = '—';
+          return;
+        }
+        const mPrime = (1 - (1 - mA)/d) * 100; // 百分数
+        const effective = 1 - (1 - a) * d;     // 约原价立减（折后与原价比）
+        const effFold = (1 - effective);       // 成交系数
+        const effDiscountPct = (effective * 100).toFixed(2);
+        const effFoldText = (effFold * 10).toFixed(2);
+        const dropB = (mA*100 - mPrime);       // pp
+        const deltaTextB = isFinite(dropB) ? `（较日常毛利率${dropB>=0? '下降':'上升'}${Math.abs(dropB).toFixed(2)}%）` : '';
+        outFold.textContent  = `活动期毛利率（方案B）：${mPrime.toFixed(2)}%${deltaTextB}`;
+        comboTxt.textContent = `约原价 ${effFoldText} 折（约原价立减 ${effDiscountPct}%）`;
+
+        // —— 方案对比：哪个更优惠 ——
+        // 方案A 成交系数 vs 方案B 成交系数（越小越便宜）
+        const fA = factorDirect;
+        const fB = effFold;
+        if (isFinite(fA) && isFinite(fB) && fA>0 && fB>0){
+          let better, diffPct;
+          if (fA < fB){
+            better = '方案A（原价基础上立减）';
+            diffPct = ((fB - fA) / fB) * 100; // 相对方案B更低多少%
+          } else if (fB < fA){
+            better = '方案B（先立减再打折）';
+            diffPct = ((fA - fB) / fA) * 100; // 相对方案A更低多少%
+          } else {
+            better = '两方案等价';
+            diffPct = 0;
+          }
+          const dropAText = isFinite(mDirect) ? `${(mA*100 - Number(mDirect)).toFixed(2)}%` : '—';
+          const dropBText = isFinite(dropB) ? `${dropB.toFixed(2)}%` : '—';
+          compareTxt.textContent = `${better}；相对价格更低约 ${Math.abs(diffPct).toFixed(2)}%。日常→活动毛利率下降：A=${dropAText}，B=${dropBText}`;
+        } else {
+          compareTxt.textContent = '—';
+        }
       }
 
       // 供外部调用（load/clear 后刷新）
@@ -175,13 +240,13 @@
 
       if (resetAll){
         resetAll.addEventListener('click', ()=>{
-          [baseDisc, baseGM, targetDi].forEach(el=>{ el.value = el.dataset.default || ''; });
+          [baseDisc, baseGM, targetDi, extraFld].forEach(el=>{ el.value = el.dataset.default || ''; });
           render();
           autoSave();
         });
       }
 
-      [baseDisc, baseGM, targetDi].forEach(el=> el.addEventListener('input', ()=>{ render(); autoSave(); }));
+      [baseDisc, baseGM, targetDi, extraFld].forEach(el=> el.addEventListener('input', ()=>{ render(); autoSave(); }));
       render();
     }
     // 更精确的金额处理：字符串→整数分；避免浮点误差
@@ -526,7 +591,8 @@
           marginConv: {
             baseDisc: document.getElementById('mcBaseDisc')?.value || '',
             baseGM: document.getElementById('mcBaseGM')?.value || '',
-            targetDisc: document.getElementById('mcTargetDisc')?.value || ''
+            targetDisc: document.getElementById('mcTargetDisc')?.value || '',
+            extraFold: document.getElementById('mcExtraFold')?.value || ''
           }
         };
         localStorage.setItem('listPriceData', JSON.stringify(data));
@@ -588,6 +654,8 @@
             if (typeof data.marginConv.baseDisc !== 'undefined') mcBaseDiscEl.value = data.marginConv.baseDisc;
             if (typeof data.marginConv.baseGM   !== 'undefined') mcBaseGMEl.value   = data.marginConv.baseGM;
             if (typeof data.marginConv.targetDisc !== 'undefined') mcTargetEl.value = data.marginConv.targetDisc;
+            const mcExtraEl = document.getElementById('mcExtraFold');
+            if (mcExtraEl && typeof data.marginConv.extraFold !== 'undefined') mcExtraEl.value = data.marginConv.extraFold;
             if (typeof recalcMarginCard === 'function') recalcMarginCard();
           }
           
