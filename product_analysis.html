@@ -1642,6 +1642,7 @@
           </div>
           <div class="decision-actions">
             <button class="btn" id="decCalcBtn" onclick="console.log('🔘 按钮被点击了'); window.calculateDecisionBar();">计算投放阈值</button>
+            <button class="btn primary" style="margin-left: 8px;" onclick="window.calculateInstantDiagnosis()">即时诊断</button>
             <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
           </div>
           <div class="kpi-band">
@@ -1656,6 +1657,45 @@
             <div class="kpi" id="kpiCvrCpcMargin"><div class="label">CVR-CPC 安全边际</div><div class="val">—</div></div>
             <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态</div><div class="val">—</div></div>
             <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
+          </div>
+
+          <!-- 已合并：投放三角分析结果（由投放决策条参数计算并回填） -->
+          <div class="decision-subsection" id="triangleResults" style="margin-top: 12px;">
+            <h5 style="margin: 0 0 8px 0; color: #333; font-size: 14px;">🔺 投放三角分析结果</h5>
+            <div class="kpi-band">
+              <div class="kpi"><div class="label">保本ROI</div><div class="val" id="valueRoiResult">—</div></div>
+              <div class="kpi"><div class="label">CPC临界值</div><div class="val" id="valueCpcResult">—</div></div>
+              <div class="kpi"><div class="label">CVR临界值</div><div class="val" id="valueCvrResult">—</div></div>
+              <div class="kpi"><div class="label">客单价临界值</div><div class="val" id="valueAovResult">—</div></div>
+            </div>
+          </div>
+
+          <!-- 已合并：即时诊断结果（基于投放决策条输入计算） -->
+          <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
+            <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📊 基于 CPC/CVR/客单价 的即时诊断</h5>
+            <!-- 实际ROI指标 -->
+            <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi"><div class="label">实际ROI（有效）</div><div class="val" id="actualROIEffective">—</div></div>
+              <div class="kpi"><div class="label">实际ROI（GMV）</div><div class="val" id="actualROIGMV">—</div></div>
+              <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
+            </div>
+            <!-- 实际广告占比 -->
+            <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi"><div class="label">实际广告占比（有效）</div><div class="val" id="actualAdRateEff">—</div></div>
+              <div class="kpi"><div class="label">实际广告占比（GMV）</div><div class="val" id="actualAdRateGMV">—</div></div>
+              <div class="kpi"><div class="label">与保本CPA的差</div><div class="val" id="cpaGap">—</div></div>
+            </div>
+            <!-- 收益与安全指标 -->
+            <div class="kpi-band" style="margin-bottom: 12px;">
+              <div class="kpi"><div class="label">每点击收益（有效）</div><div class="val" id="rpcEffective">—</div></div>
+              <div class="kpi"><div class="label">每点击收益（GMV）</div><div class="val" id="rpcGMV">—</div></div>
+              <div class="kpi"><div class="label">安全边际（ROI）</div><div class="val" id="safetyMargin">—</div></div>
+            </div>
+            <!-- 优化建议与敏感度分析 -->
+            <div id="optimizationSuggestions" style="margin-top: 16px;">
+              <h6 style="margin: 8px 0 6px 0; font-size: 13px; color: #333;">💡 优化建议 & 敏感度分析</h6>
+              <div id="suggestionContent" style="font-size: 12px; color: #666; line-height: 1.5;"></div>
+            </div>
           </div>
         </div>
         
@@ -1744,83 +1784,10 @@
           </div>
         </div>
         
-        <!-- 扩展分析区域 -->
+        <!-- 扩展分析区域（已合并到投放决策条：仅保留结果展示） -->
         <div class="extended-analysis">
           <h4>扩展分析</h4>
-          
-
-          <!-- 投放三角分析 -->
-          <div class="value-analysis decision-card" id="valueCard">
-            <h4>🔺 投放三角分析 <span class="tiny-hint">（同口径：当口径=有效营收时，AOV 自动用 AOV×(1−退货率)）</span></h4>
-            <div class="decision-grid">
-              <div class="decision-item">
-                <label>口径：</label>
-                <select id="valueBasis">
-                  <option value="effective">有效营收</option>
-                  <option value="gmv">GMV</option>
-                </select>
-              </div>
-              <div class="decision-item">
-                <label>转化率 (CVR)：直接输入数字</label>
-                <input type="number" id="valueCvr" step="0.01" min="0" max="100" placeholder="2" onchange="window.convertToDecimal(this, 'valueCvr')" oninput="window.previewConversion(this, 'valueCvr')">
-                <span id="valueCvrPreview" class="conversion-preview"></span>
-              </div>
-              <div class="decision-item">
-                <label>CPC：</label>
-                <input type="number" id="valueCpc" step="0.01" min="0" placeholder="2.5">
-              </div>
-              <div class="decision-item">
-                <label>客单价 (AOV)：</label>
-                <input type="number" id="valueAov" step="0.01" min="0" placeholder="79.8">
-              </div>
-            </div>
-            <div class="decision-actions">
-              <button class="btn secondary" onclick="window.calculateValueAnalysis()">计算临界值</button>
-              <button class="btn primary" onclick="window.calculateInstantDiagnosis()" style="margin-left: 8px;">即时诊断</button>
-            </div>
-            
-            <!-- 临界值显示区域 -->
-            <div class="kpi-band">
-              <div class="kpi"><div class="label">保本ROI</div><div class="val" id="valueRoiResult">—</div></div>
-              <div class="kpi"><div class="label">CPC临界值</div><div class="val" id="valueCpcResult">—</div></div>
-              <div class="kpi"><div class="label">CVR临界值</div><div class="val" id="valueCvrResult">—</div></div>
-              <div class="kpi"><div class="label">客单价临界值</div><div class="val" id="valueAovResult">—</div></div>
-            </div>
-            
-            <!-- 即时诊断结果区域 -->
-            <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
-              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📊 基于 CPC/CVR/客单价 的即时诊断</h5>
-              
-              <!-- 实际ROI指标 -->
-              <div class="kpi-band" style="margin-bottom: 12px;">
-                <div class="kpi"><div class="label">实际ROI（有效）</div><div class="val" id="actualROIEffective">—</div></div>
-                <div class="kpi"><div class="label">实际ROI（GMV）</div><div class="val" id="actualROIGMV">—</div></div>
-                <div class="kpi"><div class="label">CPA（每单广告成本）</div><div class="val" id="actualCPA">—</div></div>
-              </div>
-              
-              <!-- 实际广告占比 -->
-              <div class="kpi-band" style="margin-bottom: 12px;">
-                <div class="kpi"><div class="label">实际广告占比（有效）</div><div class="val" id="actualAdRateEff">—</div></div>
-                <div class="kpi"><div class="label">实际广告占比（GMV）</div><div class="val" id="actualAdRateGMV">—</div></div>
-                <div class="kpi"><div class="label">与保本CPA的差</div><div class="val" id="cpaGap">—</div></div>
-              </div>
-              
-              <!-- 收益与安全指标 -->
-              <div class="kpi-band" style="margin-bottom: 12px;">
-                <div class="kpi"><div class="label">每点击收益（有效）</div><div class="val" id="rpcEffective">—</div></div>
-                <div class="kpi"><div class="label">每点击收益（GMV）</div><div class="val" id="rpcGMV">—</div></div>
-                <div class="kpi"><div class="label">安全边际（ROI）</div><div class="val" id="safetyMargin">—</div></div>
-              </div>
-              
-              <!-- 优化建议与敏感度分析 -->
-              <div id="optimizationSuggestions" style="margin-top: 16px;">
-                <h6 style="margin: 8px 0 6px 0; font-size: 13px; color: #333;">💡 优化建议 & 敏感度分析</h6>
-                <div id="suggestionContent" style="font-size: 12px; color: #666; line-height: 1.5;">
-                  <!-- 动态内容 -->
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="tiny-hint" style="margin: 6px 0 10px 0; color:#666;">已与上方“投放决策条”合并：请在投放决策条填写/调整参数，结果会在该处统一显示。</div>
         </div>
       </div>
     </div>
@@ -6164,6 +6131,15 @@
         } catch (chartError) {
           console.warn('⚠️ 图表更新失败:', chartError);
         }
+
+        // 同步计算“投放三角分析结果”（与决策条同口径、同参数）
+        try {
+          if (typeof window.calculateValueAnalysis === 'function') {
+            window.calculateValueAnalysis();
+          }
+        } catch (vaError) {
+          console.warn('⚠️ 投放三角分析结果联动失败:', vaError);
+        }
         
       } catch (error) {
         console.error('❌ 计算过程中发生错误:', error);
@@ -6567,7 +6543,7 @@
         // 2) 口径与退货率，与决策条保持一致
         const basis = document.getElementById('decBasis').value; // 与决策条统一
         const r = isFinite(product.returnRate) ? product.returnRate : 0;
-        // 如果界面上有单独的 valueBasis，下次点击时让它显示与决策条一致（避免心智冲突）
+        // 如果界面上有残留的 valueBasis，下次点击时让它显示与决策条一致（避免心智冲突）
         const valueBasisEl = document.getElementById('valueBasis');
         if (valueBasisEl && valueBasisEl.value !== basis) valueBasisEl.value = basis;
 
@@ -6575,15 +6551,24 @@
         const beROAS = (basis === 'effective') ? be.ROI_BE_effective : be.ROI_BE_gmv;
         document.getElementById('valueRoiResult').textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
 
-        // 4) 读取三角三项输入（CVR/CPC/AOV），允许留空两选其二
-        const cvrPctInput = document.getElementById('valueCvr').value.trim();
-        const cpcInput    = document.getElementById('valueCpc').value.trim();
-        const aovInput    = document.getElementById('valueAov').value.trim();
-        
-        // 注意：本输入框在 onChange 时会将百分数自动转换为小数存储，因此此处直接解析为小数
-        const cvrIn = cvrPctInput === '' ? NaN : parseFloat(cvrPctInput);
-        const cpcIn = cpcInput === ''    ? NaN : parseFloat(cpcInput);
-        let   aovIn = aovInput === ''    ? NaN : parseFloat(aovInput);
+        // 4) 读取三角三项输入（CVR/CPC/AOV），允许留空两选其二（统一读取投放决策条）
+        const mode = document.getElementById('decBuyMode').value; // cpc | cpm
+        const cvrPctInput = (document.getElementById('decCVR').value || '').trim();
+        const aovInput    = (document.getElementById('decAOV').value || '').trim();
+        // CPC 可能来源于 CPC 或由 CPM/CTR 推导
+        let   cpcInputRaw = (document.getElementById('decCPC').value || '').trim();
+        if (mode === 'cpm') {
+          const cpmVal = parseFloat((document.getElementById('decCPM').value || '').trim());
+          const ctrPct = parseFloat((document.getElementById('decCTR').value || '').trim());
+          const ctr = isFinite(ctrPct) ? (ctrPct/100) : NaN;
+          const cpcFromCPM = (isFinite(cpmVal) && isFinite(ctr) && ctr>0) ? (cpmVal/(ctr*1000)) : NaN;
+          cpcInputRaw = isFinite(cpcFromCPM) ? String(cpcFromCPM) : cpcInputRaw;
+        }
+
+        // decCVR 是百分数，需要转为小数
+        const cvrIn = cvrPctInput === '' ? NaN : (parseFloat(cvrPctInput)/100);
+        const cpcIn = cpcInputRaw === ''  ? NaN : parseFloat(cpcInputRaw);
+        let   aovIn = aovInput === ''     ? NaN : parseFloat(aovInput);
         if (!isFinite(aovIn)) aovIn = product.singlePrice || NaN; // AOV留空用售价
 
         // 5) 计算 usedAOV（按口径对齐）；注意：仅用于内部计算
@@ -6601,19 +6586,23 @@
         // CPC 缺失 → 倒算 CPC 临界
         if (!isFinite(cpcIn) && isFinite(cvrIn) && isFinite(usedAOV) && beROAS > 0) {
           critCPC = (cvrIn * usedAOV) / beROAS;
-          document.getElementById('valueCpc').value = isFinite(critCPC) ? critCPC.toFixed(2) : '';
+          // 回填到决策条输入框（如存在CPC输入）
+          const decCpcEl = document.getElementById('decCPC');
+          if (decCpcEl) decCpcEl.value = isFinite(critCPC) ? critCPC.toFixed(2) : '';
         }
         // CVR 缺失 → 倒算 CVR 临界
         if (!isFinite(cvrIn) && isFinite(cpcIn) && isFinite(usedAOV) && usedAOV > 0) {
           critCVR = (cpcIn * beROAS) / usedAOV;
-          // 回填到输入框使用小数形式，保持与自动转换口径一致
-          document.getElementById('valueCvr').value = isFinite(critCVR) ? critCVR.toFixed(4) : '';
+          // 回填到决策条 CVR（百分数口径）
+          const decCvrEl = document.getElementById('decCVR');
+          if (decCvrEl) decCvrEl.value = isFinite(critCVR) ? (critCVR*100).toFixed(2) : '';
         }
         // AOV 缺失 → 倒算 AOV 临界（内部计算有效口径，再按口径回填到输入框）
         if (!isFinite(aovIn) && isFinite(cpcIn) && isFinite(cvrIn) && cvrIn > 0) {
           critAOV_eff = (cpcIn * beROAS) / cvrIn;
           critAOV_gmv = (basis === 'effective' && isFinite(r) && (1 - r) > 0) ? (critAOV_eff / (1 - r)) : critAOV_eff;
-          document.getElementById('valueAov').value = isFinite(critAOV_gmv) ? critAOV_gmv.toFixed(2) : '';
+          const decAovEl = document.getElementById('decAOV');
+          if (decAovEl) decAovEl.value = isFinite(critAOV_gmv) ? critAOV_gmv.toFixed(2) : '';
         }
 
         // 7) 若三项都填，则给出三项"校验用"的临界参考值（不覆盖用户输入）
@@ -6663,15 +6652,23 @@
           return;
         }
 
-        // 2) 读取输入参数
+        // 2) 读取输入参数（统一从投放决策条获取）
         const basis = document.getElementById('decBasis').value; // 与决策条统一
         const r = isFinite(product.returnRate) ? product.returnRate : 0;
-        const cvrPctInput = document.getElementById('valueCvr').value.trim();
-        const cpcInput = document.getElementById('valueCpc').value.trim();
-        const aovInput = document.getElementById('valueAov').value.trim();
+        const mode = document.getElementById('decBuyMode').value; // cpc | cpm
+        const cvrPctInput = (document.getElementById('decCVR').value || '').trim();
+        let   cpcInput = (document.getElementById('decCPC').value || '').trim();
+        const aovInput = (document.getElementById('decAOV').value || '').trim();
+        if (mode === 'cpm') {
+          const cpmVal = parseFloat((document.getElementById('decCPM').value || '').trim());
+          const ctrPct = parseFloat((document.getElementById('decCTR').value || '').trim());
+          const ctr = isFinite(ctrPct) ? (ctrPct/100) : NaN;
+          const cpcFromCPM = (isFinite(cpmVal) && isFinite(ctr) && ctr>0) ? (cpmVal/(ctr*1000)) : NaN;
+          if (isFinite(cpcFromCPM)) cpcInput = String(cpcFromCPM);
+        }
         
         // 解析输入值
-        const cvrIn = cvrPctInput === '' ? NaN : parseFloat(cvrPctInput);
+        const cvrIn = cvrPctInput === '' ? NaN : (parseFloat(cvrPctInput)/100);
         const cpcIn = cpcInput === '' ? NaN : parseFloat(cpcInput);
         let aovIn = aovInput === '' ? NaN : parseFloat(aovInput);
         if (!isFinite(aovIn)) aovIn = product.singlePrice || NaN; // AOV留空用售价
@@ -6919,12 +6916,20 @@
 
       const debouncedInstantDiagnosis = debounce(() => {
         if (window.CURRENT_ANALYSIS_ROW_ID && typeof window.calculateInstantDiagnosis === 'function') {
-          // 检查是否所有三个参数都已填写
-          const cvrInput = document.getElementById('valueCvr').value.trim();
-          const cpcInput = document.getElementById('valueCpc').value.trim();
-          const aovInput = document.getElementById('valueAov').value.trim();
-          
-          if (cvrInput !== '' && cpcInput !== '' && aovInput !== '') {
+          // 统一从投放决策条读取
+          const cvrInput = (document.getElementById('decCVR')?.value || '').trim();
+          const aovInput = (document.getElementById('decAOV')?.value || '').trim();
+          const mode = document.getElementById('decBuyMode')?.value || 'cpc';
+          let cpcFilled = (document.getElementById('decCPC')?.value || '').trim();
+          if (mode === 'cpm') {
+            const cpmVal = parseFloat((document.getElementById('decCPM')?.value || '').trim());
+            const ctrPct = parseFloat((document.getElementById('decCTR')?.value || '').trim());
+            const ctr = isFinite(ctrPct) ? (ctrPct/100) : NaN;
+            const cpcFromCPM = (isFinite(cpmVal) && isFinite(ctr) && ctr>0) ? (cpmVal/(ctr*1000)) : NaN;
+            if (isFinite(cpcFromCPM)) cpcFilled = String(cpcFromCPM);
+          }
+
+          if (cvrInput !== '' && cpcFilled !== '' && aovInput !== '') {
             window.calculateInstantDiagnosis();
           }
         }
@@ -6948,13 +6953,10 @@
         }
       });
 
-      // 绑定投放三角分析输入框事件
-      valueInputs.forEach(id => {
+      // 绑定即时诊断到投放决策条输入变更
+      decisionInputs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-          el.addEventListener('input', debouncedValueCalc);
-          el.addEventListener('change', debouncedValueCalc);
-          // 同时绑定即时诊断的自动触发
           el.addEventListener('input', debouncedInstantDiagnosis);
           el.addEventListener('change', debouncedInstantDiagnosis);
         }
