@@ -1541,6 +1541,11 @@
           <button class="btn-icon" id="toggleGmvColumns" title="切换显示/隐藏GMV列" style="margin-left: 12px; opacity: 0.7;">
             <span class="gmv-toggle-text">👁️</span>
           </button>
+          
+          <!-- 清空所有按钮 - 危险操作，存在感很低 -->
+          <button class="btn-icon" id="clearAll" title="清空所有商品数据（危险操作）" style="margin-left: 12px; opacity: 0.3; color: #999;">
+            🗑️
+          </button>
         </div>
         
         <div class="products-table-container">
@@ -1575,21 +1580,11 @@
             </tbody>
           </table>
         </div>
-        
-        <div class="tooltray" style="margin-top: 16px;">
-          <span class="tag">批量操作</span>
-          <button class="btn secondary" id="deleteSelected">删除选中</button>
-          <button class="btn secondary" id="exportResults">导出结果</button>
-          <button class="btn secondary" id="exportTemplate">导出产品模板</button>
-          <button class="btn secondary" id="clearAll">清空所有</button>
-        </div>
       </div>
     </section>
   </main>
 
-  <footer>
-    © 2025 Breakeven Calculator · 商品分析功能
-  </footer>
+
 
   <!-- 消息提示区域 - 固定定位，不占用页面空间 -->
   <div id="messageArea" class="message-area"></div>
@@ -1747,13 +1742,7 @@
               <div class="kpi"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
               <div class="kpi"><div class="label">状态</div><div class="val" id="statusIndicator">—</div></div>
             </div>
-            <!-- 第四行：计算说明 -->
-            <div class="kpi-band" style="margin-bottom: 12px;">
-              <div class="kpi" style="grid-column: 1 / -1; text-align: center;">
-                <div class="label" style="font-size: 12px; color: #666;">计算说明</div>
-                <div class="val" style="font-size: 11px; color: #888;">诊断中广告占比仍按售价口径，不随连带率放大</div>
-              </div>
-            </div>
+
             <!-- 优化建议与敏感度分析 -->
             <div id="optimizationSuggestions" style="margin-top: 16px;">
               <h6 style="margin: 8px 0 6px 0; font-size: 13px; color: #333;">💡 优化建议 & 敏感度分析</h6>
@@ -3876,15 +3865,12 @@
     document.getElementById('insertExamples').addEventListener('click', addExampleProducts);
     document.getElementById('addRow').addEventListener('click', addEmptyRow);
     document.getElementById('importFile').addEventListener('click', importFile);
-    document.getElementById('exportResults').addEventListener('click', exportResults);
-    document.getElementById('exportTemplate').addEventListener('click', exportTemplate);
-    // 表格上方的导出按钮事件监听器（复用相同的功能函数）
+    // 表格上方的导出按钮事件监听器
     document.getElementById('exportResultsTop').addEventListener('click', exportResults);
     document.getElementById('exportTemplateTop').addEventListener('click', exportTemplate);
     document.getElementById('clearAll').addEventListener('click', clearAllData);
     document.getElementById('analyze').addEventListener('click', startAnalysis);
     document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
-    document.getElementById('deleteSelected').addEventListener('click', deleteSelectedRows);
     document.getElementById('deleteSelectedTop').addEventListener('click', deleteSelectedRows);
     
     // GMV列显示/隐藏切换
@@ -5376,9 +5362,7 @@
     
     // 调试：确认事件监听器绑定
     console.log('=== 事件监听器绑定状态 ===');
-    console.log('exportResults 按钮:', document.getElementById('exportResults'));
     console.log('clearAll 按钮:', document.getElementById('clearAll'));
-    console.log('deleteSelected 按钮:', document.getElementById('deleteSelected'));
     console.log('=== 事件监听器绑定完成 ===');
 
     // 系统参数变化时自动更新
@@ -6986,6 +6970,29 @@
             window.calculateDecisionBar(); 
           }
         } catch(_) {}
+        
+        // 档位改变时，如果目标推演模块有输入值，自动触发计算
+        try {
+          const targetR = document.getElementById('targetR').value;
+          const targetA = document.getElementById('targetA').value;
+          const targetM = document.getElementById('targetM').value;
+          
+          // 检查是否有足够的输入值来触发计算
+          if (targetR && targetA && targetM && 
+              parseFloat(targetR) > 0 && parseFloat(targetA) > 0) {
+            // 延迟执行，确保界面更新完成
+            setTimeout(() => {
+              window.calculateTargetAnalysis();
+            }, 100);
+          }
+        } catch(_) {}
+        
+        // 档位改变时，自动计算当前产品参数下的实际利润率
+        try {
+          setTimeout(() => {
+            window.calculateActualMarginForCurrentTier();
+          }, 100);
+        } catch(_) {}
       }
     };
     
@@ -7215,6 +7222,56 @@
         return NaN;
       }
     }
+    
+    // 档位切换时自动计算当前产品参数下的实际利润率
+    window.calculateActualMarginForCurrentTier = function() {
+      if (!currentAnalysisData) return;
+      
+      try {
+        // 获取目标推演模块的输入值
+        const targetR = document.getElementById('targetR').value;
+        const targetA = document.getElementById('targetA').value;
+        const targetBasis = document.getElementById('targetBasis').value;
+        
+        // 如果没有输入值，使用默认值或跳过计算
+        if (!targetR || !targetA) {
+          return;
+        }
+        
+        // 转换输入值
+        const r = parseFloat(targetR) > 1 ? parseFloat(targetR) / 100 : parseFloat(targetR);
+        const a = parseFloat(targetA) > 1 ? parseFloat(targetA) / 100 : parseFloat(targetA);
+        const basis = targetBasis;
+        
+        // 构建参数对象（使用当前档位的数据）
+        const params = {
+          sellingPrice: currentAnalysisData.price,
+          returnRate: currentAnalysisData.returnRate,
+          costPrice: currentAnalysisData.cost,
+          inputTaxRate: valNum('inputTaxRate') / 100,
+          outputTaxRate: valNum('outputTaxRate') / 100,
+          platformRate: getPlatformRate(currentAnalysisData.platform) / 100,
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valNum('salesTaxRate') / 100,
+          serviceVATRate: valNum('serviceVATRate') / 100,
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        };
+        
+        // 计算实际利润率
+        const actualMargin = calculateActualProfitMarginFromParams(params, r, a, basis);
+        
+        if (isFinite(actualMargin)) {
+          document.getElementById('actualMarginResult').textContent = `${(actualMargin * 100).toFixed(2)}%`;
+        } else {
+          document.getElementById('actualMarginResult').textContent = '参数无效/不可解';
+        }
+        
+      } catch (error) {
+        console.error('档位切换时计算实际利润率失败:', error);
+      }
+    };
 
     
     // 进阶推演：投放三角（三选二倒算第三个），与决策条完全同口径
@@ -7638,22 +7695,7 @@
         suggestions.push(`• ${item}`);
       });
       
-      // 具体优化建议
-      if (isFinite(cpaGap) && cpaGap < 0) {
-        suggestions.push('<br><strong>优化建议：</strong>');
-        suggestions.push('• <strong>提升转化率</strong>：优化落地页、商品详情、客服话术');
-        suggestions.push('• <strong>降低CPC</strong>：优化关键词质量分、调整出价策略、优化创意CTR');
-        suggestions.push('• <strong>提高客单价</strong>：商品组合销售、增值服务、价格策略优化');
-        
-        // 基于退货率的建议
-        if (returnRate > 0.1) {
-          suggestions.push('• <strong>降低退货率</strong>：当前退货率较高，降低退货率可直接提升有效营收和保本能力');
-        }
-      } else if (isFinite(cpaGap) && cpaGap > 0) {
-        suggestions.push('<br><strong>扩展建议：</strong>');
-        suggestions.push('• 当前投放较为安全，可考虑适度提升出价以获取更多流量');
-        suggestions.push('• 可尝试拓展更多关键词或投放渠道');
-      }
+
       
       suggestions.push('<br><div style="color: #999; font-size: 11px;">提示：上述为线性近似，适用于小幅调整的判断；大幅调整请结合利润推演验证。</div>');
       
