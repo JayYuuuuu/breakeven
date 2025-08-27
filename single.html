@@ -196,8 +196,8 @@
           <div class="kpi"><div class="lab">保本广告占比（算上退款率影响）</div><div class="val" id="beAdRate">–</div></div>
           <div class="kpi"><div class="lab">利润率（含模拟广告）</div><div class="val" id="profitRate">–</div></div>
           <div class="kpi"><div class="lab">当前模拟参数下真实ROI</div><div class="val" id="curROAS">–</div></div>
-          <div class="kpi"><div class="lab">模拟转化率下最高CPC</div><div class="val" id="maxCpc">–</div></div>
-          <div class="kpi"><div class="lab">模拟CPC下最低转化率</div><div class="val" id="cvrCrit">–</div></div>
+          <div class="kpi"><div class="lab">保本CPC（模拟转化率下）</div><div class="val" id="maxCpc">–</div></div>
+          <div class="kpi"><div class="lab">保本转化率（模拟CPC下）</div><div class="val" id="cvrCrit">–</div></div>
         </div>
       </div>
     </section>
@@ -424,9 +424,11 @@
 
       const beROAS = base.ROI_BE_effective; // 保本ROI
       const beCPA  = base.adCostBreakEven / Math.max(1, 1); // 单件最大广告费（单笔下单）
-      const maxCPC = beROAS>0 ? (cvr * AOV) / beROAS : NaN;
+      // Max CPC 按“有效营收口径（含退货率）”
+      const maxCPC = beROAS>0 ? (cvr * AOV * (1 - p.returnRate)) / beROAS : NaN;
       const curROAS = cpc>0 ? (cvr * AOV * (1 - p.returnRate)) / cpc : NaN;
-      const cvrCrit = AOV>0 ? (beROAS * cpc) / AOV : NaN; // 需要达到的CVR
+      // CVR 临界按“有效营收口径（含退货率）”
+      const cvrCrit = (AOV>0 && (1 - p.returnRate) > 0) ? (beROAS * cpc) / (AOV * (1 - p.returnRate)) : NaN; // 有效口径CVR临界
       // const aovCrit = cvr>0 ? (beROAS * cpc) / cvr : NaN; // 需要达到的AOV
 
       document.getElementById('beRoas').textContent = isFinite(beROAS) ? fmt(beROAS,2) + ' 倍' : '–';
