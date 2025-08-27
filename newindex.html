@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>首页｜参数设置 + 结果卡片 + 数值分析</title>
+  <style>
+    :root{
+      --bg:#F5F5F7; --card:#FFFFFF; --ink:#111111; --muted:#6e6e73; --accent:#007aff;
+      --ok:#34c759; --warn:#ff9f0a; --bad:#ff3b30; --radius:14px; --grid:16px;
+      --mono: "Inter var", "Inter", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "DIN Alternate", "DIN Condensed", sans-serif;
+      --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+    header{padding:20px 20px 0}
+    h1{margin:0 0 4px 0;font-size:22px}
+    .sub{color:var(--muted);font-size:12px}
+
+    main{padding:20px;max-width:1688px;margin:0 auto}
+
+    /* ===== 两栏布局：左参数 / 右结果+分析（参考 single.html） ===== */
+    .layout{display:grid;grid-template-columns:420px 1fr;gap:20px}
+    .right-col{display:grid; grid-template-rows:auto 1fr; gap:20px}
+    @media (max-width: 1100px){ .layout{grid-template-columns:1fr} .right-col{grid-template-rows:auto auto} }
+
+    .card{background:var(--card);border:1px solid #d2d2d7;border-radius:var(--radius);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+    .card h2{margin:0;padding:12px 14px;border-bottom:1px solid #e5e5ea;background:linear-gradient(180deg,#fafafa,#fff);font-size:16px}
+    .content{padding:14px}
+
+    /* ===== 参数输入区（重构） ===== */
+    .params{display:flex;flex-direction:column;gap:16px}
+    .param-group{display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #e5e5ea;border-radius:8px;background:linear-gradient(180deg,#fafafa,#fff)}
+    .group-title{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}
+    .other-grid{grid-template-columns:1fr 1fr 1fr !important}
+    label{font-size:12px;color:var(--muted);display:block;margin:0 0 6px 2px}
+    input,select{width:100%;padding:12px 10px;border:1px solid #d2d2d7;border-radius:10px;outline:none;font-size:20px;font-weight:700}
+    input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,122,255,.18)}
+    /* 对齐 single.html 的输入风格 */
+    .input{
+      background:#ffffff; border:1px solid #d2d2d7; color:var(--ink);
+      border-radius:10px; padding:12px 10px; width:100%;
+      outline:none; font-size:20px; font-weight:700;
+      box-sizing:border-box;
+    }
+    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,0.18); }
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .chip{display:inline-block;padding:2px 6px;border:1px solid #e5e5ea;border-radius:8px;font-size:11px;color:var(--muted);background:#fafafa}
+
+    /* ===== 功能区（保留，位置右上角工具条） ===== */
+    .tooltray{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .tooltray .tag{ margin-right:auto; align-self:center; color:var(--muted); font-size:12px; }
+    .btn{appearance:none;border:0;background:var(--accent);color:#fff;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;box-shadow:0 2px 8px rgba(0,122,255,.24)}
+    .btn.ghost{background:#f2f2f7;color:#111;border:1px solid #d2d2d7}
+
+    /* ===== 结果区6个卡片（保留） ===== */
+    .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+    @media (max-width: 1200px){ .kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
+    .kpi{background:#fff;border:1px solid #e5e5ea;border-radius:10px;padding:8px}
+    .kpi .lab{font-size:11px;color:var(--muted);margin-bottom:2px}
+    .kpi .val{font-family:var(--mono);font-size:24px;font-weight:700}
+    .good{color:var(--ok)} .bad{color:var(--bad)}
+
+    /* ===== 数值分析（将原“弹窗内容”改为首页卡片） ===== */
+    .analysis-card{padding:0}
+    .analysis-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #e5e5ea;background:linear-gradient(180deg,#fafafa,#ffffff);border-top-left-radius:var(--radius);border-top-right-radius:var(--radius)}
+    .analysis-title{margin:0;font-size:16px}
+    .analysis-body{padding:14px;display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px}
+    @media (max-width: 1200px){ .analysis-body{grid-template-columns:1fr} }
+
+    .kpi-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:8px 0}
+    .kpi-band .kpi{padding:10px}
+    .kpi-band .kpi .label{font-size:11px;color:var(--muted);margin-bottom:4px}
+    .kpi-band .kpi .val{font-size:16px;font-weight:600;color:var(--ink)}
+
+    .decision-card{background:#fffdf7;border:1px solid #ffe8b3;border-radius:12px;padding:12px}
+    .decision-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:10px 0}
+    .decision-item{display:flex;flex-direction:column}
+    .decision-item label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .decision-item input,.decision-item select{padding:8px 10px;border:1px solid #d2d2d7;border-radius:8px;font-size:14px}
+
+    .section{background:#fafafa;border:1px solid #e5e5ea;border-radius:10px;padding:12px}
+    .section h4{margin:0 0 10px 0;font-size:14px}
+
+    .hint{font-size:11px;color:var(--muted)}
+    /* ===== 带单位输入框 ===== */
+    .input-unit{position:relative}
+    .input-unit input{padding-right:34px}
+    .input-unit .suffix{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted)}
+
+    /* ===== 目标推演：单一主控 + 灰显提示 ===== */
+    .decision-item.primary input{opacity:1;background:#fff}
+    .decision-item.derived input{opacity:.55;background:#f7f7f7}
+    .control-note{font-size:11px;color:var(--muted);margin-top:4px}
+    .decision-item.primary .control-note{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>电商保本计算器（重构首页）</h1>
+    <div class="sub">两栏布局：左侧参数设置；右侧包含：功能区 → 6个结果卡片 → 数值分析（原弹窗内容，已内嵌）。</div>
+  </header>
+
+  <main class="layout">
+    <!-- 左：参数输入区 -->
+    <section class="card">
+      <h2>参数设置</h2>
+      <div class="content params">
+        <div class="param-group">
+          <div class="group-title">基础</div>
+          <div class="param-grid">
+            <div>
+              <label>售价（含税）</label>
+              <input id="p_price" class="input money2" type="number" step="0.01" placeholder="79.8" data-unit="元" />
+            </div>
+            <div>
+              <label>退货率</label>
+              <input id="p_rr" class="input percent2" type="number" step="0.01" placeholder="12.00" data-unit="%" data-scale="percent" />
+            </div>
+            <div>
+              <label>进货价（不含税）</label>
+              <input id="p_cost" class="input money2" type="number" step="0.01" placeholder="32.0" data-unit="元" />
+            </div>
+            <div>
+              <label>平台佣金率</label>
+              <input id="p_platformRate" class="input percent2" type="number" step="0.01" placeholder="5.50" data-unit="%" data-scale="percent" />
+            </div>
+          </div>
+        </div>
+        <div class="param-group">
+          <div class="group-title">税费</div>
+          <div class="param-grid">
+            <div>
+              <label>开票成本比例（进项服务）</label>
+              <input id="p_inputTaxRate" class="input percent2" type="number" step="0.01" placeholder="6.00" data-unit="%" data-scale="percent" />
+            </div>
+            <div>
+              <label>商品进项税率</label>
+              <input id="p_outputTaxRate" class="input percent2" type="number" step="0.01" placeholder="13.00" data-unit="%" data-scale="percent" />
+            </div>
+            <div>
+              <label>销项税率</label>
+              <input id="p_salesTaxRate" class="input percent2" type="number" step="0.01" placeholder="13.00" data-unit="%" data-scale="percent" />
+            </div>
+            <div>
+              <label>服务费税率（佣金/广告）</label>
+              <input id="p_serviceVATRate" class="input percent2" type="number" step="0.01" placeholder="6.00" data-unit="%" data-scale="percent" />
+            </div>
+          </div>
+        </div>
+        <div class="param-group">
+          <div class="group-title">其他成本</div>
+          <div class="param-grid other-grid">
+            <div>
+              <label>物流费</label>
+              <input id="p_shipping" class="input money2" type="number" step="0.01" placeholder="2.8" data-unit="元" />
+            </div>
+            <div>
+              <label>运费险</label>
+              <input id="p_insurance" class="input money2" type="number" step="0.01" placeholder="1.5" data-unit="元" />
+            </div>
+            <div>
+              <label>其他成本</label>
+              <input id="p_other" class="input money2" type="number" step="0.01" placeholder="2.5" data-unit="元" />
+            </div>
+          </div>
+          <div class="row">
+            <span class="chip">进货模式</span>
+            <label class="chip"><input type="radio" name="goodsMode" value="canReturn" checked> 可退</label>
+            <label class="chip"><input type="radio" name="goodsMode" value="cannotReturn"> 不可退</label>
+          </div>
+        </div>
+        <div class="param-group">
+          <div class="group-title">功能区</div>
+          <div class="tooltray">
+            <button class="btn" id="btnRecalc">重算</button>
+            <button class="btn ghost" id="btnReset">恢复默认</button>
+            <button class="btn ghost" id="btnFullscreen">分析全屏</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右：功能区 + 结果6卡 + 数值分析 -->
+    <section class="right-col">
+
+      <section class="card">
+        <h2>结果卡片</h2>
+        <div class="content">
+          <div class="kpis">
+            <div class="kpi"><div class="lab">保本 ROI（有效）</div><div id="k_roi_eff" class="val">–</div></div>
+            <div class="kpi"><div class="lab">保本 ROI（GMV）</div><div id="k_roi_gmv" class="val">–</div></div>
+            <div class="kpi"><div class="lab">保本广告占比（有效）</div><div id="k_rate_eff" class="val">–</div></div>
+            <div class="kpi"><div class="lab">保本广告占比（GMV）</div><div id="k_rate_gmv" class="val">–</div></div>
+            <div class="kpi"><div class="lab">保本广告费（含税）</div><div id="k_ad_amt" class="val">–</div></div>
+            <div class="kpi"><div class="lab">毛利率（有效口径）</div><div id="k_gm" class="val">–</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 将“分解明细模块”替换为：数值分析（来自原弹窗内容） -->
+      <section id="analysisSection" class="card analysis-card">
+        <div class="analysis-head">
+          <h2 class="analysis-title">数值分析（内嵌）</h2>
+          <div class="row hint">基于 engine.js 计算结果的可视化与推演</div>
+        </div>
+        <div class="analysis-body">
+          <div>
+            <!-- 左：基础信息 + 目标/价值分析 -->
+            <div class="section basic-info">
+              <h4>基础信息</h4>
+              <div class="kpi-band">
+                <div class="kpi"><div class="label">有效营收 Rev</div><div id="a_rev" class="val">–</div></div>
+                <div class="kpi"><div class="label">进货成本</div><div id="a_goods" class="val">–</div></div>
+                <div class="kpi"><div class="label">佣金（可抵扣）</div><div id="a_comm" class="val">–</div></div>
+                <div class="kpi"><div class="label">净税负调整 A</div><div id="a_A" class="val">–</div></div>
+              </div>
+            </div>
+
+            <div class="section" id="targetCard">
+              <h4>目标推演</h4>
+              <div class="decision-grid">
+                <div class="decision-item" id="wrap_eff">
+                  <label>目标广告占比（有效）</label>
+                  <input id="d_rate_eff" class="input percent2" type="number" step="0.01" placeholder="15.00" data-unit="%" data-scale="percent" />
+                  <small class="control-note" id="note_eff"></small>
+                </div>
+                <div class="decision-item" id="wrap_gmv">
+                  <label>目标广告占比（GMV）</label>
+                  <input id="d_rate_gmv" class="input percent2" type="number" step="0.01" placeholder="12.00" data-unit="%" data-scale="percent" />
+                  <small class="control-note" id="note_gmv"></small>
+                </div>
+                <div class="decision-item" id="wrap_amt">
+                  <label>目标广告金额</label>
+                  <input id="d_ad_amt" class="input money2" type="number" step="0.01" placeholder="10.00" data-unit="元" />
+                  <small class="control-note" id="note_amt"></small>
+                </div>
+              </div>
+              <div class="hint">输入任一项，系统会回推另两项以便对比。</div>
+            </div>
+
+            <div class="section" id="valueCard">
+              <h4>价值评估</h4>
+              <div class="kpi-band">
+                <div class="kpi"><div class="label">按有效口径 ROI</div><div id="v_roi_eff" class="val">–</div></div>
+                <div class="kpi"><div class="label">按GMV口径 ROI</div><div id="v_roi_gmv" class="val">–</div></div>
+                <div class="kpi"><div class="label">利润（目标广告）</div><div id="v_profit" class="val">–</div></div>
+                <div class="kpi"><div class="label">利润率（目标广告）</div><div id="v_margin" class="val">–</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <!-- 右：投放决策条 -->
+            <div class="decision-card" id="decisionCard">
+              <h4 style="margin:0 0 8px 0">投放决策</h4>
+              <div class="decision-grid">
+                <div class="decision-item">
+                  <label>CTR（点击率%）</label>
+                  <input id="decCTR" class="input percent2" type="number" step="0.01" placeholder="2.5" data-unit="%" />
+                </div>
+                <div class="decision-item">
+                  <label>CVR（转化率%）</label>
+                  <input id="decCVR" class="input percent2" type="number" step="0.01" placeholder="2.0" data-unit="%" />
+                </div>
+                <div class="decision-item">
+                  <label>CPM</label>
+                  <input id="decCPM" class="input money2" type="number" step="0.01" placeholder="20" data-unit="元" />
+                </div>
+                <div class="decision-item">
+                  <label>CPC（单次点击成本）</label>
+                  <input id="decCPC" class="input money2" type="number" step="0.01" placeholder="— 自动" data-unit="元" />
+                </div>
+              </div>
+              <div class="kpi-band">
+                <div class="kpi"><div class="label">当前预估 ROAS</div><div id="dec_roas" class="val">–</div></div>
+                <div class="kpi"><div class="label">最大可承受 CPC</div><div id="dec_max_cpc" class="val">–</div></div>
+              </div>
+              <div class="hint">当填写 CTR 与 CPM 时，自动由 CPM → CPC；再结合 CVR 与 AOV（即售价）估算 ROAS 与最大可承受CPC。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module">
+    import { computeBase, adRateToAmount, adAmountToRates, computeWithAd } from './engine.js';
+
+    // ===== 输入清洗 & 单位后缀 =====
+    const BLOCK_KEYS = new Set(['e','E','+','-']);
+    function isNumberInput(el){ return el && (el.tagName==='INPUT') && el.type==='number'; }
+    function clampDecimals(str, max){
+      if (!str) return str;
+      if (!/^[0-9.]*$/.test(str)) str = str.replace(/[^0-9.]/g,'');
+      const firstDot = str.indexOf('.');
+      if (firstDot !== -1){
+        // 去除多余小数点
+        str = str.slice(0, firstDot+1) + str.slice(firstDot+1).replace(/\./g,'');
+        if (max >= 0){
+          const [i, d=''] = str.split('.');
+          str = i + (d?'.'+d.slice(0, max):'');
+        }
+      }
+      return str;
+    }
+    function toFixedOrBlank(val, digits){
+      const n = parseFloat(val);
+      return Number.isFinite(n) ? n.toFixed(digits) : '';
+    }
+    function unitWrapAll(){
+      document.querySelectorAll('input[data-unit]').forEach(input=>{
+        const parent = input.parentElement;
+        if (parent && !parent.classList.contains('input-unit')){
+          const wrap = document.createElement('div');
+          wrap.className = 'input-unit';
+          parent.replaceChild(wrap, input);
+          wrap.appendChild(input);
+          const suf = document.createElement('span');
+          suf.className = 'suffix';
+          suf.textContent = input.getAttribute('data-unit')||'';
+          wrap.appendChild(suf);
+        }
+      });
+    }
+    function sanitizeBind(){
+      document.addEventListener('wheel', (e)=>{
+        if (isNumberInput(e.target) && document.activeElement === e.target){ e.target.blur(); }
+      }, { passive:true });
+
+      document.addEventListener('keydown', (e)=>{
+        const t = e.target;
+        if (!isNumberInput(t)) return;
+        if (BLOCK_KEYS.has(e.key)) e.preventDefault();
+      });
+
+      document.addEventListener('input', (e)=>{
+        const t = e.target;
+        if (!isNumberInput(t)) return;
+        let max = 2;
+        if (t.classList.contains('rate4')) max = 4;
+        if (t.classList.contains('percent2')) max = 2;
+        if (t.classList.contains('money2')) max = 2;
+        const cur = t.value;
+        const next = clampDecimals(cur, max);
+        if (next !== cur){
+          const pos = t.selectionStart;
+          t.value = next;
+          try { t.setSelectionRange(pos-1, pos-1); } catch(_){ /* noop */ }
+        }
+      });
+
+      document.addEventListener('blur', (e)=>{
+        const t = e.target;
+        if (!isNumberInput(t)) return;
+        if (t.classList.contains('money2')) t.value = toFixedOrBlank(t.value, 2);
+        else if (t.classList.contains('percent2')) t.value = toFixedOrBlank(t.value, 2);
+        else if (t.classList.contains('rate4')) t.value = toFixedOrBlank(t.value, 4);
+      }, true);
+    }
+
+    // 读取输入值的工具
+    const gv = id => document.getElementById(id);
+    const num = (el, d=null) => {
+      const v = parseFloat(el.value);
+      return Number.isFinite(v) ? v : d;
+    };
+    // 百分号缩放读取
+    function readScaled(el, def=null){
+      const v = parseFloat(el.value);
+      if (!Number.isFinite(v)) return def;
+      return (el.dataset && el.dataset.scale === 'percent') ? (v/100) : v;
+    }
+
+    // ===== 单一主控控制器 =====
+    let targetPrimary = null; // 'eff' | 'gmv' | 'amt' | null
+    function setPrimary(which){
+      targetPrimary = which;
+      const map = { eff:['wrap_eff','note_eff'], gmv:['wrap_gmv','note_gmv'], amt:['wrap_amt','note_amt'] };
+      // reset classes & notes
+      ['eff','gmv','amt'].forEach(k=>{
+        const wrap = document.getElementById(map[k][0]);
+        const note = document.getElementById(map[k][1]);
+        if (!wrap||!note) return;
+        wrap.classList.remove('primary','derived');
+        note.textContent = '';
+      });
+      if (!which) return;
+      // mark primary & derived
+      const others = ['eff','gmv','amt'].filter(k=>k!==which);
+      const [wrapP,noteP] = map[which];
+      const wP = document.getElementById(wrapP); const nP = document.getElementById(noteP);
+      if (wP&&nP){ wP.classList.add('primary'); nP.textContent = '主控'; }
+      others.forEach(k=>{
+        const [wId,nId] = map[k];
+        const w = document.getElementById(wId); const n = document.getElementById(nId);
+        if (w&&n){ w.classList.add('derived'); n.textContent = '由主控推算'; }
+      });
+    }
+    function determinePrimaryFallback(){
+      // 若未显式设定，则按有值的优先级：金额 > 有效占比 > GMV占比
+      if (targetPrimary) return targetPrimary;
+      const hasAmt = !!gv('d_ad_amt').value;
+      const hasEff = !!gv('d_rate_eff').value;
+      const hasGmv = !!gv('d_rate_gmv').value;
+      if (hasAmt) return 'amt';
+      if (hasEff) return 'eff';
+      if (hasGmv) return 'gmv';
+      return null;
+    }
+
+    function collectParams(){
+      return {
+        sellingPrice: num(gv('p_price'), 79.8),
+        returnRate: readScaled(gv('p_rr'), 0.12),
+        costPrice: num(gv('p_cost'), 32.0),
+        inputTaxRate: readScaled(gv('p_inputTaxRate'), 0.06),
+        outputTaxRate: readScaled(gv('p_outputTaxRate'), 0.13),
+        platformRate: readScaled(gv('p_platformRate'), 0.055),
+        shippingCost: num(gv('p_shipping'), 2.8),
+        shippingInsurance: num(gv('p_insurance'), 1.5),
+        otherCost: num(gv('p_other'), 2.5),
+        salesTaxRate: readScaled(gv('p_salesTaxRate'), 0.13),
+        serviceVATRate: readScaled(gv('p_serviceVATRate'), 0.06),
+        goodsMode: (document.querySelector('input[name="goodsMode"]:checked')?.value)||'canReturn'
+      };
+    }
+
+    function fmtMoney(n){ return Number.isFinite(n) ? n.toFixed(2) : '–'; }
+    function fmtPct(n){ return Number.isFinite(n) ? (n*100).toFixed(2)+'%' : '–'; }
+    function fmtMul(n){ return Number.isFinite(n) ? n.toFixed(2)+'×' : '–'; }
+
+    function recalc(){
+      const p = collectParams();
+      const base = computeBase(p);
+      // 结果卡片
+      gv('k_roi_eff').textContent = fmtMul(base.ROI_BE_effective);
+      gv('k_roi_gmv').textContent = fmtMul(base.ROI_BE_gmv);
+      gv('k_rate_eff').textContent = fmtPct(base.adRateBE_effective);
+      gv('k_rate_gmv').textContent = fmtPct(base.adRateBE_gmv);
+      gv('k_ad_amt').textContent = fmtMoney(base.adCostBreakEven);
+      gv('k_gm').textContent = fmtPct(base.grossMarginRate);
+
+      // 数值分析 - 基础信息
+      gv('a_rev').textContent = fmtMoney(base.Rev);
+      gv('a_goods').textContent = fmtMoney(base.goodsCost);
+      gv('a_comm').textContent = fmtMoney(base.commission);
+      gv('a_A').textContent = fmtMoney(base.A);
+
+      // 目标推演互算（单一主控）
+      let mode = determinePrimaryFallback();
+      const eff = readScaled(gv('d_rate_eff')); // 百分号→小数
+      const gmv = readScaled(gv('d_rate_gmv'));
+      const amt = num(gv('d_ad_amt'));
+
+      if (!mode){
+        // 无主控时保持原有优先级：金额 > 有效占比 > GMV占比
+        if (Number.isFinite(amt)) mode = 'amt';
+        else if (Number.isFinite(eff)) mode = 'eff';
+        else if (Number.isFinite(gmv)) mode = 'gmv';
+      }
+
+      if (mode === 'amt' && Number.isFinite(amt)){
+        const rates = adAmountToRates(p, amt);
+        gv('d_rate_eff').value = (rates.effective*100).toFixed(2);
+        gv('d_rate_gmv').value = (rates.gmv*100).toFixed(2);
+      } else if (mode === 'eff' && Number.isFinite(eff)){
+        const a = adRateToAmount(p, eff, 'effective');
+        gv('d_ad_amt').value = a.toFixed(2);
+        gv('d_rate_gmv').value = (adAmountToRates(p, a).gmv*100).toFixed(2);
+      } else if (mode === 'gmv' && Number.isFinite(gmv)){
+        const a = adRateToAmount(p, gmv, 'gmv');
+        gv('d_ad_amt').value = a.toFixed(2);
+        gv('d_rate_eff').value = (adAmountToRates(p, a).effective*100).toFixed(2);
+      } else {
+        // 三者都无效输入：清空互算区（不覆盖默认值）
+      }
+
+      // 根据主控状态更新灰显提示
+      setPrimary(mode||null);
+
+      // 价值评估：使用引擎函数计算给定广告金额下的ROI、利润和利润率
+      const finalAd = num(gv('d_ad_amt'), base.adCostBreakEven);
+      const val = computeWithAd(p, finalAd);
+      gv('v_roi_eff').textContent = fmtMul(val.roiEffective);
+      gv('v_roi_gmv').textContent = fmtMul(val.roiGMV);
+      gv('v_profit').textContent = fmtMoney(val.profit);
+      gv('v_margin').textContent = fmtPct(val.margin);
+
+      // 投放决策：CPM→CPC、ROAS、允许CPC（基于有效AOV与CVR）
+      const ctr = num(gv('decCTR'));
+      const cvr = num(gv('decCVR'));
+      const cpm = num(gv('decCPM'));
+      let cpc = num(gv('decCPC'));
+      if (Number.isFinite(ctr) && Number.isFinite(cpm)){
+        const ctr01 = ctr/100; if (ctr01>0) cpc = cpm / (ctr01 * 1000);
+        gv('decCPC').value = cpc.toFixed(2);
+      }
+      // 预估 ROAS
+      let roas = null, maxCPC = null;
+      if (Number.isFinite(cpc) && Number.isFinite(cvr)){
+        const aov = p.sellingPrice; // 有效期望AOV按售价处理，可扩展连带
+        roas = (cvr/100) * aov / cpc;
+        // 允许CPC：当给定目标ROI为保本ROI（有效）时的最高出价
+        const targetROI = base.ROI_BE_effective;
+        maxCPC = (cvr/100) * aov / targetROI;
+      }
+      gv('dec_roas').textContent = Number.isFinite(roas) ? roas.toFixed(2)+'×' : '–';
+      gv('dec_max_cpc').textContent = Number.isFinite(maxCPC) ? maxCPC.toFixed(2) : '–';
+    }
+
+    // 默认值 & 事件
+    function fillDefaults(){
+      gv('p_price').value = '79.8';
+      gv('p_rr').value = '12.00';
+      gv('p_cost').value = '32.0';
+      gv('p_platformRate').value = '5.50';
+      gv('p_inputTaxRate').value = '6.00';
+      gv('p_outputTaxRate').value = '13.00';
+      gv('p_salesTaxRate').value = '13.00';
+      gv('p_serviceVATRate').value = '6.00';
+      gv('p_shipping').value = '2.8';
+      gv('p_insurance').value = '1.5';
+      gv('p_other').value = '2.5';
+
+      gv('d_rate_eff').value = '';
+      gv('d_rate_gmv').value = '';
+      gv('d_ad_amt').value = '';
+      setPrimary(null);
+
+      gv('decCTR').value = '';
+      gv('decCVR').value = '';
+      gv('decCPM').value = '';
+      gv('decCPC').value = '';
+      unitWrapAll();
+    }
+
+    // 主控切换：在三个目标输入上监听 focus 与输入
+    [['d_rate_eff','eff'],['d_rate_gmv','gmv'],['d_ad_amt','amt']].forEach(([id,key])=>{
+      const el = gv(id);
+      el.addEventListener('focus', ()=>{ setPrimary(key); recalc(); });
+      el.addEventListener('input', ()=>{ if (el.value !== '') { setPrimary(key); } else { targetPrimary = null; } });
+    });
+
+    ['input','change'].forEach(evt=>{
+      document.body.addEventListener(evt, (e)=>{
+        const t = e.target;
+        if (t.matches('input, select')) recalc();
+      });
+    });
+    document.getElementById('btnRecalc').addEventListener('click', recalc);
+    document.getElementById('btnReset').addEventListener('click', ()=>{ fillDefaults(); recalc(); });
+    document.getElementById('btnFullscreen').addEventListener('click', ()=>{
+      const sec = document.getElementById('analysisSection');
+      if (!document.fullscreenElement){ sec.requestFullscreen?.(); }
+      else { document.exitFullscreen?.(); }
+    });
+
+    sanitizeBind();
+    fillDefaults();
+    recalc();
+  </script>
+</body>
+</html>

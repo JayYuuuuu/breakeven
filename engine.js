@@ -1111,3 +1111,37 @@ export function generateInvestmentAdvice(actualROAS, breakevenROAS) {
     return `⚠️ 风险：实际ROAS(${actual.toFixed(2)}) < 保本ROAS(${breakeven.toFixed(2)})`;
   }
 }
+
+// === On-demand evaluation with arbitrary ad spend ===
+/**
+ * 基于 computeBase 结果进行"给定广告金额"的即时评估
+ * 说明：利用"保本广告费（含税）= 利润为 0 的阈值"这一事实，保持既有税务与抵扣口径不变，
+ * 将利润视为相对阈值的线性偏移：profit = (adCostBreakEven - adAmount)
+ * 利润率 = profit / 有效营收；
+ * ROI（有效）= 有效营收 / adAmount；ROI（GMV）= 售价 / adAmount
+ * 
+ * @param {Params} params - 输入参数
+ * @param {number} adAmount - 给定广告费金额
+ * @returns {Object} 计算结果
+ * @returns {number|null} returns.roiEffective - ROI（有效营收口径）
+ * @returns {number|null} returns.roiGMV - ROI（GMV口径）
+ * @returns {number|null} returns.profit - 利润
+ * @returns {number|null} returns.margin - 利润率（有效营收口径）
+ */
+export function computeWithAd(params, adAmount) {
+  const base = computeBase(params);
+  const RevEff = base && typeof base.Rev === 'number' ? base.Rev : null;
+  const price = params && typeof params.sellingPrice === 'number' ? params.sellingPrice : null;
+  const a = (typeof adAmount === 'number') ? adAmount : null;
+
+  const roiEffective = (a && a > 0 && RevEff != null) ? (RevEff / a) : null;
+  const roiGMV = (a && a > 0 && price != null) ? (price / a) : null;
+
+  let profit = null, margin = null;
+  if (a != null && base && typeof base.adCostBreakEven === 'number') {
+    profit = base.adCostBreakEven - a; // "含税广告费"口径
+    if (RevEff && RevEff > 0) margin = profit / RevEff;
+  }
+  
+  return { roiEffective, roiGMV, profit, margin };
+}
