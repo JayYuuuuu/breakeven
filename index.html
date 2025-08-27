@@ -1003,6 +1003,13 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       generateInvestmentAdvice, safetyMarginAnalysis
     } from './engine.js';
 
+    // 引入共享的参数快照/粘贴工具（用于首页智能粘贴与快照恢复）
+    import {
+      parseBEV1Line,
+      parseHumanBlock,
+      decodeSnapshotFromHash
+    } from './share_utils.js';
+
     const $ = (id) => document.getElementById(id);
     const fmt = (n, p = 2) => formatNumber(n, p);
     const pct = (n, p = 2) => formatPercent(n, p);
@@ -1015,6 +1022,34 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     
     function valRate(id) { // percent to decimal
       return valNum(id) / 100;
+    }
+
+    // 智能粘贴：将 BEV1 串或“中文可读块”解析并回填到首页主参数
+    function applyParamsToHomepage({ price, cost, rr, basis }) {
+      // 将解析出的参数回填到首页输入框，并触发计算
+      const elP = $('sellingPrice');
+      const elC = $('costPrice');
+      const elR = $('returnRate');
+      if (price != null && elP) elP.value = price;
+      if (cost  != null && elC) elC.value = cost;
+      if (rr    != null && elR) elR.value = (rr * 100).toFixed(2);
+      if (basis) {
+        const radio = document.querySelector(`input[name="adRateBasis"][value="${basis === 'gmv' ? 'gmv' : 'effective'}"]`);
+        if (radio) radio.checked = true;
+      }
+      if (typeof compute === 'function') compute();
+    }
+
+    function onHomePaste(e){
+      const text = (e.clipboardData || window.clipboardData)?.getData('text');
+      if (!text) return;
+      const bev = parseBEV1Line(text);
+      const human = bev || parseHumanBlock(text);
+      if (human) {
+        e.preventDefault();
+        applyParamsToHomepage(human);
+        if (typeof showToast === 'function') showToast('已从剪贴板导入参数', 1600);
+      }
     }
 
     // ===== Local Storage: auto-save & restore all inputs =====
@@ -1708,6 +1743,12 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         saveDebounced(); // 启用自动保存
       });
     });
+
+    // 绑定智能粘贴到关键输入（售价/进货价/退货率）
+    ;['sellingPrice','costPrice','returnRate'].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('paste', onHomePaste);
+    });
     
     // 为单选按钮组添加事件监听
     document.querySelectorAll('input[name="goodsMode"]').forEach(el=> el.addEventListener('change', ()=>{ 
@@ -1740,6 +1781,28 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     // first-time restore
     loadState();
     updateAdMode();
+
+    // 启动时：若 URL 含有 #snap= 快照，自动解析并回填到主参数
+    (function bootFromHash(){
+      try{
+        const snap = decodeSnapshotFromHash(location.hash);
+        if (!snap || snap.type !== 'breakeven.snapshot.v1') return;
+        const first = snap.items && snap.items[0];
+        if (!first) return;
+        // 优先使用单一价格；否则取第一档
+        let price = first.singlePrice;
+        let cost = first.singleCost;
+        let rr = first.returnRate;
+        if ((price == null || cost == null) && first.tiers && first.tiers.length){
+          const t0 = first.tiers[0] || {};
+          if (price == null) price = t0.price;
+          if (cost  == null) cost  = t0.cost;
+          if (rr == null) rr = t0.rr;
+        }
+        applyParamsToHomepage({ price, cost, rr, basis: snap.basis || 'effective' });
+        if (typeof showToast === 'function') showToast('已从快照链接恢复参数', 1600);
+      }catch(_){ /* 忽略错误 */ }
+    })();
 
     // --- 利润率推演交互 ---
     document.getElementById('simulate').addEventListener('click', simulate);

@@ -1600,6 +1600,8 @@
           <button class="fullscreen-btn" onclick="window.toggleFullscreen()" title="全屏查看">
             <span id="fullscreenIcon">⛶</span>
           </button>
+          <!-- 低存在感复制按钮（仅在面板内显示） -->
+          <button class="btn-icon" id="copyTierInPanel" title="复制此档（含机器串）" style="opacity:0.6">📋</button>
           <button class="close-btn" onclick="window.closeAnalysisPanel()" title="关闭">×</button>
         </div>
       </div>
@@ -1869,6 +1871,13 @@
       getProductExamples, getSystemParamsExample, generateExampleCSV
     } from './product_examples.js';
 
+    // 引入共享的快照/粘贴工具（用于“复制此档”和“快照链接”）
+    import {
+      makeBEV1Line,
+      encodeSnapshotToHash,
+      makeSnapshotJSON
+    } from './share_utils.js';
+
     const $ = (id) => document.getElementById(id);
     
     // 全局变量
@@ -1992,6 +2001,166 @@
             oldestMessage.parentNode.removeChild(oldestMessage);
           }
         }, 300);
+      }
+    }
+    
+    /**
+     * 行内：复制当前档参数到剪贴板（含人类可读 + BEV1 机器串）
+     * @param {number} rowId - 行ID
+     * @param {number} tierIndex - 档位序号（从0起）。若为单一价格模式，传 -1
+     */
+    window.copyTierParams = async function(rowId, tierIndex){
+      try{
+        const row = document.getElementById(`row-${rowId}`);
+        if(!row){ showMessage('未找到行', 'error'); return; }
+        const sku = row.querySelector('.product-sku')?.value || '';
+        const name = row.querySelector('.product-name')?.value || '';
+        const basis = (document.getElementById('decBasis')?.value) || 'effective';
+        // 读取退货率（百分数输入）→ 小数
+        const rrPct = parseFloat(row.querySelector('.return-rate')?.value);
+        const rr = isFinite(rrPct) ? rrPct/100 : 0;
+
+        let price = null, cost = null, tier = null;
+        const singlePriceEl = row.querySelector('.single-price');
+        const singleCostEl  = row.querySelector('.single-cost');
+        const tierPriceEls  = row.querySelectorAll('.tier-price-input');
+        const tierCostEls   = row.querySelectorAll('.tier-cost-input');
+
+        if (tierIndex == null || tierIndex < 0) {
+          // 单一模式
+          price = parseFloat(singlePriceEl?.value);
+          cost  = parseFloat(singleCostEl?.value);
+        } else {
+          const pEl = tierPriceEls[tierIndex];
+          const cEl = tierCostEls[tierIndex];
+          price = parseFloat(pEl?.value);
+          cost  = parseFloat(cEl?.value);
+          tier  = tierIndex + 1;
+        }
+
+        if (!isFinite(price) || !isFinite(cost)){
+          showMessage('请先完善该档的售价与进货价', 'error');
+          return;
+        }
+
+        const bev1 = makeBEV1Line({ price, cost, rr, basis, sku, tier });
+        const human = [
+          `商品参数｜SKU: ${sku}｜${tier?`第${tier}档`:'单一'}`,
+          `商品名：${name}`,
+          `售价：${price}`,
+          `进货价：${cost}`,
+          `退货率：${(rr*100).toFixed(2)}%`,
+          `口径：${basis==='gmv'?'GMV':'有效'}`,
+          `(以下为机器读取)`,
+          bev1
+        ].join('\n');
+
+        await navigator.clipboard.writeText(human);
+        showMessage('已复制当前档参数（含机器串）', 'success');
+      }catch(err){
+        console.error(err);
+        showMessage('复制失败：' + err.message, 'error');
+      }
+    }
+
+    // 面板内复制当前档：不依赖表格DOM，直接读取 currentAnalysisData + currentTierIndex
+    window.copyCurrentTierFromPanel = async function(){
+      try{
+        if (!currentAnalysisData) {
+          showMessage('请先打开并选择要分析的商品行', 'error');
+          return;
+        }
+        const basis = (document.getElementById('decBasis')?.value) || 'effective';
+        const sku = currentAnalysisData.sku || '';
+        const name = currentAnalysisData.name || '';
+        const rr = isFinite(currentAnalysisData.returnRate) ? currentAnalysisData.returnRate : 0;
+
+        let price = null, cost = null, tier = null;
+        if (currentAnalysisData.priceMode === 'single') {
+          price = currentAnalysisData.singlePrice || currentAnalysisData.price;
+          cost  = currentAnalysisData.singleCost  || currentAnalysisData.cost;
+          tier  = null;
+        } else if (currentAnalysisData.priceMode === 'tier') {
+          const idx = (typeof currentTierIndex === 'number' && currentTierIndex >= 0) ? currentTierIndex : 0;
+          price = currentAnalysisData.tierPrices[idx];
+          cost  = currentAnalysisData.tierCosts[idx];
+          tier  = idx + 1;
+        } else if (currentAnalysisData.priceMode === 'singlePriceMultiCost') {
+          const idx = (typeof currentTierIndex === 'number' && currentTierIndex >= 0) ? currentTierIndex : 0;
+          price = currentAnalysisData.singlePrice;
+          cost  = currentAnalysisData.tierCosts[idx];
+          tier  = idx + 1;
+        }
+
+        if (!isFinite(price) || !isFinite(cost)){
+          showMessage('请先完善该档的售价与进货价', 'error');
+          return;
+        }
+
+        const bev1 = makeBEV1Line({ price, cost, rr, basis, sku, tier });
+        const human = [
+          `商品参数｜SKU: ${sku}｜${tier?`第${tier}档`:'单一'}`,
+          `商品名：${name}`,
+          `售价：${price}`,
+          `进货价：${cost}`,
+          `退货率：${(rr*100).toFixed(2)}%`,
+          `口径：${basis==='gmv'?'GMV':'有效'}`,
+          `(以下为机器读取)`,
+          bev1
+        ].join('\n');
+
+        await navigator.clipboard.writeText(human);
+        showMessage('已复制当前档参数（含机器串）', 'success');
+      }catch(err){
+        console.error(err);
+        showMessage('复制失败：' + err.message, 'error');
+      }
+    }
+
+    /**
+     * 整表快照：生成 URL 快照链接并复制
+     * 规则：收集表格中所有商品的结构化信息（含多档），与当前面板口径一并打包
+     */
+    window.copySnapshotLink = async function(){
+      try{
+        const basis = (document.getElementById('decBasis')?.value) || 'effective';
+        const items = [];
+        const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
+        rows.forEach(row=>{
+          const name = row.querySelector('.product-name')?.value || '';
+          const sku  = row.querySelector('.product-sku')?.value || '';
+          const platform = row.querySelector('.platform-select')?.value || '';
+          const isMain = row.querySelector('.main-toggle')?.classList.contains('active') || false;
+          const singlePrice = parseFloat(row.querySelector('.single-price')?.value);
+          const singleCost  = parseFloat(row.querySelector('.single-cost')?.value);
+          const returnRatePct = parseFloat(row.querySelector('.return-rate')?.value);
+          const returnRate = isFinite(returnRatePct) ? returnRatePct/100 : 0;
+          const tierPrices = Array.from(row.querySelectorAll('.tier-price-input')).map(el=>parseFloat(el.value)).filter(v=>isFinite(v));
+          const tierCosts  = Array.from(row.querySelectorAll('.tier-cost-input')).map(el=>parseFloat(el.value)).filter(v=>isFinite(v));
+
+          const item = { name, sku, platform, isMain, returnRate };
+          if (isFinite(singlePrice)) item.singlePrice = singlePrice;
+          if (isFinite(singleCost))  item.singleCost  = singleCost;
+          if (tierPrices.length && tierCosts.length) {
+            const n = Math.min(tierPrices.length, tierCosts.length);
+            item.tiers = Array.from({length:n}).map((_,i)=>({
+              tier: i+1,
+              price: tierPrices[i],
+              cost: tierCosts[i],
+              rr: returnRate
+            }));
+          }
+          items.push(item);
+        });
+
+        const globals = {};
+        const snap = makeSnapshotJSON(items, basis, globals);
+        const url  = location.origin + location.pathname + encodeSnapshotToHash(snap);
+        await navigator.clipboard.writeText(url);
+        showMessage('快照链接已复制', 'success');
+      }catch(err){
+        console.error(err);
+        showMessage('生成/复制快照失败：' + err.message, 'error');
       }
     }
 
@@ -3613,7 +3782,10 @@
           <div class="calc-result" data-row-id="${rowId}">—</div>
         </td>
         <td>
-          <button class="btn secondary small" onclick="window.openAnalysisPanel(${rowId})">分析</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn secondary small" onclick="window.openAnalysisPanel(${rowId})">分析</button>
+            <button class="btn small" onclick="window.copySnapshotLink()">快照链接</button>
+          </div>
         </td>
         <td>
           <button class="btn secondary small" onclick="window.removeRow(${rowId})">删除</button>
@@ -6779,6 +6951,11 @@
       // 设置投放决策条的当前行ID并绑定控件
       window.CURRENT_ANALYSIS_ROW_ID = rowId;
       bindDecisionControls();
+      // 绑定面板内复制按钮
+      const copyBtn = document.getElementById('copyTierInPanel');
+      if (copyBtn) {
+        copyBtn.onclick = () => window.copyCurrentTierFromPanel();
+      }
       
       // 自动填入当前产品售价到AOV输入框
       const prodForPrefill = getRowProductForAnalysis(rowId);
