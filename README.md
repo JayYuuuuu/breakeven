@@ -1,41 +1,165 @@
 # 电商保本计算器
 
-一个专业的电商保本计算工具，帮助电商运营者计算保本广告占比、ROI和利润等关键指标。
+一个专业的电商保本计算工具，帮助电商运营者计算保本广告占比、ROI和利润等关键指标。系统采用模块化架构，支持多种价格模式和复杂的税务计算。
 
 ## 🚀 项目特点
 
-- **纯函数计算引擎**：核心计算逻辑完全独立，无DOM依赖
-- **双口径计算**：支持有效营收口径和GMV口径
-- **多场景推演**：利润率推演、售价反推、成本价反推等
-- **专业税务处理**：考虑进项税、销项税、服务费税率等
-- **退货率处理**：支持进货可退/不可退两种模式
+- **纯函数计算引擎**：核心计算逻辑完全独立，无DOM依赖，可复用
+- **双口径计算**：支持有效营收口径和GMV口径，满足不同场景需求
+- **多场景推演**：利润率推演、售价反推、成本价反推、税费推演等
+- **专业税务处理**：考虑进项税、销项税、服务费税率等复杂税务场景
+- **退货率处理**：支持进货可退/不可退两种模式，灵活应对不同业务场景
+- **多价格模式**：支持单一价格、多档价格、单一售价+多档进货价等模式
+- **批量商品分析**：支持Excel导入、批量计算、筛选排序等企业级功能
+- **投放决策支持**：提供CVR-CPC边界分析、ROI安全边际等投放决策工具
 
 ## 📁 项目结构
 
 ```
 breakeven/
-├── engine.js          # 纯函数计算引擎（核心）
-├── index.html         # 主界面（UI层）
-├── test.html          # 测试页面
-├── .gitignore         # Git忽略文件
-└── README.md          # 项目说明
+├── engine.js              # 纯函数计算引擎（核心）
+├── index.html             # 主界面（基础计算和推演）
+├── product_analysis.html  # 商品分析页面（批量分析）
+├── list_price.html        # 标价计算页面（到手价↔页面标价）
+├── product_examples.js    # 示例商品数据和系统参数
+└── README.md              # 项目说明文档
 ```
 
-## 🔧 核心计算引擎 (engine.js)
+## 🏗️ 系统架构
 
-### 主要函数
+### 核心计算引擎 (engine.js)
 
-- `computeBase(params)` - 基础保本计算
-- `profitGivenAd(params, opts)` - 给定广告费计算利润
-- `solveSellingPrice(params, r, a, basis, m)` - 反推售价
-- `solveCostPrice(params, r, a, basis, m)` - 反推进货价
-- `taxBurdenGiven(params, a, r, basis)` - 税费推演
-- `valueAnalysis(params, basis, cvr, cpc, aov)` - 数值分析
+系统采用分层架构，`engine.js` 作为核心计算引擎，包含所有业务逻辑计算函数：
 
-### 数据结构
+#### 基础计算函数
+- `computeBase(params)` - 基础保本计算，计算保本广告费、ROI等核心指标
+- `profitGivenAd(params, opts)` - 给定广告费计算利润和利润率
+- `adRateToAmount(p, adRate, basis)` - 广告占比转换为金额
+- `adAmountToRates(p, adCost)` - 广告金额转换为两口径占比
+
+#### 反推计算函数
+- `solveSellingPrice(p, r, a, basis, m)` - 反推售价（给定目标利润率）
+- `solveCostPrice(p, r, a, basis, m)` - 反推进货价（给定目标利润率）
+- `taxBurdenGiven(p, a, r, basis)` - 税费推演（不同广告占比下的税负）
+
+#### 数值分析函数
+- `valueAnalysis(p, basis, cvr, cpc, aov)` - CPC/CVR/客单价临界值分析
+- `profitGivenAdRateAndR(p, adRate, r, basis)` - 利润率推演
+- `safetyMarginAnalysis(currentCpc, currentCvr, breakevenAdCost)` - 安全边际分析
+
+#### 投放决策工具
+- `breakevenAdCostFromROI(price, returnRate, ROI_BE_effective)` - 从ROI反推保本广告费
+- `cpcAtBreakeven(cvr, breakevenAdCost)` - 计算保本CPC临界值
+- `cvrAtBreakeven(cpc, breakevenAdCost)` - 计算保本CVR临界值
+- `cpcCvrCurve(breakevenAdCost, opts)` - 生成CVR-CPC边界曲线
+
+#### 商品分析功能
+- `analyzeProduct(product, systemParams)` - 分析单个商品
+- `analyzeProducts(products, systemParams)` - 批量分析商品列表
+- `parseProductFromRow(rowData)` - 从表格数据解析商品对象
+- `validateProduct(product)` - 验证商品数据完整性
+- `exportAnalysisToCSV(analysisResults)` - 导出分析结果到CSV
+
+#### 工具函数
+- `parseListPercents(text)` - 解析百分比列表字符串
+- `parseListNumbers(text)` - 解析数字列表字符串
+- `formatNumber(n, p)` - 数值格式化
+- `formatPercent(n, p)` - 百分比格式化
+- `getPlatformRate(platform)` - 获取平台佣金率
+- `convertMarginPercent(mA_pct, a_pct, b_pct)` - 毛利率换算
+
+### 数据结构定义
+
+#### 输入参数接口 (Params)
+```typescript
+interface Params {
+  sellingPrice: number;        // 售价（含税）
+  returnRate: number;          // 退货率（小数 0~1）
+  costPrice: number;           // 进货价（不含税）
+  inputTaxRate: number;        // 开票成本比例（如 0.06）
+  outputTaxRate: number;       // 商品进项税率（如 0.13）
+  platformRate: number;        // 平台佣金率（如 0.055）
+  shippingCost: number;        // 物流费
+  shippingInsurance: number;   // 运费险
+  otherCost: number;           // 其他成本
+  salesTaxRate: number;        // 销项税率（如 0.13）
+  serviceVATRate: number;      // 服务费税率（佣金/广告，通常 0.06）
+  goodsMode: 'canReturn' | 'cannotReturn'; // 进货模式
+}
+```
+
+#### 基础计算结果 (BaseResult)
+```typescript
+interface BaseResult {
+  r: number;                    // 有效率 = 1 - returnRate
+  Rev: number;                  // 有效含税营收 = 售价 * r
+  goodsCost: number;            // 进货成本（按口径×r或×1）
+  othersCost: number;           // 物流+运险+其他
+  commission: number;           // 佣金（×r）
+  VAT_out: number;              // 销项税
+  VAT_in_goods: number;         // 进货进项
+  VAT_in_comm: number;          // 佣金进项
+  A: number;                    // 保本广告费计算基础值
+  adCostBreakEven: number;      // 保本广告费 X = (1 + s) * A
+  adRateBE_effective: number;   // 保本占比（有效营收口径）
+  adRateBE_gmv: number;         // 保本占比（GMV口径）
+  ROI_BE_effective: number;     // 保本ROI（有效营收口径）
+  ROI_BE_gmv: number;          // 保本ROI（GMV口径）
+  grossMarginRate: number;      // 毛利率（有效营收口径）
+}
+```
+
+#### 商品数据结构 (Product)
+```typescript
+interface Product {
+  name: string;                 // 商品名称
+  sku: string;                  // 货号
+  platform: string;             // 平台
+  isMain: boolean;              // 是否主推款
+  isNew: boolean;               // 是否新品
+  singlePrice: number | null;   // 单一售价（含税）
+  tierPrices: number[];         // 多档售价（含税）
+  returnRate: number;           // 退货率（小数）
+  singleCost: number | null;    // 单一进货价（不含税）
+  tierCosts: number[];          // 多档进货价（不含税）
+  platformRate?: number;        // 平台佣金率（可选）
+}
+```
+
+## 🎯 功能模块
+
+### 1. 主界面 (index.html)
+- **基础计算**：输入商品参数，计算保本广告费、ROI、利润率等
+- **利润率推演**：模拟不同广告占比和退货率下的利润率变化
+- **售价反推**：根据目标利润率反推所需售价
+- **成本价反推**：根据目标利润率反推可接受的进货价
+- **税费推演**：分析不同广告占比下的实际税负占比
+- **数值分析**：CPC/CVR/客单价临界值计算和投放建议
+- **投放决策**：ROI安全边际分析、投放阈值计算
+
+### 2. 商品分析页面 (product_analysis.html)
+- **批量商品管理**：支持添加、编辑、删除商品
+- **多价格模式**：单一价格、多档价格、单一售价+多档进货价
+- **Excel导入导出**：支持CSV格式数据导入导出
+- **智能筛选排序**：按平台、退货率、主推款、新品等条件筛选
+- **分析结果展示**：毛利率、保本广告费、保本ROI等指标
+- **投放决策条**：基于商品参数的投放决策支持
+- **CVR-CPC可视化**：边界曲线图表展示
+
+### 3. 标价计算页面 (list_price.html)
+- **到手价反推**：输入目标到手价，计算所需页面标价
+- **优惠设置**：支持立减百分比和满减档位设置
+- **毛利率换算**：不同折扣方案下的毛利率对比分析
+- **本地存储**：自动保存计算参数和结果
+
+## 🔧 使用方法
+
+### 基础计算示例
 
 ```javascript
-// 输入参数
+import { computeBase, profitGivenAd } from './engine.js';
+
+// 基础参数
 const params = {
   sellingPrice: 79.8,        // 售价（含税）
   returnRate: 0.12,          // 退货率（小数）
@@ -50,61 +174,126 @@ const params = {
   serviceVATRate: 0.06,      // 服务费税率
   goodsMode: 'canReturn'     // 进货模式
 };
+
+// 计算基础保本指标
+const base = computeBase(params);
+console.log('保本广告费:', base.adCostBreakEven);
+console.log('保本ROI:', base.ROI_BE_effective);
+
+// 计算给定广告费下的利润
+const profitResult = profitGivenAd(params, { adCost: 20 });
+console.log('利润:', profitResult.profit);
+console.log('利润率:', profitResult.margin);
 ```
 
-## 🎯 使用方法
-
-### 1. 基础计算
+### 商品批量分析示例
 
 ```javascript
-import { computeBase } from './engine.js';
+import { analyzeProducts, parseProductFromRow } from './engine.js';
 
-const params = { /* 你的参数 */ };
-const result = computeBase(params);
+// 从表格数据解析商品
+const products = [
+  parseProductFromRow({
+    '商品名称': '示例商品',
+    '货号': 'SKU001',
+    '平台': '淘宝',
+    '主推款': '是',
+    '含税售价P': '79.8',
+    '退货率': '12%',
+    '单一进货价': '38'
+  })
+];
 
-console.log('保本广告费:', result.adCostBreakEven);
-console.log('保本ROI:', result.ROI_BE_effective);
+// 系统参数
+const systemParams = {
+  inputTaxRate: 0.06,
+  outputTaxRate: 0.13,
+  shippingCost: 2.8,
+  shippingInsurance: 1.5,
+  otherCost: 2.5,
+  salesTaxRate: 0.13,
+  serviceVATRate: 0.06,
+  goodsMode: 'canReturn'
+};
+
+// 批量分析
+const results = analyzeProducts(products, systemParams);
+console.log('分析结果:', results);
 ```
 
-### 2. 利润计算
+### 投放决策分析示例
 
 ```javascript
-import { profitGivenAd } from './engine.js';
+import { safetyMarginAnalysis, cpcAtBreakeven } from './engine.js';
 
-// 按广告金额计算
-const profit = profitGivenAd(params, { adCost: 20 });
+// 安全边际分析
+const safety = safetyMarginAnalysis(2.5, 0.02, 15.6);
+console.log('投放安全性:', safety.isSafe ? '安全' : '危险');
+console.log('CPC安全边际:', safety.marginPerClick);
 
-// 按广告占比计算
-const profit2 = profitGivenAd(params, { 
-  adRate: 0.25, 
-  basis: 'effective' 
-});
+// 计算保本CPC
+const breakevenCpc = cpcAtBreakeven(0.02, 15.6);
+console.log('保本CPC:', breakevenCpc);
 ```
 
-### 3. 售价反推
+## 📊 计算原理
 
-```javascript
-import { solveSellingPrice } from './engine.js';
+### 利润恒等式
+```
+Profit = Rev - [goodsCost + othersCost + commission + adCost] 
+         - (VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad)
 
-const requiredPrice = solveSellingPrice(
-  params,    // 参数
-  0.88,      // 有效率 r
-  0.25,      // 广告占比
-  'effective', // 口径
-  0.15       // 目标利润率
-);
+其中：
+Rev = 售价 × (1 - 退货率)
+goodsCost = 进货价 × (1 + 开票成本比例) × {可退: ×r；不可退: ×1}
+othersCost = 物流费 + 运费险 + 其他成本（发货即发生）
+commission = 售价 × 平台佣金率 × r
+VAT_out = Rev ÷ (1 + 销项税率) × 销项税率
+VAT_in_goods = 进货价 × 商品进项税率 × {可退: ×r；不可退: ×1}
+VAT_in_comm = commission ÷ (1 + 服务费税率) × 服务费税率
+VAT_in_ad = adCost ÷ (1 + 服务费税率) × 服务费税率
 ```
 
-## 🧪 测试
+### 保本广告费求解
+当 `Profit = 0` 时：
+```
+adCostBreakEven = (1 + serviceVATRate) × A
 
-运行测试页面验证计算引擎：
-
-```bash
-# 在浏览器中打开 test.html
-open test.html
+其中 A = Rev - (goodsCost + othersCost + commission) 
+           - VAT_out + VAT_in_goods + VAT_in_comm
 ```
 
-## 🔄 重构说明
+### 两套口径说明
+- **有效营收口径**：分母 = 售价 × (1 - 退货率)，更贴近实际入账收入
+- **GMV口径**：分母 = 售价（含税），与广告平台报表对齐
+
+### 成本与费用的退货处理方式
+| 类别 | 处理方式 | 说明 |
+|------|----------|------|
+| 进货成本 | 可退：×r<br>不可退：×1 | 退货时货值可退回，不需分摊；若不可退则摊到全部出货 |
+| 快递/运费险/其他 | ×1（发货即发生） | 退货也不退回，需摊到所有出货 |
+| 平台佣金 | ×r | 佣金仅对成交有效，退货可退 |
+| 广告费 | ×1（出货即确认） | 退货不退广告，必须摊到所有出货 |
+
+## 🎨 界面特性
+
+### 响应式设计
+- 支持桌面端和移动端
+- 自适应布局，小屏幕自动隐藏次要列
+- 触摸友好的交互设计
+
+### 用户体验优化
+- 实时计算，输入即更新结果
+- 本地存储，自动保存用户输入
+- 智能提示和错误处理
+- 一键恢复默认值功能
+
+### 数据可视化
+- CVR-CPC边界曲线图表
+- 多维度数据筛选和排序
+- 高亮显示匹配的筛选结果
+
+## 🔄 系统重构说明
 
 本项目已完成重构，将原来的内联计算代码提取到独立的 `engine.js` 纯函数库中：
 
@@ -120,31 +309,52 @@ open test.html
 - **可复用性**：计算引擎可以独立使用
 - **可测试性**：便于编写单元测试
 - **可维护性**：代码结构清晰，易于理解和修改
+- **模块化**：支持按需导入，减少打包体积
 
-## 📊 计算原理
+## 🚀 部署和使用
 
-### 利润恒等式
-```
-Profit = Rev - [goodsCost + othersCost + commission + adCost] 
-         - (VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad)
-```
+### 本地开发
+```bash
+# 克隆项目
+git clone <repository-url>
+cd breakeven
 
-### 保本广告费求解
-当 `Profit = 0` 时：
-```
-adCostBreakEven = (1 + serviceVATRate) × A
-其中 A = Rev - (goodsCost + othersCost + commission) 
-           - VAT_out + VAT_in_goods + VAT_in_comm
+# 启动本地服务器（推荐使用Live Server等工具）
+# 或直接在浏览器中打开HTML文件
 ```
 
-### 两套口径
-- **有效营收口径**：分母 = 售价 × (1 - 退货率)
-- **GMV口径**：分母 = 售价（含税）
+### 生产部署
+- 所有文件都是静态文件，可直接部署到任何Web服务器
+- 支持CDN加速
+- 无需后端服务，纯前端应用
 
-## 🤝 贡献
+## 🤝 贡献指南
 
 欢迎提交Issue和Pull Request来改进这个项目！
 
+### 开发规范
+- 所有计算函数必须是纯函数
+- 添加详细的中文注释
+- 遵循现有的代码风格
+- 新功能需要添加相应的测试用例
+
+### 功能建议
+- 毛利敏感度分析
+- 多SKU对比功能
+- 渠道费模拟
+- 更多数据可视化图表
+
 ## 📄 许可证
 
-本项目仅供学习和参考使用。
+本项目仅供学习和参考使用。使用仅作测算参考，实际以贵司财务/税务规则为准。
+
+## 📞 技术支持
+
+如有问题或建议，请通过以下方式联系：
+- 提交GitHub Issue
+- 查看代码注释和README文档
+- 参考示例数据和计算逻辑
+
+---
+
+**注意**：本工具的计算结果仅供参考，实际经营决策请结合具体业务情况和专业财务建议。
