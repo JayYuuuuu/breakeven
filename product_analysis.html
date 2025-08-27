@@ -1601,7 +1601,9 @@
             <span id="fullscreenIcon">⛶</span>
           </button>
           <!-- 低存在感复制按钮（仅在面板内显示） -->
-          <button class="btn-icon" id="copyTierInPanel" title="复制此档（含机器串）" style="opacity:0.6">📋</button>
+          <button class="btn-icon" id="copyTierInPanel" title="复制此档（含机器串）" onclick="window.copyCurrentTierFromPanel()" style="opacity:0.6">📋</button>
+          <!-- 分享按钮（用于分享给他人查看） -->
+          <button class="btn-icon" id="shareTierInPanel" title="分享商品参数" onclick="window.shareCurrentTierFromPanel()" style="opacity:0.6">📤</button>
           <button class="close-btn" onclick="window.closeAnalysisPanel()" title="关闭">×</button>
         </div>
       </div>
@@ -1864,7 +1866,9 @@
       // 新增投放决策相关函数
       cpmToCpc, calculateEffectiveAOV, calculateROAS, getSafetyStatus,
       calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
-      generateInvestmentAdvice
+      generateInvestmentAdvice,
+      // 保本计算核心函数
+      computeBase
     } from './engine.js';
     
     import {
@@ -2114,6 +2118,187 @@
       }catch(err){
         console.error(err);
         showMessage('复制失败：' + err.message, 'error');
+      }
+    }
+
+    // 面板内分享商品参数：生成人类可读的分享格式，支持多档位
+    window.shareCurrentTierFromPanel = async function(){
+      try{
+        if (!currentAnalysisData) {
+          showMessage('请先打开并选择要分析的商品行', 'error');
+          return;
+        }
+        const sku = currentAnalysisData.sku || '';
+        const name = currentAnalysisData.name || '';
+        
+        let shareText = '';
+        
+        if (currentAnalysisData.priceMode === 'single') {
+          // 单一价格模式
+          const price = currentAnalysisData.singlePrice || currentAnalysisData.price;
+          const cost = currentAnalysisData.singleCost || currentAnalysisData.cost;
+          
+          if (!isFinite(price) || !isFinite(cost)){
+            showMessage('请先完善该商品的售价与进货价', 'error');
+            return;
+          }
+          
+          // 计算保本ROI（有效口径下）
+          const platformRate = getPlatformRate(currentAnalysisData.platform);
+          console.log(`🔍 分享函数调试 - 平台: ${currentAnalysisData.platform}, 佣金率: ${platformRate * 100}%`);
+          
+          const params = {
+            sellingPrice: price,
+            costPrice: cost,
+            returnRate: currentAnalysisData.returnRate,
+            inputTaxRate: valRate('inputTaxRate'),
+            outputTaxRate: valRate('outputTaxRate'),
+            platformRate: platformRate,
+            shippingCost: valNum('shippingCost'),
+            shippingInsurance: valNum('shippingInsurance'),
+            otherCost: valNum('otherCost'),
+            salesTaxRate: valRate('salesTaxRate'),
+            serviceVATRate: valRate('serviceVATRate'),
+            goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+          };
+          
+          console.log(`🔍 分享函数调试 - 计算参数:`, params);
+          const base = computeBase(params);
+          const breakevenROI = base.ROI_BE_effective;
+          console.log(`🔍 分享函数调试 - 保本ROI结果:`, { ROI_BE_effective: base.ROI_BE_effective, ROI_BE_gmv: base.ROI_BE_gmv });
+          
+          shareText = [
+            `商品参数｜SKU: ${sku}｜`,
+            `商品名：${name}`,
+            `页面到手价：${price}`,
+            `进货价：${cost}`,
+            `保本ROI：${isFinite(breakevenROI) ? breakevenROI.toFixed(2) : '—'}`
+          ].join('\n');
+          
+        } else if (currentAnalysisData.priceMode === 'tier') {
+          // 多档价格模式
+          const tierPrices = currentAnalysisData.tierPrices || [];
+          const tierCosts = currentAnalysisData.tierCosts || [];
+          
+          if (tierPrices.length === 0 || tierCosts.length === 0) {
+            showMessage('请先完善该商品的多档位售价与进货价', 'error');
+            return;
+          }
+          
+          const tiers = [];
+          for (let i = 0; i < Math.min(tierPrices.length, tierCosts.length); i++) {
+            const price = tierPrices[i];
+            const cost = tierCosts[i];
+            if (isFinite(price) && isFinite(cost)) {
+              // 计算保本ROI（有效口径下）
+              const platformRate = getPlatformRate(currentAnalysisData.platform);
+              console.log(`🔍 分享函数调试 - 第${i + 1}档 平台: ${currentAnalysisData.platform}, 佣金率: ${platformRate * 100}%`);
+              
+              const params = {
+                sellingPrice: price,
+                costPrice: cost,
+                returnRate: currentAnalysisData.returnRate,
+                inputTaxRate: valRate('inputTaxRate'),
+                outputTaxRate: valRate('outputTaxRate'),
+                platformRate: platformRate,
+                shippingCost: valNum('shippingCost'),
+                shippingInsurance: valNum('shippingInsurance'),
+                otherCost: valNum('otherCost'),
+                salesTaxRate: valRate('salesTaxRate'),
+                serviceVATRate: valRate('serviceVATRate'),
+                goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+              };
+              
+              console.log(`🔍 分享函数调试 - 第${i + 1}档计算参数:`, params);
+              const base = computeBase(params);
+              const breakevenROI = base.ROI_BE_effective;
+              console.log(`🔍 分享函数调试 - 第${i + 1}档保本ROI结果:`, { ROI_BE_effective: base.ROI_BE_effective, ROI_BE_gmv: base.ROI_BE_gmv });
+              
+              const tierText = [
+                `商品参数｜SKU: ${sku}｜第${i + 1}档售价`,
+                `商品名：${name}`,
+                `页面到手价：${price}`,
+                `进货价：${cost}`,
+                `保本ROI：${isFinite(breakevenROI) ? breakevenROI.toFixed(2) : '—'}`
+              ].join('\n');
+              tiers.push(tierText);
+            }
+          }
+          
+          if (tiers.length === 0) {
+            showMessage('没有找到有效的档位数据', 'error');
+            return;
+          }
+          
+          shareText = tiers.join('\n\n');
+          
+        } else if (currentAnalysisData.priceMode === 'singlePriceMultiCost') {
+          // 单一售价+多档进货价模式
+          const price = currentAnalysisData.singlePrice;
+          const tierCosts = currentAnalysisData.tierCosts || [];
+          
+          if (!isFinite(price) || tierCosts.length === 0) {
+            showMessage('请先完善该商品的售价与多档位进货价', 'error');
+            return;
+          }
+          
+          const tiers = [];
+          for (let i = 0; i < tierCosts.length; i++) {
+            const cost = tierCosts[i];
+            if (isFinite(cost)) {
+              // 计算保本ROI（有效口径下）
+              const platformRate = getPlatformRate(currentAnalysisData.platform);
+              console.log(`🔍 分享函数调试 - 第${i + 1}档 平台: ${currentAnalysisData.platform}, 佣金率: ${platformRate * 100}%`);
+              
+              const params = {
+                sellingPrice: price,
+                costPrice: cost,
+                returnRate: currentAnalysisData.returnRate,
+                inputTaxRate: valRate('inputTaxRate'),
+                outputTaxRate: valRate('outputTaxRate'),
+                platformRate: platformRate,
+                shippingCost: valNum('shippingCost'),
+                shippingInsurance: valNum('shippingInsurance'),
+                otherCost: valNum('otherCost'),
+                salesTaxRate: valRate('salesTaxRate'),
+                serviceVATRate: valRate('serviceVATRate'),
+                goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+              };
+              
+              console.log(`🔍 分享函数调试 - 第${i + 1}档计算参数:`, params);
+              const base = computeBase(params);
+              const breakevenROI = base.ROI_BE_effective;
+              console.log(`🔍 分享函数调试 - 第${i + 1}档保本ROI结果:`, { ROI_BE_effective: base.ROI_BE_effective, ROI_BE_gmv: base.ROI_BE_gmv });
+              
+              const tierText = [
+                `商品参数｜SKU: ${sku}｜第${i + 1}档售价`,
+                `商品名：${name}`,
+                `页面到手价：${price}`,
+                `进货价：${cost}`,
+                `保本ROI：${isFinite(breakevenROI) ? breakevenROI.toFixed(2) : '—'}`
+              ].join('\n');
+              tiers.push(tierText);
+            }
+          }
+          
+          if (tiers.length === 0) {
+            showMessage('没有找到有效的档位数据', 'error');
+            return;
+          }
+          
+          shareText = tiers.join('\n\n');
+        }
+        
+        if (shareText) {
+          await navigator.clipboard.writeText(shareText);
+          showMessage('已复制分享格式的商品参数', 'success');
+        } else {
+          showMessage('无法生成分享内容，请检查数据完整性', 'error');
+        }
+        
+      }catch(err){
+        console.error(err);
+        showMessage('分享失败：' + err.message, 'error');
       }
     }
 
