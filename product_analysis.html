@@ -701,6 +701,7 @@
       width: 68px;
       min-width: 68px;
       flex: none;
+      font-family: var(--mono);
     }
     
     .remove-tier-btn {
@@ -817,6 +818,7 @@
   font-weight: 600;
   color: var(--ink);
   text-align: center; /* 数字居中对齐 */
+  font-family: var(--mono);
 }
     
     /* 消息提示样式 */
@@ -1645,6 +1647,10 @@
         <!-- 投放决策条 -->
         <div class="decision-card" id="decisionCard">
           <h4>🎯 投放决策条 <span class="tiny-hint">（基于所选商品与系统参数，计算 BE-ROAS/BE-CPA/Max CPC 等）</span></h4>
+          <p class="module-description" style="margin: 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+            <strong>💡 设计原理：</strong>需要模拟不同AOV场景，帮助用户做投放决策。
+            AOV输入框和连带购买率会影响计算结果，便于测试不同投放策略。
+          </p>
           <div class="decision-grid">
             <div class="decision-item">
               <label>口径</label>
@@ -1721,6 +1727,10 @@
                           <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🔍 即时诊断</h5>
               <span class="tiny-hint">基于 CPC/CVR/客单价 的"成本–效率–收益"链路分析</span>
               <span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ff6b35;">（基于商品当前售价计算，不受 AOV 输入影响）</span>
+              <p class="module-description" style="margin: 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+                <strong>💡 设计原理：</strong>提供基于当前商品参数的稳定分析，不受用户假设影响。
+                基于固定售价计算，不受AOV输入框和连带购买率影响，提供稳定的诊断结果。
+              </p>
             
             <!-- 第一行：成本相关指标 -->
             <div class="kpi-band" style="margin-bottom: 12px;">
@@ -6471,7 +6481,7 @@
           const cpm = parseFloat(document.getElementById('decCPM').value);
           const ctrPct = parseFloat(document.getElementById('decCTR').value);
           const ctr = isFinite(ctrPct)? ctrPct/100 : NaN;
-          cpc = (isFinite(cpm) && isFinite(ctr) && ctr>0) ? (cpm/(ctr*1000)) : NaN;
+          cpc = cpmToCpc(cpm, ctr);
         }
 
         // 读取基础AOV（留空用当前售价）
@@ -6488,7 +6498,7 @@
           : aov;
         
         // 2. 连带放大后 AOV：用于计算 BE-CPA、Max CPC、ROAS 等（随连带率变化）
-        let aovWithBundle = aov * (1 + bundleRate);
+        const aovWithBundle = calculateEffectiveAOV(aov, bundleRate);
         const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
           ? (aovWithBundle * (1 - product.returnRate))
           : aovWithBundle;
@@ -6507,7 +6517,7 @@
         const beCPA  = (isFinite(beROAS) && beROAS > 0 && isFinite(usedAOV)) ? (usedAOV / beROAS) : NaN;
 
         const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
-        const actROAS = (isFinite(cvr) && isFinite(usedAOV) && isFinite(cpc) && cpc>0) ? (cvr*usedAOV)/cpc : NaN;
+        const actROAS = calculateROAS(cvr, usedAOV, cpc);
         // 和最大CPC差值计算（优先使用 safetyAnalysis.marginPerClick，降级到 maxCPC - cpc）
         let safety = NaN;
         if (isFinite(cvr) && isFinite(cpc) && isFinite(beCPA)) {
@@ -6523,13 +6533,13 @@
         
         // 如果 safetyAnalysis 失败，降级到原来的计算方式
         if (!isFinite(safety)) {
-          safety = (isFinite(maxCPC) && isFinite(cpc)) ? (maxCPC - cpc) : NaN;
+          safety = calculateCPCSafetyMargin(maxCPC, cpc);
         }
 
         // 三角临界
         const critCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS>0) ? (cvr*usedAOV)/beROAS : NaN;
-        const critCVR = (isFinite(cpc) && isFinite(usedAOV) && usedAOV>0) ? (cpc*beROAS)/usedAOV : NaN;
-        const critAOV = (isFinite(cpc) && isFinite(cvr) && cvr>0) ? (cpc*beROAS)/cvr : NaN;
+        const critCVR = calculateCriticalCVR(cpc, beCPA);
+        const critAOV = calculateCriticalAOV(cpc, cvr, beROAS);
 
         // 连带购买率已在上面的AOV放大中处理，这里直接使用实际ROAS
         const adjROAS = actROAS;
@@ -6545,7 +6555,8 @@
             
             if (!safetyAnalysis.error) {
               // 状态显示
-              if (safetyAnalysis.isSafe) {
+              const status = getSafetyStatus(safetyAnalysis.marginPerClick);
+              if (status === '安全') {
                 const marginPercent = (safetyAnalysis.marginPercent * 100).toFixed(1);
                 cvrCpcStatus = `安全 (+${marginPercent}%)`;
                 cvrCpcStatusClass = 'good';
@@ -6587,7 +6598,7 @@
                 adviceClass = 'bad';
               } else if (statusPercent < 10 || marginYuan <= 0.2) {
                 // 2. 谨慎：ROI 余量 < 10% 或 元边际 ≤ 0.2
-                advice = '接近临界：小幅试探，谨慎加量';
+                advice = '谨慎：小幅试探，谨慎加量';
                 adviceClass = 'warn';
               } else if (statusPercent < 30 || (marginYuan > 0.2 && marginYuan < 0.5)) {
                 // 3. 观望：10% ≤ 余量 < 30% 或 0.2 < 元边际 < 0.5
@@ -7322,7 +7333,7 @@
           const cpmVal = parseFloat((document.getElementById('decCPM').value || '').trim());
           const ctrPct = parseFloat((document.getElementById('decCTR').value || '').trim());
           const ctr = isFinite(ctrPct) ? (ctrPct/100) : NaN;
-          const cpcFromCPM = (isFinite(cpmVal) && isFinite(ctr) && ctr>0) ? (cpmVal/(ctr*1000)) : NaN;
+          const cpcFromCPM = cpmToCpc(cpmVal, ctr);
           cpcInputRaw = isFinite(cpcFromCPM) ? String(cpcFromCPM) : cpcInputRaw;
         }
 
@@ -7424,7 +7435,7 @@
           const cpmVal = parseFloat((document.getElementById('decCPM').value || '').trim());
           const ctrPct = parseFloat((document.getElementById('decCTR').value || '').trim());
           const ctr = isFinite(ctrPct) ? (ctrPct/100) : NaN;
-          const cpcFromCPM = (isFinite(cpmVal) && isFinite(ctr) && ctr>0) ? (cpmVal/(ctr*1000)) : NaN;
+          const cpcFromCPM = cpmToCpc(cpmVal, ctr);
           if (isFinite(cpcFromCPM)) cpcInput = String(cpcFromCPM);
         }
         
@@ -7444,7 +7455,7 @@
           : aovIn;
         
         // 2. 连带放大后 AOV：用于计算 BE-CPA、Max CPC、ROAS 等（随连带率变化）
-        let aovWithBundle = aovIn * (1 + bundleRate);
+        const aovWithBundle = calculateEffectiveAOV(aovIn, bundleRate);
         const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
           ? (aovWithBundle * (1 - product.returnRate))
           : aovWithBundle;
@@ -7815,7 +7826,7 @@
             const cpmVal = parseFloat((document.getElementById('decCPM')?.value || '').trim());
             const ctrPct = parseFloat((document.getElementById('decCTR')?.value || '').trim());
             const ctr = isFinite(ctrPct) ? (ctrPct/100) : NaN;
-            const cpcFromCPM = (isFinite(cpmVal) && isFinite(ctr) && ctr>0) ? (cpmVal/(ctr*1000)) : NaN;
+            const cpcFromCPM = cpmToCpc(cpmVal, ctr);
             if (isFinite(cpcFromCPM)) cpcFilled = String(cpcFromCPM);
           }
 

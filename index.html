@@ -196,6 +196,62 @@
       color: var(--ink);
     }
     
+    /* 投放决策数据卡片新样式 */
+    .investment-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    
+    .investment-metrics .metric-card {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .investment-metrics .metric-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    
+    .investment-metrics .metric-card .val {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      font-family: var(--mono);
+    }
+    
+    /* 目标推演数据卡片样式 - 一行4列 */
+    .target-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    
+    .target-metrics .target-card {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .target-metrics .target-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    
+    .target-metrics .target-card .val {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      font-family: var(--mono);
+    }
+    
     .target-analysis {
       margin-top: 16px;
     }
@@ -313,9 +369,9 @@
             <button class="btn" id="openTaxSim">税费推演</button>
             <button class="btn" id="openCostSim">成本价推演</button>
             <button class="btn" id="openValueSim">数值分析</button>
+            <button class="btn" id="openInvestmentDecision">投放决策</button>
             <button class="btn" id="openProductAnalysis">商品分析</button>
             <button class="btn" id="openListPrice">标价计算</button>
-            <button class="btn" id="openInvestmentDecision">投放决策</button>
             <!-- 未来功能按钮占位：
             <button class="icon-btn" disabled>毛利敏感度</button>
             <button class="icon-btn" disabled>多SKU对比</button>
@@ -768,6 +824,10 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
             <!-- 投放决策条 -->
             <div class="decision-card" id="decisionCard">
               <h4>🎯 投放决策条 <span class="tiny-hint">（基于主页参数，计算 BE-ROAS/BE-CPA/Max CPC 等）</span></h4>
+              <p class="module-description" style="margin: 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+                <strong>💡 设计原理：</strong>需要模拟不同AOV场景，帮助用户做投放决策。
+                AOV输入框和连带购买率会影响计算结果，便于测试不同投放策略。
+              </p>
               <div class="decision-grid">
                 <div class="decision-item">
                   <label>口径</label>
@@ -800,8 +860,8 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
                   <input type="number" id="decCTR" step="0.01" placeholder="2.5">
                 </div>
                 <div class="decision-item">
-                  <label>客单价 AOV（自动填入到手价）</label>
-                  <input type="number" id="decAOV" step="0.01" placeholder="79.8" readonly>
+                  <label>客单价 AOV（留空则用当前售价）</label>
+                  <input type="number" id="decAOV" step="0.01" placeholder="79.8">
                 </div>
                 <div class="decision-item">
                   <label>连带购买率（%）</label>
@@ -811,58 +871,68 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
               <div class="decision-actions">
                 <button class="btn" id="decCalcBtn" onclick="window.calculateInvestmentDecision();">计算投放阈值</button>
                 <button class="btn primary" style="margin-left: 8px;" onclick="window.calculateInstantDiagnosis()">即时诊断</button>
+                <span class="tiny-hint" style="color: #007aff; font-weight: 600; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #007aff;">（AOV 可手动假设，模拟不同客单价场景）</span>
+                <span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #34c759;">（已启用实时计算，输入后自动更新）</span>
+              </div>
+              <div class="formula-hint">
                 <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
                 <span class="tiny-hint">连带购买率用于放大 AOV：AOV′ = AOV × (1 + 连带率)</span>
+                <br><span class="tiny-hint">连带购买率会放大 AOV，从而影响 BE-CPA、Max CPC、ROAS 等指标</span>
               </div>
               
               <!-- 核心保本阈值 -->
-              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🎯 核心保本阈值</h5>
-              <div class="kpi-band" style="margin-bottom: 12px;">
-                <div class="kpi" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
-                <div class="kpi" id="kpiBECPA"><div class="label">BE-CPA（每单最多广告费）</div><div class="val">—</div></div>
-                <div class="kpi" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">◎ 核心保本阈值</h5>
+              <div class="investment-metrics" style="margin-bottom: 12px;">
+                <div class="metric-card" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiBECPA"><div class="label">BE-CPA（每单最多广告费）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
               </div>
 
               <!-- 实际与临界值对比 -->
-              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">📐 实际与临界值对比</h5>
-              <div class="kpi-band" style="margin-bottom: 12px;">
-                <div class="kpi" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—</div></div>
-                <div class="kpi" id="kpiCritCVR"><div class="label">CVR 临界（保本转化率）</div><div class="val">—</div></div>
-                <div class="kpi" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—</div></div>
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">△ 实际与临界值对比</h5>
+              <div class="investment-metrics" style="margin-bottom: 12px;">
+                <div class="metric-card" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiCritCVR"><div class="label">CVR 临界（保本转化率）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—</div></div>
               </div>
 
               <!-- 安全性与建议 -->
-              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">⚡ 安全性与建议</h5>
-              <div class="kpi-band" style="margin-bottom: 12px;">
-                <div class="kpi" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—</div></div>
-                <div class="kpi" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态（出价安全指数）</div><div class="val">—</div></div>
-                <div class="kpi" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">☆ 安全性与建议</h5>
+              <div class="investment-metrics" style="margin-bottom: 12px;">
+                <div class="metric-card" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态（出价安全指数）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
               </div>
 
               <!-- 即时诊断结果 -->
               <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
                 <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🔍 即时诊断</h5>
                 <span class="tiny-hint">基于 CPC/CVR/客单价 的"成本–效率–收益"链路分析</span>
+                <span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ff6b35;">（基于商品当前售价计算，不受 AOV 输入影响）</span>
+                <p class="module-description" style="margin: 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+                  <strong>💡 设计原理：</strong>提供基于当前商品参数的稳定分析，不受用户假设影响。
+                  基于固定售价计算，不受AOV输入框和连带购买率影响，提供稳定的诊断结果。
+                </p>
                 
                 <!-- 成本相关指标 -->
-                <div class="kpi-band" style="margin-bottom: 12px;">
-                  <div class="kpi"><div class="label">CPA（每单广告成本）=CPC/CVR</div><div class="val" id="actualCPA">—</div></div>
-                  <div class="kpi"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—</div></div>
-                  <div class="kpi"><div class="label">实际广告占比=CPA/（AOV*有效率）</div><div class="val" id="actualAdRate">—</div></div>
+                <div class="investment-metrics" style="margin-bottom: 12px;">
+                  <div class="metric-card"><div class="label">CPA（每单广告成本）=CPC/CVR</div><div class="val" id="actualCPA">—</div></div>
+                  <div class="metric-card"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—</div></div>
+                  <div class="metric-card"><div class="label">实际广告占比=CPA/（AOV*有效率）</div><div class="val" id="actualAdRate">—</div></div>
                 </div>
                 
                 <!-- 效率相关指标 -->
-                <div class="kpi-band" style="margin-bottom: 12px;">
-                  <div class="kpi"><div class="label">实际ROI（每点击收益/CPC）</div><div class="val" id="actualROI">—</div></div>
-                  <div class="kpi"><div class="label">保本ROI</div><div class="val" id="breakevenROI">—</div></div>
-                  <div class="kpi"><div class="label">ROI安全边际</div><div class="val" id="safetyMargin">—</div></div>
+                <div class="investment-metrics" style="margin-bottom: 12px;">
+                  <div class="metric-card"><div class="label">实际ROI（每点击收益/CPC）</div><div class="val" id="actualROI">—</div></div>
+                  <div class="metric-card"><div class="label">保本ROI</div><div class="val" id="breakevenROI">—</div></div>
+                  <div class="metric-card"><div class="label">ROI安全边际</div><div class="val" id="safetyMargin">—</div></div>
                 </div>
                 
                 <!-- 收益相关指标 -->
-                <div class="kpi-band" style="margin-bottom: 12px;">
-                  <div class="kpi"><div class="label">RPC（每点击收益）=CVR*AOV</div><div class="val" id="rpcPerClick">—</div></div>
-                  <div class="kpi"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
-                  <div class="kpi"><div class="label">状态</div><div class="val" id="statusIndicator">—</div></div>
+                <div class="investment-metrics" style="margin-bottom: 12px;">
+                  <div class="metric-card"><div class="label">RPC（每点击收益）=CVR*AOV</div><div class="val" id="rpcPerClick">—</div></div>
+                  <div class="metric-card"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
+                  <div class="metric-card"><div class="label">状态</div><div class="val" id="statusIndicator">—</div></div>
                 </div>
 
                 <!-- 优化建议 -->
@@ -900,12 +970,13 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
               </div>
               <div class="result-buttons">
                 <button class="btn" onclick="window.calculateTargetAnalysis()">计算目标推演</button>
+                <span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #34c759;">（已启用实时计算，输入后自动更新）</span>
               </div>
-              <div class="kpi-band">
-                <div class="kpi" id="kpiActualMargin"><div class="label">当前产品参数下的实际利润率</div><div class="val" id="actualMarginResult">—</div></div>
-                <div class="kpi" id="kpiTargetPrice"><div class="label">达到目标利润率所需售价</div><div class="val" id="targetPriceResult">—</div></div>
-                <div class="kpi" id="kpiTargetCost"><div class="label">达到目标利润率可接受进货价</div><div class="val" id="targetCostResult">—</div></div>
-                <div class="kpi" id="kpiTargetTax"><div class="label">净税负占比</div><div class="val" id="taxResult">—</div></div>
+              <div class="target-metrics">
+                <div class="target-card" id="kpiActualMargin"><div class="label">当前产品参数下的实际利润率</div><div class="val" id="actualMarginResult">—</div></div>
+                <div class="target-card" id="kpiTargetPrice"><div class="label">达到目标利润率所需售价</div><div class="val" id="targetPriceResult">—</div></div>
+                <div class="target-card" id="kpiTargetCost"><div class="label">达到目标利润率可接受进货价</div><div class="val" id="targetCostResult">—</div></div>
+                <div class="target-card" id="kpiTargetTax"><div class="label">净税负占比</div><div class="val" id="taxResult">—</div></div>
               </div>
             </div>
           </div>
@@ -929,7 +1000,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       // 新增投放决策相关函数
       cpmToCpc, calculateEffectiveAOV, calculateROAS, getSafetyStatus,
       calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
-      generateInvestmentAdvice
+      generateInvestmentAdvice, safetyMarginAnalysis
     } from './engine.js';
 
     const $ = (id) => document.getElementById(id);
@@ -2021,6 +2092,19 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       const returnRate = valRate('returnRate');
       const effectiveRate = 1 - returnRate;
       document.getElementById('targetR').value = (effectiveRate * 100).toFixed(2);
+      
+      // 初始化实时计算功能
+      setupRealTimeCalculation();
+      
+      // 如果已有足够参数，自动计算一次
+      setTimeout(() => {
+        if (shouldAutoCalculate()) {
+          window.calculateInvestmentDecision();
+        }
+        if (shouldAutoCalculateTarget()) {
+          window.calculateTargetAnalysis();
+        }
+      }, 100);
     }
     
     function closeInvestment() {
@@ -2087,47 +2171,102 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         
         // 计算CPC（根据买量方式）
         let cpc = 0;
+        let cpcStatus = 'pending'; // 新增：CPC状态标记
+        
         if (mode === 'cpc') {
           cpc = valNum('decCPC');
+          cpcStatus = cpc > 0 ? 'valid' : 'missing';
         } else {
           const cpm = valNum('decCPM');
           const ctr = valNum('decCTR') / 100;
-          cpc = cpmToCpc(cpm, ctr);
+          if (cpm > 0 && ctr > 0) {
+            cpc = cpmToCpc(cpm, ctr);
+            cpcStatus = 'valid';
+          } else {
+            cpcStatus = 'missing';
+          }
         }
         
-        // 保本指标计算
+        // 保本指标计算 - 与商品分析页面保持一致
         const beROAS = basis === 'effective' ? base.ROI_BE_effective : base.ROI_BE_gmv;
-        const beCPA = base.adCostBreakEven;
         
-        // 计算最大CPC
-        const maxCPC = cvr > 0 ? beCPA * cvr : 0;
+        // 计算有效AOV（按口径对齐，考虑退货率）
+        const usedAOV = (basis === 'effective' && isFinite(params.returnRate)) 
+          ? (effectiveAOV * (1 - params.returnRate)) 
+          : effectiveAOV;
         
-        // 计算临界值
+        // 调试日志 - 与商品分析页面保持一致
+        console.log('📦 首页投放决策连带购买率:', bundleRate, '基础AOV:', aov, '放大后AOV:', effectiveAOV);
+        console.log('🔍 首页AOV两套逻辑:', {
+          结构口径AOV: (basis === 'effective' && isFinite(params.returnRate)) ? (aov * (1 - params.returnRate)) : aov, // 用于 BE-ROAS
+          连带放大AOV: usedAOV,       // 用于 BE-CPA/MaxCPC/ROAS
+          放大倍数: (1 + bundleRate)
+        });
+        
+        // 保本CPA计算 - 与商品分析页面保持一致
+        const beCPA = (isFinite(beROAS) && beROAS > 0 && isFinite(usedAOV)) 
+          ? (usedAOV / beROAS) 
+          : NaN;
+        
+        // 计算最大CPC - 与商品分析页面保持一致
+        const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS > 0) 
+          ? (cvr * usedAOV) / beROAS 
+          : NaN;
+        
+        // 计算临界值 - 与商品分析页面保持一致
         const critCVR = calculateCriticalCVR(cpc, beCPA);
         const critAOV = calculateCriticalAOV(cpc, cvr, beROAS);
         
-        // 计算实际ROAS
-        const actualROAS = calculateROAS(cvr, effectiveAOV, cpc);
+        // 计算实际ROAS - 与商品分析页面保持一致
+        // 商品分析页面逻辑：ROAS = (cvr * usedAOV) / cpc
+        const actualROAS = calculateROAS(cvr, usedAOV, cpc);
         
-        // 安全性分析
-        const safetyMargin = calculateCPCSafetyMargin(maxCPC, cpc);
-        const status = getSafetyStatus(safetyMargin);
+        // 安全性分析 - 与商品分析页面保持一致
+        let safety = NaN;
+        if (isFinite(cvr) && isFinite(cpc) && isFinite(beCPA)) {
+          try {
+            const safetyAnalysis = safetyMarginAnalysis(cpc, cvr, beCPA);
+            if (!safetyAnalysis.error) {
+              safety = safetyAnalysis.marginPerClick; // 使用元/点击口径的安全边际
+            }
+          } catch (error) {
+            console.error('❌ 安全边际计算失败，使用降级计算:', error);
+          }
+        }
         
-        // 更新显示
+        // 如果 safetyAnalysis 失败，降级到原来的计算方式
+        if (!isFinite(safety)) {
+          safety = calculateCPCSafetyMargin(maxCPC, cpc);
+        }
+        
+        const status = getSafetyStatus(safety);
+        
+        // 更新显示 - 根据CPC状态智能显示
         document.querySelector('#kpiBEROAS .val').textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
         document.querySelector('#kpiBECPA .val').textContent = isFinite(beCPA) ? beCPA.toFixed(2) + ' 元' : '—';
         document.querySelector('#kpiMaxCPC .val').textContent = isFinite(maxCPC) ? maxCPC.toFixed(2) + ' 元' : '—';
         
-        document.querySelector('#kpiActROAS .val').textContent = isFinite(actualROAS) ? actualROAS.toFixed(2) : '—';
-        document.querySelector('#kpiCritCVR .val').textContent = isFinite(critCVR) ? (critCVR * 100).toFixed(2) + '%' : '—';
-        document.querySelector('#kpiCritAOV .val').textContent = isFinite(critAOV) ? critAOV.toFixed(2) + ' 元' : '—';
-        
-        document.querySelector('#kpiSafety .val').textContent = isFinite(safetyMargin) ? (safetyMargin >= 0 ? '+' : '') + safetyMargin.toFixed(2) + ' 元' : '—';
-        document.querySelector('#kpiCvrCpcStatus .val').textContent = status;
-        
-        // 生成建议
-        const advice = generateInvestmentAdvice(actualROAS, beROAS);
-        document.querySelector('#kpiAdvice .val').textContent = advice;
+        // 需要CPC的指标根据状态显示
+        if (cpcStatus === 'valid') {
+          document.querySelector('#kpiActROAS .val').textContent = isFinite(actualROAS) ? actualROAS.toFixed(2) : '—';
+          document.querySelector('#kpiCritCVR .val').textContent = isFinite(critCVR) ? (critCVR * 100).toFixed(2) + '%' : '—';
+          document.querySelector('#kpiCritAOV .val').textContent = isFinite(critAOV) ? critAOV.toFixed(2) + ' 元' : '—';
+          document.querySelector('#kpiSafety .val').textContent = isFinite(safety) ? (safety >= 0 ? '+' : '') + safety.toFixed(2) + ' 元' : '—';
+          document.querySelector('#kpiCvrCpcStatus .val').textContent = status;
+          
+          // 生成建议
+          const advice = generateInvestmentAdvice(actualROAS, beROAS);
+          document.querySelector('#kpiAdvice .val').textContent = advice;
+        } else {
+          // CPC缺失时的提示
+          const cpcHint = mode === 'cpc' ? '请输入CPC' : '请输入CPM和CTR';
+          document.querySelector('#kpiActROAS .val').textContent = '—';
+          document.querySelector('#kpiCritCVR .val').textContent = '—';
+          document.querySelector('#kpiCritAOV .val').textContent = '—';
+          document.querySelector('#kpiSafety .val').textContent = '—';
+          document.querySelector('#kpiCvrCpcStatus .val').textContent = '待输入';
+          document.querySelector('#kpiAdvice .val').textContent = `请先${cpcHint}`;
+        }
         
         console.log('✅ 投放决策计算完成');
         showToast('投放决策计算完成', 2000);
@@ -2139,6 +2278,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     };
     
     // 即时诊断函数
+    // 注意：与商品分析页面保持一致，基于商品当前售价计算，不受AOV输入和连带购买率影响
     window.calculateInstantDiagnosis = function() {
       try {
         console.log('🔍 开始即时诊断...');
@@ -2161,7 +2301,8 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         
         const base = computeBase(params);
         const cvr = valNum('decCVR') / 100;
-        const aov = params.sellingPrice; // 使用当前售价，不受AOV输入影响
+        // 即时诊断：基于商品当前售价计算，不受AOV输入影响（与商品分析页面保持一致）
+        const aov = params.sellingPrice; // 固定使用售价，不受AOV输入影响
         const mode = document.getElementById('decBuyMode').value;
         
         let cpc = 0;
@@ -2173,15 +2314,18 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           cpc = cpmToCpc(cpm, ctr);
         }
         
+        // 即时诊断：使用固定售价，不考虑连带购买率（与商品分析页面保持一致）
+        const effectiveRate = 1 - params.returnRate;
+        const usedAOV = aov * effectiveRate; // 有效营收口径的AOV（基于固定售价）
+        
         if (cvr > 0 && cpc > 0) {
-          const effectiveRate = 1 - params.returnRate;
           const actualCPA = cpc / cvr;
           const cpaGap = base.adCostBreakEven - actualCPA;
           const actualAdRate = actualCPA / (aov * effectiveRate);
-          const actualROI = calculateROAS(cvr, aov * effectiveRate, cpc);
+          const actualROI = calculateROAS(cvr, usedAOV, cpc);
           const breakevenROI = base.ROI_BE_effective;
           const safetyMargin = actualROI / breakevenROI - 1;
-          const rpcPerClick = cvr * aov * effectiveRate;
+          const rpcPerClick = cvr * usedAOV;
           
           // 更新即时诊断显示
           document.getElementById('actualCPA').textContent = actualCPA.toFixed(2) + ' 元';
@@ -2199,7 +2343,32 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           
           console.log('✅ 即时诊断完成');
         } else {
-          showToast('请输入CVR和CPC参数', 2000);
+          // 参数缺失时的提示
+          const missingParams = [];
+          if (cvr <= 0) missingParams.push('CVR');
+          if (cpc <= 0) {
+            if (mode === 'cpc') {
+              missingParams.push('CPC');
+            } else {
+              missingParams.push('CPM和CTR');
+            }
+          }
+          
+          // 显示即时诊断结果但显示提示信息
+          document.getElementById('actualCPA').textContent = '—';
+          document.getElementById('cpaGap').textContent = '—';
+          document.getElementById('actualAdRate').textContent = '—';
+          document.getElementById('actualROI').textContent = '—';
+          document.getElementById('breakevenROI').textContent = '—';
+          document.getElementById('safetyMargin').textContent = '—';
+          document.getElementById('rpcPerClick').textContent = '—';
+          document.getElementById('basisNote').textContent = '有效营收口径';
+          document.getElementById('statusIndicator').textContent = `请先输入${missingParams.join('、')}`;
+          
+          // 显示即时诊断结果
+          document.getElementById('instantDiagnosisResult').style.display = 'block';
+          
+          console.log('⚠️ 即时诊断参数缺失:', missingParams);
         }
         
       } catch (error) {
@@ -2270,6 +2439,104 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         showToast('目标推演失败', 2000);
       }
     };
+    
+    // 添加实时计算功能
+    function setupRealTimeCalculation() {
+      // 投放决策条实时计算
+      const decisionInputs = [
+        'decBasis', 'decCVR', 'decBuyMode', 'decCPC', 'decCPM', 'decCTR', 'decAOV', 'decBundleRate'
+      ];
+      
+      decisionInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          // 移除之前的事件监听器（避免重复绑定）
+          element.removeEventListener('input', element._inputHandler);
+          element.removeEventListener('change', element._changeHandler);
+          
+          // 创建新的事件处理器
+          element._inputHandler = debounce(() => {
+            if (shouldAutoCalculate()) {
+              console.log('🔄 实时计算投放决策...');
+              window.calculateInvestmentDecision();
+            }
+          }, 300);
+          
+          element._changeHandler = () => {
+            if (shouldAutoCalculate()) {
+              console.log('🔄 实时计算投放决策...');
+              window.calculateInvestmentDecision();
+            }
+          };
+          
+          // 绑定事件
+          element.addEventListener('input', element._inputHandler);
+          element.addEventListener('change', element._changeHandler);
+        }
+      });
+      
+      // 目标推演实时计算
+      const targetInputs = ['targetR', 'targetA', 'targetBasis', 'targetM'];
+      
+      targetInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          // 移除之前的事件监听器（避免重复绑定）
+          element.removeEventListener('input', element._inputHandler);
+          element.removeEventListener('change', element._changeHandler);
+          
+          // 创建新的事件处理器
+          element._inputHandler = debounce(() => {
+            if (shouldAutoCalculateTarget()) {
+              console.log('🔄 实时计算目标推演...');
+              window.calculateTargetAnalysis();
+            }
+          }, 300);
+          
+          element._changeHandler = () => {
+            if (shouldAutoCalculateTarget()) {
+              console.log('🔄 实时计算目标推演...');
+              window.calculateTargetAnalysis();
+            }
+          };
+          
+          // 绑定事件
+          element.addEventListener('input', element._inputHandler);
+          element.addEventListener('change', element._changeHandler);
+        }
+      });
+    }
+    
+    // 使用已存在的debounce函数，无需重复定义
+    
+    // 判断是否应该自动计算投放决策 - 只要有基本参数就计算
+    function shouldAutoCalculate() {
+      const cvr = valNum('decCVR');
+      const aov = valNum('decAOV');
+      const mode = document.getElementById('decBuyMode').value;
+      
+      // 只要有CVR和AOV就可以开始计算
+      if (cvr <= 0 || aov <= 0) return false;
+      
+      // 根据买量方式判断是否需要额外参数
+      if (mode === 'cpc') {
+        // CPC模式：只要有CPC就计算，没有CPC时显示提示
+        const cpc = valNum('decCPC');
+        return true; // 总是允许计算，在计算函数中处理缺失参数
+      } else {
+        // CPM模式：只要有CPM和CTR就计算
+        const cpm = valNum('decCPM');
+        const ctr = valNum('decCTR');
+        return true; // 总是允许计算，在计算函数中处理缺失参数
+      }
+    }
+    
+    // 判断是否应该自动计算目标推演
+    function shouldAutoCalculateTarget() {
+      const r = valNum('targetR');
+      const a = valNum('targetA');
+      return r > 0 && a > 0;
+    }
     
     // 添加Escape键关闭模态框
     document.addEventListener('keydown', (e) => {
