@@ -419,13 +419,13 @@
       const cvrCrit = AOV>0 ? (beROAS * cpc) / AOV : NaN; // 需要达到的CVR
       // const aovCrit = cvr>0 ? (beROAS * cpc) / cvr : NaN; // 需要达到的AOV
 
-      document.getElementById('beRoas').textContent = fmt(beROAS,2);
-      document.getElementById('beCpa').textContent = fmt(beCPA,2);
+      document.getElementById('beRoas').textContent = isFinite(beROAS) ? fmt(beROAS,2) + ' 倍' : '–';
+      document.getElementById('beCpa').textContent = isFinite(beCPA) ? fmt(beCPA,2) + ' 元' : '–';
       document.getElementById('maxCpc').textContent = fmt(maxCPC,2);
 
       // 根据真实ROI与保本ROI比较设置颜色
       const curROASElement = document.getElementById('curROAS');
-      curROASElement.textContent = fmt(curROAS,2);
+      curROASElement.textContent = isFinite(curROAS) ? fmt(curROAS,2) + ' 倍' : '–';
       if (isFinite(curROAS) && isFinite(beROAS)) {
         curROASElement.style.color = curROAS >= beROAS ? 'var(--ok)' : 'var(--bad)';
       } else {
