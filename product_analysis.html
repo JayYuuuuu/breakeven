@@ -1848,7 +1848,11 @@
       getPlatformRate, solveSellingPrice, solveCostPrice,
       taxBurdenGiven, valueAnalysis,
       breakevenAdCostFromROI, cpcAtBreakeven, cvrAtBreakeven, 
-      cpcCvrCurve, safetyMarginAnalysis
+      cpcCvrCurve, safetyMarginAnalysis,
+      // 新增投放决策相关函数
+      cpmToCpc, calculateEffectiveAOV, calculateROAS, getSafetyStatus,
+      calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
+      generateInvestmentAdvice
     } from './engine.js';
     
     import {

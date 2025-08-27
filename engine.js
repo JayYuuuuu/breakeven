@@ -1003,3 +1003,111 @@ export function convertMarginPercent(mA_pct, a_pct, b_pct){
 
   return (num / den) * 100; // 返回百分数
 }
+
+/** ===== 投放决策相关工具函数 ===== */
+
+/**
+ * CPM转CPC计算
+ * @param {number} cpm - 千次展示成本（元/千次）
+ * @param {number} ctr - 点击率（小数0-1）
+ * @returns {number} CPC（元/点击）
+ */
+export function cpmToCpc(cpm, ctr) {
+  const cpmVal = Number(cpm) || 0;
+  const ctrVal = Number(ctr) || 0;
+  return ctrVal > 0 ? cpmVal / (ctrVal * 1000) : 0;
+}
+
+/**
+ * 计算有效AOV（考虑连带购买率）
+ * @param {number} aov - 基础客单价
+ * @param {number} bundleRate - 连带购买率（小数0-1）
+ * @returns {number} 有效客单价
+ */
+export function calculateEffectiveAOV(aov, bundleRate) {
+  const aovVal = Number(aov) || 0;
+  const bundleVal = Number(bundleRate) || 0;
+  return aovVal * (1 + bundleVal);
+}
+
+/**
+ * 计算ROAS（广告投入产出比）
+ * @param {number} cvr - 转化率（小数0-1）
+ * @param {number} aov - 客单价
+ * @param {number} cpc - 点击成本（元/点击）
+ * @returns {number} ROAS值
+ */
+export function calculateROAS(cvr, aov, cpc) {
+  const cvrVal = Number(cvr) || 0;
+  const aovVal = Number(aov) || 0;
+  const cpcVal = Number(cpc) || 0;
+  return cpcVal > 0 ? (cvrVal * aovVal) / cpcVal : 0;
+}
+
+/**
+ * 获取安全性状态
+ * @param {number} margin - 安全边际值
+ * @returns {string} 安全状态：'安全' 或 '危险'
+ */
+export function getSafetyStatus(margin) {
+  return Number(margin) >= 0 ? '安全' : '危险';
+}
+
+/**
+ * 计算CPC安全边际
+ * @param {number} maxCPC - 最大允许CPC
+ * @param {number} currentCPC - 当前CPC
+ * @returns {number} 安全边际值（正数表示安全，负数表示超支）
+ */
+export function calculateCPCSafetyMargin(maxCPC, currentCPC) {
+  const max = Number(maxCPC) || 0;
+  const current = Number(currentCPC) || 0;
+  return max - current;
+}
+
+/**
+ * 计算CVR临界值（保本所需最低转化率）
+ * @param {number} cpc - 当前CPC
+ * @param {number} breakevenCPA - 保本每单广告费
+ * @returns {number} 保本所需最低CVR（小数0-1）
+ */
+export function calculateCriticalCVR(cpc, breakevenCPA) {
+  const cpcVal = Number(cpc) || 0;
+  const beCPA = Number(breakevenCPA) || 0;
+  return beCPA > 0 ? cpcVal / beCPA : 0;
+}
+
+/**
+ * 计算客单价临界值（保本所需最低客单价）
+ * @param {number} cpc - 当前CPC
+ * @param {number} cvr - 当前转化率（小数0-1）
+ * @param {number} breakevenROI - 保本ROI
+ * @returns {number} 保本所需最低客单价
+ */
+export function calculateCriticalAOV(cpc, cvr, breakevenROI) {
+  const cpcVal = Number(cpc) || 0;
+  const cvrVal = Number(cvr) || 0;
+  const beROI = Number(breakevenROI) || 0;
+  return cpcVal > 0 && cvrVal > 0 ? (cpcVal * beROI) / cvrVal : 0;
+}
+
+/**
+ * 生成投放建议
+ * @param {number} actualROAS - 实际ROAS
+ * @param {number} breakevenROAS - 保本ROAS
+ * @returns {string} 投放建议
+ */
+export function generateInvestmentAdvice(actualROAS, breakevenROAS) {
+  const actual = Number(actualROAS) || 0;
+  const breakeven = Number(breakevenROAS) || 0;
+  
+  if (!isFinite(actual) || !isFinite(breakeven)) {
+    return '请输入完整参数';
+  }
+  
+  if (actual >= breakeven) {
+    return `✅ 安全：实际ROAS(${actual.toFixed(2)}) ≥ 保本ROAS(${breakeven.toFixed(2)})`;
+  } else {
+    return `⚠️ 风险：实际ROAS(${actual.toFixed(2)}) < 保本ROAS(${breakeven.toFixed(2)})`;
+  }
+}

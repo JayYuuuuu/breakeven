@@ -925,7 +925,11 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
     import {
       computeBase, profitGivenAd, adRateToAmount, adAmountToRates,
       solveSellingPrice, solveCostPrice, taxBurdenGiven, valueAnalysis,
-      profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent
+      profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent,
+      // 新增投放决策相关函数
+      cpmToCpc, calculateEffectiveAOV, calculateROAS, getSafetyStatus,
+      calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
+      generateInvestmentAdvice
     } from './engine.js';
 
     const $ = (id) => document.getElementById(id);
@@ -2079,7 +2083,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const mode = document.getElementById('decBuyMode').value;
         
         // 计算有效AOV（考虑连带购买率）
-        const effectiveAOV = aov * (1 + bundleRate);
+        const effectiveAOV = calculateEffectiveAOV(aov, bundleRate);
         
         // 计算CPC（根据买量方式）
         let cpc = 0;
@@ -2088,9 +2092,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         } else {
           const cpm = valNum('decCPM');
           const ctr = valNum('decCTR') / 100;
-          if (ctr > 0) {
-            cpc = cpm / (ctr * 1000);
-          }
+          cpc = cpmToCpc(cpm, ctr);
         }
         
         // 保本指标计算
@@ -2101,15 +2103,15 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const maxCPC = cvr > 0 ? beCPA * cvr : 0;
         
         // 计算临界值
-        const critCVR = cpc > 0 && beCPA > 0 ? cpc / beCPA : 0;
-        const critAOV = cpc > 0 && cvr > 0 ? (cpc * beROAS) / cvr : 0;
+        const critCVR = calculateCriticalCVR(cpc, beCPA);
+        const critAOV = calculateCriticalAOV(cpc, cvr, beROAS);
         
         // 计算实际ROAS
-        const actualROAS = cpc > 0 && cvr > 0 ? (cvr * effectiveAOV) / cpc : 0;
+        const actualROAS = calculateROAS(cvr, effectiveAOV, cpc);
         
         // 安全性分析
-        const safetyMargin = maxCPC - cpc;
-        const status = safetyMargin >= 0 ? '安全' : '危险';
+        const safetyMargin = calculateCPCSafetyMargin(maxCPC, cpc);
+        const status = getSafetyStatus(safetyMargin);
         
         // 更新显示
         document.querySelector('#kpiBEROAS .val').textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
@@ -2124,14 +2126,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         document.querySelector('#kpiCvrCpcStatus .val').textContent = status;
         
         // 生成建议
-        let advice = '请输入完整参数';
-        if (isFinite(actualROAS) && isFinite(beROAS)) {
-          if (actualROAS >= beROAS) {
-            advice = `✅ 安全：实际ROAS(${actualROAS.toFixed(2)}) ≥ 保本ROAS(${beROAS.toFixed(2)})`;
-          } else {
-            advice = `⚠️ 风险：实际ROAS(${actualROAS.toFixed(2)}) < 保本ROAS(${beROAS.toFixed(2)})`;
-          }
-        }
+        const advice = generateInvestmentAdvice(actualROAS, beROAS);
         document.querySelector('#kpiAdvice .val').textContent = advice;
         
         console.log('✅ 投放决策计算完成');
@@ -2175,9 +2170,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         } else {
           const cpm = valNum('decCPM');
           const ctr = valNum('decCTR') / 100;
-          if (ctr > 0) {
-            cpc = cpm / (ctr * 1000);
-          }
+          cpc = cpmToCpc(cpm, ctr);
         }
         
         if (cvr > 0 && cpc > 0) {
@@ -2185,7 +2178,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           const actualCPA = cpc / cvr;
           const cpaGap = base.adCostBreakEven - actualCPA;
           const actualAdRate = actualCPA / (aov * effectiveRate);
-          const actualROI = (cvr * aov * effectiveRate) / cpc;
+          const actualROI = calculateROAS(cvr, aov * effectiveRate, cpc);
           const breakevenROI = base.ROI_BE_effective;
           const safetyMargin = actualROI / breakevenROI - 1;
           const rpcPerClick = cvr * aov * effectiveRate;
@@ -2199,7 +2192,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           document.getElementById('safetyMargin').textContent = (safetyMargin * 100).toFixed(2) + '%';
           document.getElementById('rpcPerClick').textContent = rpcPerClick.toFixed(2) + ' 元';
           document.getElementById('basisNote').textContent = '有效营收口径';
-          document.getElementById('statusIndicator').textContent = safetyMargin >= 0 ? '✅ 安全' : '⚠️ 风险';
+          document.getElementById('statusIndicator').textContent = getSafetyStatus(safetyMargin) === '安全' ? '✅ 安全' : '⚠️ 风险';
           
           // 显示即时诊断结果
           document.getElementById('instantDiagnosisResult').style.display = 'block';
