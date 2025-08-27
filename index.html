@@ -75,8 +75,21 @@
     .kpi .value{ font-family:var(--mono); font-size:20px; margin-top:8px; color:#111; }
     .good{ color:#34c759 } .bad{ color:#ff3b30 }
     table{ width:100%; border-collapse:collapse; font-size:13px; }
-    th, td{ border-bottom:1px solid #e5e5ea; padding:8px 6px; text-align:right; font-family: var(--mono); }
+    th, td{ border-bottom:1px solid #e5e5ea; padding:8px 6px; text-align:right; font-family: var(--mono); position:relative; }
     th:first-child, td:first-child{ text-align:left; }
+    
+    /* 表格悬停聚焦效果 */
+    tr:hover{background-color:rgba(0,122,255,0.05)}
+    td:hover{background-color:rgba(0,122,255,0.1);font-weight:600}
+    th:hover{background-color:rgba(0,122,255,0.05)}
+    
+    /* 行列和单元格聚焦效果 */
+    .row-highlight{background-color:rgba(0,122,255,0.05) !important}
+    .col-highlight{background-color:rgba(0,122,255,0.05) !important}
+    .cell-highlight{background-color:rgba(0,122,255,0.15) !important;font-weight:600}
+    
+    /* 负数红色显示 */
+    .neg{color:var(--bad)}
     .note{ font-size:12px; color:#3a3a3c; line-height:1.6; }
     .sep{ height:1px; background:linear-gradient(90deg, #e5e5ea, transparent); margin:12px 0; }
     .pill{ padding:2px 8px; border-radius:999px; background:#f2f2f7; font-size:11px; color:#111; border:1px solid #d2d2d7; }
@@ -1444,7 +1457,9 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           const a = pct/100; // 占比小数
           const cols = margins.map(m => {
             const S = solveSellingPrice(params, r, a, basis, m);
-            return isFinite(S) ? fmt(S, 2) : '—';
+            if (!isFinite(S)) return '—';
+            // 为负数添加红色样式
+            return S < 0 ? `<span class="neg">${fmt(S, 2)}</span>` : fmt(S, 2);
           });
           return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
         }).join('');
@@ -1459,6 +1474,12 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       });
 
       $('priceSimWrap').innerHTML = html || '<div class="muted">请先设置参数后推演。</div>';
+      
+      // 为所有表格添加悬停聚焦效果
+      setTimeout(() => {
+        const tables = document.querySelectorAll('#priceSimWrap table');
+        tables.forEach(table => addTableHoverEffectsToTable(table));
+      }, 100);
     }
     // ===== 税费推演：在不同广告占比 & 退货率下，实际税负占比（净税/售价） =====
     // taxBurdenGiven 函数已移至 engine.js
@@ -1493,7 +1514,10 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const a = pct/100;
         const cols = rScenarios.map(r=>{
           const { netTax, shareGMV } = taxBurdenGiven(params, a, r, basis);
-          return isFinite(shareGMV) ? `${(shareGMV*100).toFixed(2)}%<br><span class="muted">(${fmt(netTax,2)} 元)</span>` : '—';
+          if (!isFinite(shareGMV)) return '—';
+          // 为负数添加红色样式
+          const taxFormatted = netTax < 0 ? `<span class="neg">${fmt(netTax,2)}</span>` : fmt(netTax,2);
+          return `${(shareGMV*100).toFixed(2)}%<br><span class="muted">(${taxFormatted} 元)</span>`;
         });
         return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
       }).join('');
@@ -1506,6 +1530,12 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         </table>`;
 
       $('taxSimWrap').innerHTML = html;
+      
+      // 为表格添加悬停聚焦效果
+      setTimeout(() => {
+        const table = document.querySelector('#taxSimWrap table');
+        if (table) addTableHoverEffectsToTable(table);
+      }, 100);
     }
 
     // ===== 成本价推演：在不同广告占比 & 利润率 & 退货率下，反推进货价 =====
@@ -1543,7 +1573,9 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           const a = pct/100;
           const cols = margins.map(m=>{
             const cp = solveCostPrice(params, r, a, basis, m);
-            return isFinite(cp) ? fmt(cp,2) : '—';
+            if (!isFinite(cp)) return '—';
+            // 为负数添加红色样式
+            return cp < 0 ? `<span class="neg">${fmt(cp,2)}</span>` : fmt(cp,2);
           });
           return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
         }).join('');
@@ -1558,6 +1590,12 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       });
 
       $('costSimWrap').innerHTML = html || '<div class="muted">请先设置参数后推演。</div>';
+      
+      // 为所有表格添加悬停聚焦效果
+      setTimeout(() => {
+        const tables = document.querySelectorAll('#costSimWrap table');
+        tables.forEach(table => addTableHoverEffectsToTable(table));
+      }, 100);
     }
 
     function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
@@ -1665,6 +1703,54 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         svg.appendChild(tx);
       });
     }
+    
+    // 添加表格悬停聚焦效果（针对特定容器）
+    function addTableHoverEffects() {
+      const table = document.querySelector('#simTableWrap table');
+      if (!table) return;
+      addTableHoverEffectsToTable(table);
+    }
+    
+    // 通用的表格悬停聚焦效果函数
+    function addTableHoverEffectsToTable(table) {
+      if (!table) return;
+      
+      const cells = table.querySelectorAll('td');
+      
+      cells.forEach(cell => {
+        cell.addEventListener('mouseenter', function() {
+          // 获取当前单元格的行和列索引
+          const row = this.parentElement;
+          const colIndex = Array.from(row.children).indexOf(this);
+          
+          // 高亮当前行
+          row.classList.add('row-highlight');
+          
+          // 高亮当前列
+          const allRows = table.querySelectorAll('tr');
+          allRows.forEach(tr => {
+            const colCell = tr.children[colIndex];
+            if (colCell) {
+              colCell.classList.add('col-highlight');
+            }
+          });
+          
+          // 高亮当前单元格（颜色最深）
+          this.classList.add('cell-highlight');
+        });
+        
+        cell.addEventListener('mouseleave', function() {
+          // 移除所有高亮
+          const allRows = table.querySelectorAll('tr');
+          allRows.forEach(tr => {
+            tr.classList.remove('row-highlight');
+            tr.querySelectorAll('td, th').forEach(cell => {
+              cell.classList.remove('col-highlight', 'cell-highlight');
+            });
+          });
+        });
+      });
+    }
 
     function simulate(){
       // read params from current inputs
@@ -1738,9 +1824,18 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       const headRow = `<tr><th>广告占比%</th>${legends.map(l=>`<th>${l}</th>`).join('')}</tr>`;
       thead.innerHTML = beRow + headRow;
       tbody.innerHTML = xVals.map((pctVal,i)=>{
-        const cols = series.map(s=> isFinite(s.values[i]) ? (s.values[i]*100).toFixed(2)+'%' : '—');
+        const cols = series.map(s=> {
+          if (!isFinite(s.values[i])) return '—';
+          const value = s.values[i] * 100;
+          const formatted = value.toFixed(2) + '%';
+          // 为负数添加红色样式
+          return value < 0 ? `<span class="neg">${formatted}</span>` : formatted;
+        });
         return `<tr><td>${pctVal.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
       }).join('');
+      
+      // 添加表格悬停聚焦效果
+      addTableHoverEffects();
     }
 
     // Wire up
