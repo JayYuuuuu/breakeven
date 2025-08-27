@@ -128,7 +128,7 @@
               <input id="cpc" type="number" step="0.0001" value="2.5" />
             </div>
             <div>
-              <label>模拟产品点击率（%）</label>
+              <label>模拟产品转化率（%）</label>
               <input id="cvr" type="number" step="0.01" value="15" />
             </div>
           </div>
@@ -425,7 +425,7 @@
       const beROAS = base.ROI_BE_effective; // 保本ROI
       const beCPA  = base.adCostBreakEven / Math.max(1, 1); // 单件最大广告费（单笔下单）
       const maxCPC = beROAS>0 ? (cvr * AOV) / beROAS : NaN;
-      const curROAS = cpc>0 ? (cvr * AOV) / cpc : NaN;
+      const curROAS = cpc>0 ? (cvr * AOV * (1 - p.returnRate)) / cpc : NaN;
       const cvrCrit = AOV>0 ? (beROAS * cpc) / AOV : NaN; // 需要达到的CVR
       // const aovCrit = cvr>0 ? (beROAS * cpc) / cvr : NaN; // 需要达到的AOV
 
