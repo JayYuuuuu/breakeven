@@ -880,27 +880,43 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
                 <br><span class="tiny-hint">连带购买率会放大 AOV，从而影响 BE-CPA、Max CPC、ROAS 等指标</span>
               </div>
               
+              <!-- 计算逻辑说明 -->
+              <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; margin: 12px 0;">
+                <h6 style="margin: 0 0 8px 0; font-size: 13px; color: #495057; font-weight: 600;">📋 计算逻辑说明</h6>
+                <div style="font-size: 12px; color: #6c757d; line-height: 1.5;">
+                  <div style="margin-bottom: 6px;">
+                    <span style="color: #ff6b35; font-weight: 600;">🟠 基于原价：</span>BE-ROAS（保本ROI）基于商品当前售价计算，不受AOV输入和连带购买率影响，反映商品本身的盈利能力
+                  </div>
+                  <div style="margin-bottom: 6px;">
+                    <span style="color: #34c759; font-weight: 600;">🟢 基于AOV：</span>BE-CPA、Max CPC、ROAS等指标受手动输入的AOV和连带购买率影响，用于模拟不同客单价场景的投放策略
+                  </div>
+                  <div style="font-size: 11px; color: #868e96; margin-top: 8px;">
+                    💡 提示：调整AOV和连带购买率可以测试不同投放策略的效果，而BE-ROAS保持稳定，帮助评估商品基础盈利能力
+                  </div>
+                </div>
+              </div>
+              
               <!-- 核心保本阈值 -->
               <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">◎ 核心保本阈值</h5>
               <div class="investment-metrics" style="margin-bottom: 12px;">
-                <div class="metric-card" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—</div></div>
-                <div class="metric-card" id="kpiBECPA"><div class="label">BE-CPA（每单最多广告费）</div><div class="val">—</div></div>
-                <div class="metric-card" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span></div></div>
+                <div class="metric-card" id="kpiBECPA"><div class="label">BE-CPA（每单最多广告费）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
               </div>
 
               <!-- 实际与临界值对比 -->
               <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">△ 实际与临界值对比</h5>
               <div class="investment-metrics" style="margin-bottom: 12px;">
-                <div class="metric-card" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—</div></div>
-                <div class="metric-card" id="kpiCritCVR"><div class="label">CVR 临界（保本转化率）</div><div class="val">—</div></div>
-                <div class="metric-card" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiCritCVR"><div class="label">CVR 临界（保本转化率）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
               </div>
 
               <!-- 安全性与建议 -->
               <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">☆ 安全性与建议</h5>
               <div class="investment-metrics" style="margin-bottom: 12px;">
-                <div class="metric-card" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—</div></div>
-                <div class="metric-card" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态（出价安全指数）</div><div class="val">—</div></div>
+                <div class="metric-card" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态（出价安全指数）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
                 <div class="metric-card" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
               </div>
 
@@ -916,23 +932,23 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
                 
                 <!-- 成本相关指标 -->
                 <div class="investment-metrics" style="margin-bottom: 12px;">
-                  <div class="metric-card"><div class="label">CPA（每单广告成本）=CPC/CVR</div><div class="val" id="actualCPA">—</div></div>
-                  <div class="metric-card"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—</div></div>
-                  <div class="metric-card"><div class="label">实际广告占比=CPA/（AOV*有效率）</div><div class="val" id="actualAdRate">—</div></div>
+                  <div class="metric-card"><div class="label">CPA（每单广告成本）=CPC/CVR</div><div class="val" id="actualCPA">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">实际广告占比=CPA/（AOV*有效率）</div><div class="val" id="actualAdRate">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
                 </div>
                 
                 <!-- 效率相关指标 -->
                 <div class="investment-metrics" style="margin-bottom: 12px;">
-                  <div class="metric-card"><div class="label">实际ROI（每点击收益/CPC）</div><div class="val" id="actualROI">—</div></div>
-                  <div class="metric-card"><div class="label">保本ROI</div><div class="val" id="breakevenROI">—</div></div>
-                  <div class="metric-card"><div class="label">ROI安全边际</div><div class="val" id="safetyMargin">—</div></div>
+                  <div class="metric-card"><div class="label">实际ROI（每点击收益/CPC）</div><div class="val" id="actualROI">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">保本ROI</div><div class="val" id="breakevenROI">—<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span></div></div>
+                  <div class="metric-card"><div class="label">ROI安全边际</div><div class="val" id="safetyMargin">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
                 </div>
                 
                 <!-- 收益相关指标 -->
                 <div class="investment-metrics" style="margin-bottom: 12px;">
-                  <div class="metric-card"><div class="label">RPC（每点击收益）=CVR*AOV</div><div class="val" id="rpcPerClick">—</div></div>
+                  <div class="metric-card"><div class="label">RPC（每点击收益）=CVR*AOV</div><div class="val" id="rpcPerClick">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
                   <div class="metric-card"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
-                  <div class="metric-card"><div class="label">状态</div><div class="val" id="statusIndicator">—</div></div>
+                  <div class="metric-card"><div class="label">状态</div><div class="val" id="statusIndicator">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
                 </div>
 
                 <!-- 优化建议 -->
@@ -2312,18 +2328,32 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         
         const status = getSafetyStatus(safety);
         
-        // 更新显示 - 根据CPC状态智能显示
-        document.querySelector('#kpiBEROAS .val').textContent = isFinite(beROAS) ? beROAS.toFixed(2) : '—';
-        document.querySelector('#kpiBECPA .val').textContent = isFinite(beCPA) ? beCPA.toFixed(2) + ' 元' : '—';
-        document.querySelector('#kpiMaxCPC .val').textContent = isFinite(maxCPC) ? maxCPC.toFixed(2) + ' 元' : '—';
+        // 更新显示 - 根据CPC状态智能显示，并添加标签
+        const beROASEl = document.querySelector('#kpiBEROAS .val');
+        beROASEl.innerHTML = (isFinite(beROAS) ? beROAS.toFixed(2) : '—') + '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>';
+        
+        const beCPAEl = document.querySelector('#kpiBECPA .val');
+        beCPAEl.innerHTML = (isFinite(beCPA) ? beCPA.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+        
+        const maxCPCEl = document.querySelector('#kpiMaxCPC .val');
+        maxCPCEl.innerHTML = (isFinite(maxCPC) ? maxCPC.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
         
         // 需要CPC的指标根据状态显示
         if (cpcStatus === 'valid') {
-          document.querySelector('#kpiActROAS .val').textContent = isFinite(actualROAS) ? actualROAS.toFixed(2) : '—';
-          document.querySelector('#kpiCritCVR .val').textContent = isFinite(critCVR) ? (critCVR * 100).toFixed(2) + '%' : '—';
-          document.querySelector('#kpiCritAOV .val').textContent = isFinite(critAOV) ? critAOV.toFixed(2) + ' 元' : '—';
-          document.querySelector('#kpiSafety .val').textContent = isFinite(safety) ? (safety >= 0 ? '+' : '') + safety.toFixed(2) + ' 元' : '—';
-          document.querySelector('#kpiCvrCpcStatus .val').textContent = status;
+          const actROASEl = document.querySelector('#kpiActROAS .val');
+          actROASEl.innerHTML = (isFinite(actualROAS) ? actualROAS.toFixed(2) : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critCVREl = document.querySelector('#kpiCritCVR .val');
+          critCVREl.innerHTML = (isFinite(critCVR) ? (critCVR * 100).toFixed(2) + '%' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critAOVEl = document.querySelector('#kpiCritAOV .val');
+          critAOVEl.innerHTML = (isFinite(critAOV) ? critAOV.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const safetyEl = document.querySelector('#kpiSafety .val');
+          safetyEl.innerHTML = (isFinite(safety) ? (safety >= 0 ? '+' : '') + safety.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const cvrCpcStatusEl = document.querySelector('#kpiCvrCpcStatus .val');
+          cvrCpcStatusEl.innerHTML = status + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
           
           // 生成建议
           const advice = generateInvestmentAdvice(actualROAS, beROAS);
@@ -2331,11 +2361,21 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         } else {
           // CPC缺失时的提示
           const cpcHint = mode === 'cpc' ? '请输入CPC' : '请输入CPM和CTR';
-          document.querySelector('#kpiActROAS .val').textContent = '—';
-          document.querySelector('#kpiCritCVR .val').textContent = '—';
-          document.querySelector('#kpiCritAOV .val').textContent = '—';
-          document.querySelector('#kpiSafety .val').textContent = '—';
-          document.querySelector('#kpiCvrCpcStatus .val').textContent = '待输入';
+          const actROASEl = document.querySelector('#kpiActROAS .val');
+          actROASEl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critCVREl = document.querySelector('#kpiCritCVR .val');
+          critCVREl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critAOVEl = document.querySelector('#kpiCritAOV .val');
+          critAOVEl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const safetyEl = document.querySelector('#kpiSafety .val');
+          safetyEl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const cvrCpcStatusEl = document.querySelector('#kpiCvrCpcStatus .val');
+          cvrCpcStatusEl.innerHTML = '待输入<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
           document.querySelector('#kpiAdvice .val').textContent = `请先${cpcHint}`;
         }
         
@@ -2406,16 +2446,16 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           const safetyMargin = actualROI / breakevenROI - 1;
           const rpcPerClick = cvr * usedAOV;
           
-          // 更新即时诊断显示
-          document.getElementById('actualCPA').textContent = actualCPA.toFixed(2) + ' 元';
-          document.getElementById('cpaGap').textContent = (cpaGap >= 0 ? '+' : '') + cpaGap.toFixed(2) + ' 元';
-          document.getElementById('actualAdRate').textContent = (actualAdRate * 100).toFixed(2) + '%';
-          document.getElementById('actualROI').textContent = actualROI.toFixed(2);
-          document.getElementById('breakevenROI').textContent = breakevenROI.toFixed(2);
-          document.getElementById('safetyMargin').textContent = (safetyMargin * 100).toFixed(2) + '%';
-          document.getElementById('rpcPerClick').textContent = rpcPerClick.toFixed(2) + ' 元';
+          // 更新即时诊断显示，并添加标签
+          document.getElementById('actualCPA').innerHTML = actualCPA.toFixed(2) + ' 元<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('cpaGap').innerHTML = (cpaGap >= 0 ? '+' : '') + cpaGap.toFixed(2) + ' 元<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualAdRate').innerHTML = (actualAdRate * 100).toFixed(2) + '%<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualROI').innerHTML = actualROI.toFixed(2) + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('breakevenROI').innerHTML = breakevenROI.toFixed(2) + '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>';
+          document.getElementById('safetyMargin').innerHTML = (safetyMargin * 100).toFixed(2) + '%<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('rpcPerClick').innerHTML = rpcPerClick.toFixed(2) + ' 元<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
           document.getElementById('basisNote').textContent = '有效营收口径';
-          document.getElementById('statusIndicator').textContent = getSafetyStatus(safetyMargin) === '安全' ? '✅ 安全' : '⚠️ 风险';
+          document.getElementById('statusIndicator').innerHTML = (getSafetyStatus(safetyMargin) === '安全' ? '✅ 安全' : '⚠️ 风险') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
           
           console.log('✅ 即时诊断完成');
         } else {
@@ -2431,15 +2471,15 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           }
           
           // 显示即时诊断结果但显示提示信息，同时显示基础保本信息
-          document.getElementById('actualCPA').textContent = '—';
-          document.getElementById('cpaGap').textContent = '—';
-          document.getElementById('actualAdRate').textContent = '—';
-          document.getElementById('actualROI').textContent = '—';
-          document.getElementById('breakevenROI').textContent = base.ROI_BE_effective.toFixed(2);
-          document.getElementById('safetyMargin').textContent = '—';
-          document.getElementById('rpcPerClick').textContent = '—';
+          document.getElementById('actualCPA').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('cpaGap').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualAdRate').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualROI').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('breakevenROI').innerHTML = base.ROI_BE_effective.toFixed(2) + '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>';
+          document.getElementById('safetyMargin').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('rpcPerClick').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
           document.getElementById('basisNote').textContent = '有效营收口径';
-          document.getElementById('statusIndicator').textContent = `请先输入${missingParams.join('、')}`;
+          document.getElementById('statusIndicator').innerHTML = `请先输入${missingParams.join('、')}<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>`;
           
           console.log('⚠️ 即时诊断参数缺失:', missingParams);
         }
