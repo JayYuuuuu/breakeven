@@ -2101,13 +2101,18 @@
           return;
         }
 
-        const bev1 = makeBEV1Line({ price, cost, rr, basis, sku, tier });
+        // 获取平台佣金率
+        const platformRate = getPlatformRate(currentAnalysisData.platform);
+        const platformRatePercent = (platformRate * 100).toFixed(1);
+        
+        const bev1 = makeBEV1Line({ price, cost, rr, basis, sku, tier, platformRate });
         const human = [
           `商品参数｜SKU: ${sku}｜${tier?`第${tier}档`:'单一'}`,
           `商品名：${name}`,
           `售价：${price}`,
           `进货价：${cost}`,
           `退货率：${(rr*100).toFixed(2)}%`,
+          `平台佣金率：${platformRatePercent}%`,
           `口径：${basis==='gmv'?'GMV':'有效'}`,
           `(以下为机器读取)`,
           bev1

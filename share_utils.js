@@ -46,9 +46,9 @@ export function parsePercentTo01(v) {
 /**
  * 生成单档 BEV1 串（机器可读的一行文本）
  * 约定：BEV1: 开头 + key=value; 分号分隔
- * @param {{price?:number,cost?:number,rr?:number,basis?:'effective'|'gmv',sku?:string,tier?:number}} payload
+ * @param {{price?:number,cost?:number,rr?:number,basis?:'effective'|'gmv',sku?:string,tier?:number,platformRate?:number}} payload
  */
-export function makeBEV1Line({ price, cost, rr, basis = 'effective', sku, tier }) {
+export function makeBEV1Line({ price, cost, rr, basis = 'effective', sku, tier, platformRate }) {
   const kv = [];
   if (price != null) kv.push(`price=${price}`);
   if (cost != null) kv.push(`cost=${cost}`);
@@ -56,6 +56,7 @@ export function makeBEV1Line({ price, cost, rr, basis = 'effective', sku, tier }
   if (basis) kv.push(`basis=${basis}`);
   if (sku) kv.push(`sku=${encodeURIComponent(String(sku))}`);
   if (tier != null) kv.push(`tier=${tier}`);
+  if (platformRate != null) kv.push(`platformRate=${(platformRate * 100).toFixed(1)}%`);
   return `BEV1: ${kv.join('; ')}`;
 }
 
@@ -78,6 +79,8 @@ export function parseBEV1Line(str) {
       obj.rr = parsePercentTo01(v);
     } else if (k === 'price' || k === 'cost' || k === 'tier') {
       obj[k] = normalizeNumber(v);
+    } else if (k === 'platformRate') {
+      obj.platformRate = parsePercentTo01(v);
     } else if (k === 'basis') {
       obj.basis = /gmv/i.test(v) ? 'gmv' : 'effective';
     } else if (k === 'sku') {
@@ -100,6 +103,7 @@ export function parseBEV1Line(str) {
  *  售价：79.8
  *  进货价：28.5
  *  退货率：12%
+ *  平台佣金率：5.5%
  *  口径：有效/GMV
  * @param {string} str
  * @returns {object|null}
@@ -112,6 +116,7 @@ export function parseHumanBlock(str) {
     if (/^售价/.test(s)) out.price = normalizeNumber(s.split(/[:：]/)[1]);
     else if (/^进货价/.test(s)) out.cost = normalizeNumber(s.split(/[:：]/)[1]);
     else if (/^退货率/.test(s)) out.rr = parsePercentTo01(s.split(/[:：]/)[1]);
+    else if (/^平台佣金率/.test(s)) out.platformRate = parsePercentTo01(s.split(/[:：]/)[1]);
     else if (/^口径/.test(s)) out.basis = /gmv/i.test(s) ? 'gmv' : 'effective';
   }
   return out.price != null || out.cost != null || out.rr != null ? out : null;
