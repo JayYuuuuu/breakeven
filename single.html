@@ -55,11 +55,21 @@
     .hint{font-size:10px;color:var(--muted)}
 
     table{width:100%;border-collapse:collapse;font-size:14px}
-    th,td{border-bottom:1px solid #f0f0f0;padding:8px 6px;text-align:right;font-family:var(--mono)}
+    th,td{border-bottom:1px solid #f0f0f0;padding:8px 6px;text-align:right;font-family:var(--mono);position:relative}
     th:first-child,td:first-child{text-align:left}
     th .th-top{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
     th .th-num{font-size:14px;font-weight:600;color:var(--ink)}
     .pos{color:var(--ok)} .neg{color:var(--bad)}
+    
+    /* 表格悬停聚焦效果 */
+    tr:hover{background-color:rgba(0,122,255,0.05)}
+    td:hover{background-color:rgba(0,122,255,0.1);font-weight:600}
+    th:hover{background-color:rgba(0,122,255,0.05)}
+    
+    /* 行列和单元格聚焦效果 */
+    .row-highlight{background-color:rgba(0,122,255,0.05) !important}
+    .col-highlight{background-color:rgba(0,122,255,0.05) !important}
+    .cell-highlight{background-color:rgba(0,122,255,0.15) !important;font-weight:600}
 
     /* 浮窗（标价计算） */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000}
@@ -184,9 +194,9 @@
         <div class="kpis" id="kpiBand">
           <div class="kpi"><div class="lab">保本ROI（算上退款率影响）</div><div class="val" id="beRoas">–</div></div>
           <div class="kpi"><div class="lab">保本广告占比（算上退款率影响）</div><div class="val" id="beAdRate">–</div></div>
-          <div class="kpi"><div class="lab">每单最多承受广告费</div><div class="val" id="beCpa">–</div></div>
-          <div class="kpi"><div class="lab">模拟转化率下最高CPC</div><div class="val" id="maxCpc">–</div></div>
+          <div class="kpi"><div class="lab">利润率（含模拟广告）</div><div class="val" id="profitRate">–</div></div>
           <div class="kpi"><div class="lab">当前模拟参数下真实ROI</div><div class="val" id="curROAS">–</div></div>
+          <div class="kpi"><div class="lab">模拟转化率下最高CPC</div><div class="val" id="maxCpc">–</div></div>
           <div class="kpi"><div class="lab">模拟CPC下最低转化率</div><div class="val" id="cvrCrit">–</div></div>
         </div>
       </div>
@@ -420,7 +430,21 @@
       // const aovCrit = cvr>0 ? (beROAS * cpc) / cvr : NaN; // 需要达到的AOV
 
       document.getElementById('beRoas').textContent = isFinite(beROAS) ? fmt(beROAS,2) + ' 倍' : '–';
-      document.getElementById('beCpa').textContent = isFinite(beCPA) ? fmt(beCPA,2) + ' 元' : '–';
+      // 利润率（含模拟广告）：将模拟 CPC/CVR 转换为有效口径的广告占比后，计算利润率
+      let profitRateText = '–';
+      if (isFinite(cvr) && cvr > 0) {
+        const rEff = Math.max(0, 1 - p.returnRate);
+        const CPA = cpc / cvr; // 单笔获客成本
+        const adRateSim = (p.sellingPrice > 0 && rEff > 0) ? (CPA / (p.sellingPrice * rEff)) : NaN; // 有效口径广告占比
+        const { margin } = profitGivenAd(p, { adRate: adRateSim, basis: 'effective' });
+        if (isFinite(margin)) {
+          profitRateText = (margin * 100).toFixed(2) + '%';
+          const el = document.getElementById('profitRate');
+          if (el) el.style.color = margin >= 0 ? 'var(--ok)' : 'var(--bad)';
+        }
+      }
+      const prEl = document.getElementById('profitRate');
+      if (prEl) prEl.textContent = profitRateText;
       document.getElementById('maxCpc').textContent = fmt(maxCPC,2);
 
       // 根据真实ROI与保本ROI比较设置颜色
@@ -464,6 +488,52 @@
       }
       html += '</tbody></table>';
       document.getElementById('simTableWrap').innerHTML = html;
+      
+      // 添加表格悬停聚焦效果
+      addTableHoverEffects();
+    }
+    
+    // 添加表格悬停聚焦效果
+    function addTableHoverEffects() {
+      const table = document.querySelector('#simTableWrap table');
+      if (!table) return;
+      
+      const cells = table.querySelectorAll('td');
+      const headers = table.querySelectorAll('th');
+      
+      cells.forEach(cell => {
+        cell.addEventListener('mouseenter', function() {
+          // 获取当前单元格的行和列索引
+          const row = this.parentElement;
+          const colIndex = Array.from(row.children).indexOf(this);
+          
+          // 高亮当前行
+          row.classList.add('row-highlight');
+          
+          // 高亮当前列
+          const allRows = table.querySelectorAll('tr');
+          allRows.forEach(tr => {
+            const colCell = tr.children[colIndex];
+            if (colCell) {
+              colCell.classList.add('col-highlight');
+            }
+          });
+          
+          // 高亮当前单元格（颜色最深）
+          this.classList.add('cell-highlight');
+        });
+        
+        cell.addEventListener('mouseleave', function() {
+          // 移除所有高亮
+          const allRows = table.querySelectorAll('tr');
+          allRows.forEach(tr => {
+            tr.classList.remove('row-highlight');
+            tr.querySelectorAll('td, th').forEach(cell => {
+              cell.classList.remove('col-highlight', 'cell-highlight');
+            });
+          });
+        });
+      });
     }
 
     // —— 金额精度工具（对齐 list_price.html 的“分/万分”算法） ——
