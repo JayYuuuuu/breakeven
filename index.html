@@ -2170,6 +2170,11 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         if (shouldAutoCalculateTarget()) {
           window.calculateTargetAnalysis();
         }
+        
+        // 自动显示即时诊断模块（即使参数不足也显示）
+        setTimeout(() => {
+          window.calculateInstantDiagnosis();
+        }, 200);
       }, 100);
     }
     
@@ -2337,6 +2342,13 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         console.log('✅ 投放决策计算完成');
         showToast('投放决策计算完成', 2000);
         
+        // 自动调用即时诊断，让诊断模块自动显示
+        if (shouldAutoCalculate()) {
+          setTimeout(() => {
+            window.calculateInstantDiagnosis();
+          }, 100);
+        }
+        
       } catch (error) {
         console.error('❌ 投放决策计算失败:', error);
         showToast('计算失败，请检查输入参数', 2000);
@@ -2384,6 +2396,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const effectiveRate = 1 - params.returnRate;
         const usedAOV = aov * effectiveRate; // 有效营收口径的AOV（基于固定售价）
         
+        // 总是显示即时诊断结果，根据参数情况显示不同内容
         if (cvr > 0 && cpc > 0) {
           const actualCPA = cpc / cvr;
           const cpaGap = base.adCostBreakEven - actualCPA;
@@ -2404,12 +2417,9 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           document.getElementById('basisNote').textContent = '有效营收口径';
           document.getElementById('statusIndicator').textContent = getSafetyStatus(safetyMargin) === '安全' ? '✅ 安全' : '⚠️ 风险';
           
-          // 显示即时诊断结果
-          document.getElementById('instantDiagnosisResult').style.display = 'block';
-          
           console.log('✅ 即时诊断完成');
         } else {
-          // 参数缺失时的提示
+          // 参数缺失时的提示，但显示基础信息
           const missingParams = [];
           if (cvr <= 0) missingParams.push('CVR');
           if (cpc <= 0) {
@@ -2420,22 +2430,22 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
             }
           }
           
-          // 显示即时诊断结果但显示提示信息
+          // 显示即时诊断结果但显示提示信息，同时显示基础保本信息
           document.getElementById('actualCPA').textContent = '—';
           document.getElementById('cpaGap').textContent = '—';
           document.getElementById('actualAdRate').textContent = '—';
           document.getElementById('actualROI').textContent = '—';
-          document.getElementById('breakevenROI').textContent = '—';
+          document.getElementById('breakevenROI').textContent = base.ROI_BE_effective.toFixed(2);
           document.getElementById('safetyMargin').textContent = '—';
           document.getElementById('rpcPerClick').textContent = '—';
           document.getElementById('basisNote').textContent = '有效营收口径';
           document.getElementById('statusIndicator').textContent = `请先输入${missingParams.join('、')}`;
           
-          // 显示即时诊断结果
-          document.getElementById('instantDiagnosisResult').style.display = 'block';
-          
           console.log('⚠️ 即时诊断参数缺失:', missingParams);
         }
+        
+        // 总是显示即时诊断结果区域
+        document.getElementById('instantDiagnosisResult').style.display = 'block';
         
       } catch (error) {
         console.error('❌ 即时诊断失败:', error);
@@ -2496,6 +2506,13 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
           
           console.log('✅ 目标推演完成');
           showToast('目标推演计算完成', 2000);
+          
+          // 自动调用即时诊断，让诊断模块自动显示
+          if (shouldAutoCalculate()) {
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
+          }
         } else {
           showToast('请输入有效率和广告占比', 2000);
         }
@@ -2526,6 +2543,10 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
               console.log('🔄 实时计算投放决策...');
               window.calculateInvestmentDecision();
             }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
           }, 300);
           
           element._changeHandler = () => {
@@ -2533,6 +2554,10 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
               console.log('🔄 实时计算投放决策...');
               window.calculateInvestmentDecision();
             }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
           };
           
           // 绑定事件
@@ -2557,6 +2582,10 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
               console.log('🔄 实时计算目标推演...');
               window.calculateTargetAnalysis();
             }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
           }, 300);
           
           element._changeHandler = () => {
@@ -2564,6 +2593,10 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
               console.log('🔄 实时计算目标推演...');
               window.calculateTargetAnalysis();
             }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
           };
           
           // 绑定事件
