@@ -9,7 +9,7 @@
       --bg:#F5F5F7; --card:#FFFFFF; --ink:#111111; --muted:#6e6e73; --accent:#007aff;
       --ok:#34c759; --warn:#ff9f0a; --bad:#ff3b30; --grid:12px; --radius:14px;
       --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, Segoe UI, Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --mono: "Inter var", "Inter", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "DIN Alternate", "DIN Condensed", sans-serif;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -18,19 +18,46 @@
     h1{margin:0; font-size:22px}
     .sub{color:var(--muted); font-size:13px; margin-top:4px}
     main{padding:20px; display:grid; gap:16px}
-    .wrap{display:grid; grid-template-columns: minmax(360px, 0.9fr) 1.1fr; gap:16px}
+    .wrap{display:grid; grid-template-columns: 30% 70%; gap:16px}
     @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
     .card{background:var(--card); border:1px solid #d2d2d7; border-radius:var(--radius); box-shadow:0 1px 2px rgba(0,0,0,.06)}
     .card h2{margin:0; font-size:15px; padding:12px 14px; border-bottom:1px solid #e5e5ea; color:#111; background:linear-gradient(180deg,#fafafa,#fff); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius)}
     .content{padding:14px}
     .grid{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
-    @media (max-width:680px){.grid{grid-template-columns:1fr}}
+    .grid-4{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px}
+    .block{margin-bottom:16px}
+    .col-span-2{grid-column: span 2}
+    .nowrap{white-space: nowrap}
+    .switch{display:flex; width:100%; gap:0; align-items:center; padding:6px; border:1px solid #d2d2d7; border-radius:999px; background:#fff; overflow:hidden}
+    .switch label{white-space:nowrap; flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 8px}
+    .switch input{margin:0}
+    .switch label{border-radius:999px; transition:background .15s ease, font-weight .15s ease}
+    .switch label:has(input:checked){background:#f2f2f7; font-weight:700}
+    input[disabled]{background:#f5f5f7; color:#9aa0a6; cursor:not-allowed; opacity:.9}
+    @media (max-width:680px){ .col-span-2{grid-column:auto} }
+    @media (max-width:680px){
+      .grid{grid-template-columns:1fr}
+      .grid-4{grid-template-columns:1fr}
+    }
     label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
-    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:16px; font-weight:600; outline:none}
+    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:22px; font-weight:600; outline:none}
     input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
     .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
     .switch{display:inline-flex; gap:8px; align-items:center; padding:6px 8px; border:1px solid #d2d2d7; border-radius:999px; background:#fff}
-    .pill{padding:2px 8px; border-radius:999px; background:#f2f2f7; border:1px solid #d2d2d7; font-size:11px; color:#111}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:#eef2f7;
+      border:1px solid #cfd3da;
+      font-size:12.5px;
+      font-weight:600;
+      color:#0f172a;
+      letter-spacing:.2px;
+      margin-bottom:10px;
+    }
 
     /* KPI */
     .kpi-band{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px}
@@ -71,96 +98,102 @@
         <h2>参数输入</h2>
         <div class="content" id="paramForm">
           <!-- 重要参数 -->
-          <div class="pill">重要参数</div>
-          <div class="grid">
-            <div>
-              <label>含税售价（¥）</label>
-              <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
-            </div>
-            <div>
-              <label>进货价（不含税，¥）</label>
-              <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
-            </div>
-            <div>
-              <label>退货率（%）</label>
-              <input id="returnRate" type="text" inputmode="decimal" placeholder="10" />
-            </div>
-            <div>
-              <label>进货模式</label>
-              <div class="switch">
-                <label><input type="radio" name="goodsMode" value="canReturn" checked> 可退</label>
-                <label><input type="radio" name="goodsMode" value="cannotReturn"> 不可退</label>
+          <div class="block">
+            <div class="pill">重要参数</div>
+            <div class="grid">
+              <div>
+                <label>含税售价（¥）</label>
+                <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
+              </div>
+              <div>
+                <label>进货价（不含税，¥）</label>
+                <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
+              </div>
+              <div>
+                <label>退货率（%）</label>
+                <input id="returnRate" type="text" inputmode="decimal" placeholder="10" />
+              </div>
+              <div>
+                <label>进货模式</label>
+                <div class="switch">
+                  <label><input type="radio" name="goodsMode" value="canReturn" checked> 可退</label>
+                  <label><input type="radio" name="goodsMode" value="cannotReturn"> 不可退</label>
+                </div>
               </div>
             </div>
           </div>
-          <div class="sep" style="height:8px"></div>
           <!-- 税费参数 -->
-          <div class="pill">税费参数</div>
-          <div class="grid">
-            <div><label>销项税率（%）</label><input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
-            <div><label>商品进项税率（%）</label><input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
-            <div><label>开票成本比例（%）</label><input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6"></div>
-            <div><label>服务费税率（佣金/广告，%）</label><input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6"></div>
+          <div class="block">
+            <div class="pill">税费参数</div>
+            <div class="grid grid-4">
+              <div><label>销项税率（%）</label><input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
+              <div><label>商品进项税率（%）</label><input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
+              <div><label>开票成本比例（%）</label><input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6"></div>
+              <div><label>服务费税率（%）</label><input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6"></div>
+            </div>
           </div>
-          <div class="sep" style="height:8px"></div>
           <!-- 基础参数 -->
-          <div class="pill">基础参数</div>
-          <div class="grid">
-            <div><label>平台佣金率（%）</label><input id="platformRate" type="text" inputmode="decimal" placeholder="5.5"></div>
-            <div><label>物流费（¥）</label><input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8"></div>
-            <div><label>运费险（¥）</label><input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5"></div>
-            <div><label>其他成本（¥）</label><input id="otherCost" type="text" inputmode="decimal" placeholder="2.5"></div>
+          <div class="block">
+            <div class="pill">基础参数</div>
+            <div class="grid grid-4">
+              <div><label>平台佣金率（%）</label><input id="platformRate" type="text" inputmode="decimal" placeholder="5.5"></div>
+              <div><label>物流费（¥）</label><input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8"></div>
+              <div><label>运费险（¥）</label><input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5"></div>
+              <div><label>其他成本（¥）</label><input id="otherCost" type="text" inputmode="decimal" placeholder="2.5"></div>
+            </div>
           </div>
-          <div class="sep" style="height:8px"></div>
           <!-- 投放参数 -->
-          <div class="pill">投放参数</div>
-          <div class="grid">
-            <div>
-              <label>广告输入模式</label>
-              <div class="switch">
-                <label><input type="radio" name="adMode" value="none" checked> 不给定</label>
-                <label><input type="radio" name="adMode" value="rate"> 占比</label>
-                <label><input type="radio" name="adMode" value="amount"> 金额</label>
+          <div class="block">
+            <div class="pill">投放参数</div>
+            <div class="grid grid-4">
+              <div class="col-span-2">
+                <label class="nowrap">广告输入模式</label>
+                <div class="switch">
+                  <label><input type="radio" name="adMode" value="none"> 不给定</label>
+                  <label><input type="radio" name="adMode" value="rate" checked> 占比</label>
+                  <label><input type="radio" name="adMode" value="amount"> 金额</label>
+                </div>
+              </div>
+              <div class="col-span-2">
+                <label class="nowrap">占比口径</label>
+                <div class="switch">
+                  <label><input type="radio" name="adRateBasis" value="effective" checked> 有效营收</label>
+                  <label><input type="radio" name="adRateBasis" value="gmv"> GMV</label>
+                </div>
+              </div>
+              <div>
+                <label>广告占比（%）</label>
+                <input id="adRate" type="text" inputmode="decimal" placeholder="10">
+              </div>
+              <div>
+                <label>广告金额（¥）</label>
+                <input id="adCost" type="text" inputmode="decimal" placeholder="0">
+              </div>
+              <div>
+                <label>CPC（¥/次点击）</label>
+                <input id="cpc" type="text" inputmode="decimal" placeholder="0.80">
+              </div>
+              <div>
+                <label>CVR（转化率，%）</label>
+                <input id="cvr" type="text" inputmode="decimal" placeholder="15">
               </div>
             </div>
-            <div>
-              <label>占比口径</label>
-              <div class="switch">
-                <label><input type="radio" name="adRateBasis" value="effective" checked> 有效营收</label>
-                <label><input type="radio" name="adRateBasis" value="gmv"> GMV</label>
-              </div>
-            </div>
-            <div>
-              <label>广告占比（%）</label>
-              <input id="adRate" type="text" inputmode="decimal" placeholder="10">
-            </div>
-            <div>
-              <label>广告金额（¥）</label>
-              <input id="adCost" type="text" inputmode="decimal" placeholder="0">
-            </div>
-            <div>
-              <label>CPC（¥/次点击）</label>
-              <input id="cpc" type="text" inputmode="decimal" placeholder="0.80">
-            </div>
-            <div>
-              <label>CVR（转化率，%）</label>
-              <input id="cvr" type="text" inputmode="decimal" placeholder="15">
-            </div>
+            <div class="hint">说明：占比→金额将按所选口径基数换算；金额→占比会同步显示两口径等价占比。</div>
           </div>
-          <div class="hint">说明：占比→金额将按所选口径基数换算；金额→占比会同步显示两口径等价占比。</div>
-          <div class="sep" style="height:8px"></div>
           <!-- 推演参数 -->
-          <div class="pill">推演参数</div>
-          <div class="grid">
-            <div>
-              <label>广告占比列表（%，逗号分隔）</label>
-              <input id="simRates" type="text" inputmode="text" value="5,8,10,12,15">
-            </div>
-            <div>
-              <label>推演口径</label>
-              <div class="switch">
-                <label><input type="radio" name="simBasis" value="effective" checked> 有效营收</label>
-                <label><input type="radio" name="simBasis" value="gmv"> GMV</label>
+          <div class="block">
+            <div class="pill">推演参数</div>
+            <div class="grid">
+              <div>
+                <label>广告占比列表（%，逗号分隔）</label>
+                <input id="simRates" type="text" inputmode="text" value="5,8,10,12,15">
+              </div>
+              <div>
+                <label>推演口径</label>
+                <div class="switch">
+                  <label><input type="radio" name="simBasis" value="effective" checked> 有效营收</label>
+                  <label><input type="radio" name="simBasis" value="gmv"> GMV</label>
+                </div>
               </div>
             </div>
           </div>
@@ -172,7 +205,7 @@
         <h2>可视化展示</h2>
         <div class="content">
           <div class="kpi-band" id="kpis">
-            <div class="kpi"><div class="label">有效比例 r</div><div class="val" id="kpiR">—</div></div>
+            <div class="kpi"><div class="label">有效比例 r（扣除退货后）</div><div class="val" id="kpiR">—</div></div>
             <div class="kpi"><div class="label">保本广告费</div><div class="val" id="kpiAdCost">—</div></div>
             <div class="kpi"><div class="label">保本广告占比（有效）</div><div class="val" id="kpiAdRateEff">—</div></div>
             <div class="kpi"><div class="label">保本ROI（有效）</div><div class="val" id="kpiROASEff">—</div></div>
@@ -194,6 +227,11 @@
 
           <div class="sep" style="height:8px"></div>
           <div class="pill">迷你推演</div>
+          <div class="hint" style="margin:4px 0 8px">
+            提示：ROAS（广告投入产出比）是衡量广告效率的重要口径。
+            GMV口径：GMV ÷ 广告费；有效口径：(售价×r) ÷ 广告费。
+            当推演口径为“有效”时，ROAS≈1/占比；当口径为“GMV”时，ROAS≈r/占比。
+          </div>
           <div class="mini-grid" id="mini"></div>
         </div>
       </section>
@@ -211,6 +249,20 @@
     const to01 = (v)=>{ const n = Number(String(v).replace(/[^\d.\-]/g,'')); return isFinite(n) ? (n>1? n/100 : n) : 0 };
     const num = (v)=>{ const s = String(v).replace(/[^\d.\-\.]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
 
+    // Helper to update adMode UI (enable/disable adRate/adCost)
+    function updateAdModeUI(){
+      const mode = document.querySelector('input[name="adMode"]:checked')?.value || 'none';
+      const adRateEl = $('adRate');
+      const adCostEl = $('adCost');
+      if(mode === 'rate'){
+        adRateEl.disabled = false; adCostEl.disabled = true; adCostEl.value = adCostEl.value; // keep value but disable
+      }else if(mode === 'amount'){
+        adRateEl.disabled = true; adCostEl.disabled = false;
+      }else{ // none
+        adRateEl.disabled = true; adCostEl.disabled = true;
+      }
+    }
+
     // 预填默认参数（与系统示例保持一致）
     function fillDefaults(){
       $('sellingPrice').value = '79.8';
@@ -225,13 +277,13 @@
       $('shippingInsurance').value = SYSTEM_PARAMS_EXAMPLE.shippingInsurance;
       $('otherCost').value = SYSTEM_PARAMS_EXAMPLE.otherCost;
       document.querySelector('input[name="goodsMode"][value="canReturn"]').checked = true;
-      document.querySelector('input[name="adMode"][value="none"]').checked = true;
+      document.querySelector('input[name="adMode"][value="rate"]').checked = true;
       document.querySelector('input[name="adRateBasis"][value="effective"]').checked = true;
-      $('adRate').value = '10';
+      $('adRate').value = '22';
       $('adCost').value = '';
       $('cpc').value = '0.80';
       $('cvr').value = '15';
-      $('simRates').value = '5,8,10,12,15';
+      $('simRates').value = '10,12,18,20,22,25,28,30,33,35';
     }
 
     function params(){
@@ -265,6 +317,7 @@
     }
 
     function render(){
+      updateAdModeUI();
       const p = params();
       const base = computeBase(p);
       const r = base.r; const Rev = base.Rev;
@@ -371,15 +424,15 @@
         {name:'其它固定成本（物流/运险/其他）', amt: -base.othersCost, cls:'neg'},
         {name:'平台佣金', amt: -base.commission, cls:'neg'},
         {name:'销项税（价内，需剥离）', amt: -base.VAT_out, cls:'neg'},
-        {name:'进货抵扣 VAT_in_goods', amt: base.VAT_in_goods, cls:'pos'},
-        {name:'佣金抵扣 VAT_in_comm', amt: base.VAT_in_comm, cls:'pos'},
+        {name:'进货抵扣（供应商开票抵扣）', amt: base.VAT_in_goods, cls:'pos'},
+        {name:'佣金抵扣 （佣金发票进项抵扣）', amt: base.VAT_in_comm, cls:'pos'},
       ];
       if(adCostGiven>0){
-        rows.push({name:'广告抵扣 VAT_in_ad', amt: VAT_in_ad, cls:'pos'});
-        rows.push({name:'广告费（给定）', amt: -adCostGiven, cls:'neg'});
+        rows.push({name:'广告抵扣 （广告费发票进项抵扣）', amt: VAT_in_ad, cls:'pos'});
+        rows.push({name:'广告费（按广告输入模式给定）', amt: -adCostGiven, cls:'neg'});
       }
-      rows.push({name:'毛利润（不含广告）A', amt: base.A, cls: base.A>=0? 'pos':'neg'});
-      if(isFinite(Profit)) rows.push({name:'净利润（含给定广告）', amt: Profit, cls: Profit>=0? 'pos':'neg'});
+      rows.push({name:'毛利润（不含广告但已经扣除其他费用）A', amt: base.A, cls: base.A>=0? 'pos':'neg'});
+      if(isFinite(Profit)) rows.push({name:'净利润（扣除给定广告费用以后）', amt: Profit, cls: Profit>=0? 'pos':'neg'});
 
       wall.innerHTML = rows.map(rw=>{
         return `<div class="brick ${rw.cls}">
@@ -401,14 +454,14 @@
           <div class="t">占比${(rp*100).toFixed(1)}%（${basis==='gmv'?'GMV':'有效'}）</div>
           <div class="v" style="color:${color}">${isFinite(margin)? (margin*100).toFixed(2)+'%':'—'}</div>
           <div class="hint">广告金额≈ ${fmt(adCostGiven,2)} 元</div>
-          <div class="hint">ROAS（按当前 r）≈ ${isFinite(roasEffMini)? roasEffMini.toFixed(2)+' 倍':'—'}</div>
+          <div class="hint">ROAS≈ ${isFinite(roasEffMini)? roasEffMini.toFixed(2)+' 倍':'—'}</div>
         </div>`
       }).join('');
     }
 
     function bind(){
       document.querySelectorAll('input,select').forEach(el=>{
-        const handler = ()=> render();
+        const handler = ()=>{ updateAdModeUI(); render(); };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
       });
