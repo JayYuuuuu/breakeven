@@ -18,7 +18,7 @@
     h1{margin:0; font-size:22px}
     .sub{color:var(--muted); font-size:13px; margin-top:4px}
     main{padding:20px; display:grid; gap:16px}
-    .wrap{display:grid; grid-template-columns: 30% 70%; gap:16px}
+    .wrap{display:grid; grid-template-columns: 35% 64%; gap:16px}
     @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
     .card{background:var(--card); border:1px solid #d2d2d7; border-radius:var(--radius); box-shadow:0 1px 2px rgba(0,0,0,.06)}
     .card h2{margin:0; font-size:20px; padding:16px 14px; border-bottom:1px solid #e5e5ea; color:#111; background:linear-gradient(180deg,#fafafa,#fff); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius); min-height: 52px; display: flex; align-items: center; justify-content: space-between}
@@ -43,7 +43,6 @@
     input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:22px; font-weight:600; outline:none}
     input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
     .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .switch{display:inline-flex; gap:8px; align-items:center; padding:6px 8px; border:1px solid #d2d2d7; border-radius:999px; background:#fff}
     .pill{
       display:inline-flex;
       align-items:center;
@@ -105,7 +104,149 @@
     .result-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e5e5ea}
     .result-item:last-child{border-bottom:none}
     .result-item .label{font-weight:500;color:var(--ink)}
-    .target-results{background:#f8f8f8;padding:12px;border-radius:8px;border:1px solid #e5e5ea}
+          .target-results{background:#f8f8f8;padding:12px;border-radius:8px;border:1px solid #e5e5ea}
+      
+      /* 小卡片布局样式 */
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      
+      .metric-card {
+        background: #ffffff;
+        border: 1px solid #d2d2d7;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+        min-height: 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      
+      .metric-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+      }
+      
+      .metric-label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 500;
+        margin-bottom: 8px;
+        line-height: 1.3;
+      }
+      
+      .metric-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.4;
+        word-break: break-word;
+      }
+      
+      /* 目标达成分析卡片样式 */
+      .achievement-card {
+        background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        border-color: #007acc;
+        border-left: 3px solid #007acc;
+      }
+      
+      .achievement-card .metric-label {
+        color: #007acc;
+        font-weight: 600;
+      }
+      
+      /* 核心指标卡片样式 */
+      .core-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-color: var(--accent);
+        border-left: 3px solid var(--accent);
+      }
+      
+      .core-card .metric-label {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      
+      /* 决策分析卡片样式 */
+      .analysis-card {
+        background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        border-color: #007acc;
+        border-left: 3px solid #007acc;
+      }
+      
+      .analysis-card .metric-label {
+        color: #007acc;
+        font-weight: 600;
+      }
+      
+      /* 投放优化建议卡片样式 */
+      .suggestion-card {
+        background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
+        border-color: #ff9500;
+        border-left: 3px solid #ff9500;
+      }
+      
+      .suggestion-card .metric-label {
+        color: #ff9500;
+        font-weight: 600;
+      }
+      
+      /* 响应式布局优化 */
+      @media (max-width: 768px) {
+        .metrics-grid {
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 8px;
+        }
+        
+        .metric-card {
+          padding: 12px;
+          min-height: 70px;
+        }
+        
+        .metric-label {
+          font-size: 11px;
+        }
+        
+        .metric-value {
+          font-size: 13px;
+        }
+      }
+      
+      /* 卡片内容优化 */
+      .metric-card .metric-value {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      
+      /* 小提示标签样式优化 */
+      .metric-card .tiny-hint {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* 指标方向提示 */
+      .dir{font-size:10px; color:#64748b; margin-left:6px; padding:1px 6px; border:1px solid #dfe3ea; border-radius:999px; background:#f8fafc; white-space:nowrap}
+      .dir.up::before{content:'▲ ';}
+      .dir.down::before{content:'▼ ';}
+      
+      /* 卡片间距和阴影优化 */
+      .metrics-grid {
+        margin-bottom: 16px;
+      }
+      
+      .metric-card:last-child {
+        margin-bottom: 0;
+      }
     
     /* 重置按钮样式 */
     .reset-btn {
@@ -258,7 +399,7 @@
 <body>
   <header>
     <h1>费用可视化墙</h1>
-    <div class="sub">实时把 <strong>参数</strong> → <strong>费用/税负</strong> → <strong>广告/利润</strong> 链路展开；一眼看懂“哪个旋钮带动了哪块费用”。</div>
+    <div class="sub">实时把 <strong>参数</strong> → <strong>费用/税负</strong> → <strong>广告/利润</strong> 链路展开；一眼看懂"哪个旋钮带动了哪块费用"。</div>
   </header>
 
   <main>
@@ -337,6 +478,7 @@
               <div>
                 <label>广告占比（%）</label>
                 <input id="adRate" type="text" inputmode="decimal" placeholder="10">
+                <div class="hint" id="adRateHint"></div>
               </div>
               <div>
                 <label>广告费（¥）</label>
@@ -392,11 +534,11 @@
             <div class="pill">关键指标 / KPI→快速查看有效成交比例以及保本阈值</div>
             <div class="kpi-band" id="kpis">
               <div class="kpi"><div class="label">有效比例 r（扣除退货后）</div><div class="val" id="kpiR">—</div></div>
-              <div class="kpi"><div class="label">保本广告费</div><div class="val" id="kpiAdCost">—</div></div>
-              <div class="kpi"><div class="label">保本广告占比（有效）</div><div class="val" id="kpiAdRateEff">—</div></div>
-              <div class="kpi"><div class="label">保本ROAS（有效）</div><div class="val" id="kpiROASEff">—</div></div>
-              <div class="kpi"><div class="label">保本广告占比（GMV）</div><div class="val" id="kpiAdRateGMV">—</div></div>
-              <div class="kpi"><div class="label">保本ROAS（GMV）</div><div class="val" id="kpiROASGMV">—</div></div>
+              <div class="kpi"><div class="label">每单最多广告费 <span class="dir up">越高越宽松</span></div><div class="val" id="kpiAdCost">—</div></div>
+              <div class="kpi"><div class="label">保本广告占比（有效） <span class="dir down">越低越好</span></div><div class="val" id="kpiAdRateEff">—</div></div>
+              <div class="kpi"><div class="label">保本ROAS（有效） <span class="dir down">越低越好</span></div><div class="val" id="kpiROASEff">—</div></div>
+              <div class="kpi"><div class="label">保本广告占比（GMV） <span class="dir down">越低越好</span></div><div class="val" id="kpiAdRateGMV">—</div></div>
+              <div class="kpi"><div class="label">保本ROAS（GMV） <span class="dir down">越低越好</span></div><div class="val" id="kpiROASGMV">—</div></div>
             </div>
             <div class="sep" style="height:8px"></div>
             <div class="pill">根据模拟CPC/CVR→计算即时利润率</div>
@@ -445,11 +587,6 @@
                 </select>
               </div>
 
-              <div class="decision-item" id="decCPCWrap">
-                <label>CPC（元/点击）</label>
-                <input type="number" id="decCPC" step="0.01" placeholder="2.50" />
-              </div>
-
               <div class="decision-item" id="decCPMWrap" style="display:none">
                 <label>CPM（元/千次曝光）</label>
                 <input type="number" id="decCPM" step="0.01" placeholder="30" />
@@ -461,11 +598,6 @@
               </div>
 
               <div class="decision-item">
-                <label>转化率 CVR（%）</label>
-                <input type="number" id="decCVR" step="0.01" placeholder="2.0" />
-              </div>
-
-              <div class="decision-item">
                 <label>客单价 AOV（留空则用当前售价）</label>
                 <input type="number" id="decAOV" step="0.01" placeholder="79.8" />
               </div>
@@ -474,23 +606,108 @@
                 <label>连带购买率（%）</label>
                 <input type="number" id="decBundleRate" step="0.01" placeholder="0" />
               </div>
+              
+              <!-- 只保留利润率目标，删除其他三个无意义的目标输入框 -->
+              <div class="decision-item">
+                <label>利润率目标（%）</label>
+                <input type="number" id="decTargetMargin" step="0.1" placeholder="8.0" />
+                <div class="hint">期望达到的利润率目标（用于计算可达退货率阈值）</div>
+              </div>
+            </div>
+            
+            <!-- 提示说明 -->
+            <div class="hint" style="margin-top:8px; padding:8px; background:#f8f9fa; border-radius:6px; border-left:3px solid var(--accent);">
+              <strong>说明：</strong>CPC 与 CVR 取自左侧"投放参数"，这里不重复输入；切到 CPM 模式时，请填写 CPM 与 CTR。
+            </div>
+            
+            <!-- 连带购买率影响说明 -->
+            <div class="hint" style="margin-top:8px; padding:8px; background:#fff8f0; border-radius:6px; border-left:3px solid #ff9500;">
+              <strong>🟠 连带购买率影响：</strong>
+              <br>• <strong>基于原价：</strong>BE-ROAS（保本ROI）基于商品当前售价计算，不受AOV输入和连带购买率影响
+              <br>• <strong>基于AOV：</strong>BE-CPA、Max CPC、ROAS等指标受AOV和连带购买率影响，用于模拟不同客单价场景
+              <br>• <strong>放大公式：</strong>有效AOV = 基础AOV × (1 + 连带购买率)
             </div>
 
-            <!-- KPIs -->
-            <div class="kpi-band" id="decisionKpis" style="margin-top:10px">
-              <div class="kpi"><div class="label">保本广告费（BE-CPA）</div><div class="val" id="decBeCPA">—</div></div>
-              <div class="kpi"><div class="label">保本ROAS（按所选口径）</div><div class="val" id="decBeROAS">—</div></div>
-              <div class="kpi"><div class="label">最大可承受CPC</div><div class="val" id="decMaxCPC">—</div></div>
-              <div class="kpi"><div class="label">最大可承受CPM（需CTR）</div><div class="val" id="decMaxCPM">—</div></div>
-              <div class="kpi"><div class="label">即时诊断（安全性）</div><div class="val" id="decisionSafety">—</div></div>
+            <!-- 核心指标 -->
+            <div class="metrics-grid" style="margin-top:10px">
+              <div class="metric-card core-card">
+                <div class="metric-label">每单最多广告费（BE-CPA） <span class="dir up">越高越宽松</span></div>
+                <div class="metric-value" id="decBeCPA">—</div>
+              </div>
+              <div class="metric-card core-card">
+                <div class="metric-label">保本ROAS（按所选口径） <span class="dir down">越低越好</span></div>
+                <div class="metric-value" id="decBeROAS">—</div>
+              </div>
+              <div class="metric-card core-card">
+                <div class="metric-label">最大可承受CPC <span class="dir up">越高越好</span></div>
+                <div class="metric-value" id="decMaxCPC">—</div>
+              </div>
+              <div class="metric-card core-card">
+                <div class="metric-label">最大可承受CPM（需CTR） <span class="dir up">越高越好</span></div>
+                <div class="metric-value" id="decMaxCPM">—</div>
+              </div>
+              <div class="metric-card core-card">
+                <div class="metric-label">即时诊断（安全性）</div>
+                <div class="metric-value" id="decisionSafety">—</div>
+              </div>
+            </div>
+            
+            <!-- 决策分析指标 -->
+            <div class="metrics-grid" style="margin-top:10px">
+              <div class="metric-card analysis-card">
+                <div class="metric-label">CPC安全边际 <span class="dir up">越高越安全</span></div>
+                <div class="metric-value" id="decCPCSafetyMargin">—</div>
+              </div>
             </div>
 
             <!-- 即时对照 -->
-            <div class="target-results" style="margin-top:12px">
-              <div class="result-item"><span class="label">当前 CPA</span><span id="decCPA">—</span></div>
-              <div class="result-item"><span class="label">即时 ROAS（所选口径）</span><span id="decROAS">—</span></div>
-              <div class="result-item"><span class="label">投1元广告带来的净利润</span><span id="decProfitPerAdYuan">—</span></div>
-              <div class="result-item"><span class="label">建议</span><span id="decisionSuggestion">—</span></div>
+            <div class="metrics-grid" style="margin-top:12px">
+              <div class="metric-card">
+                <div class="metric-label">当前每单广告费 <span class="dir down">越低越好</span></div>
+                <div class="metric-value" id="decCPA">—</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">即时 ROAS（所选口径） <span class="dir up">越高越好</span></div>
+                <div class="metric-value" id="decROAS">—</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">投1元广告带来的净利润 <span class="dir up">越高越好</span></div>
+                <div class="metric-value" id="decProfitPerAdYuan">—</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">建议</div>
+                <div class="metric-value" id="decisionSuggestion">—</div>
+              </div>
+            </div>
+            
+            <!-- 目标达成分析 -->
+            <div class="metrics-grid" style="margin-top:12px">
+              <div class="metric-card achievement-card">
+                <div class="metric-label">可达退货率阈值（达成目标利润率） <span class="dir down">越低越安全</span></div>
+                <div class="metric-value" id="decReturnThreshold">—</div>
+              </div>
+              <div class="metric-card achievement-card">
+                <div class="metric-label">付费占比敏感度（占比↓1pp） <span class="dir up">利好为正</span></div>
+                <div class="metric-value" id="decAdRateSensitivity">—</div>
+              </div>
+
+              <div class="metric-card achievement-card" id="goalAlignWrap" data-tip="<div class='tt-title'>说明</div><div>用'当前值 vs 保本阈值'和'差距'替代抽象的百分比达成度；红绿一眼可判，避免误解。</div>">
+                <div class="metric-label">保本对齐概览（当前 vs 保本阈值｜差距）</div>
+                <div class="metric-value" id="goalAlignment">
+                  <div style="font-size:12px;color:var(--muted)">暂无</div>
+                </div>
+              </div>
+            </div>
+            
+
+
+            <!-- 二维安全地图：CPC vs CVR -->
+            <div class="block" id="safetyMapBlock">
+              <div class="pill">安全区地图（CPC × CVR）</div>
+              <div class="hint" style="margin:4px 0 8px">边界线：<span class="tt-code">CPC = BE-CPA × CVR</span>；线下为安全区（保本内），线上为风险区。点位＝当前投放。</div>
+              <div class="card" style="border:1px solid #e5e5ea;border-radius:12px;padding:8px;background:#fff">
+                <canvas id="safetyMap" height="260" style="width:100%;display:block"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -538,12 +755,12 @@
     const pct = (x,p=2)=> isFinite(x) ? (x*100).toFixed(p)+'%' : '—';
     const fmt = (x,p=2)=> isFinite(x) ? Number(x).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
     const to01 = (v)=>{ const n = Number(String(v).replace(/[^\d.\-]/g,'')); return isFinite(n) ? (n>1? n/100 : n) : 0 };
-    const num = (v)=>{ const s = String(v).replace(/[^\d.\-\.]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
+    const num = (v)=>{ const s = String(v).replace(/[^\d.\-]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
 
     // —— 投放决策小工具函数 ——
     const clamp01 = (x)=> Math.max(0, Math.min(1, x||0));
     const calcEffectiveAOV = (aov, bundleRate)=>{
-      const A = Number(aov)||0, b = clamp01((Number(bundleRate)||0));
+      const A = Number(aov)||0, b = clamp01(Number(bundleRate)||0);
       return A>0 ? A * (1 + b) : 0;
     };
     const cpcFromCpmCtr = (cpm, ctr)=>{ // CPM 元/千次曝光；CTR 小数
@@ -641,21 +858,25 @@
       cvr: 'metro_cvr',
       simRates: 'metro_simRates',
       simBasis: 'metro_simBasis',
-              // 新tab持久化
-        decisionCpc: 'metro_decisionCpc',
-        decisionCvr: 'metro_decisionCvr',
-        analysisAdRates: 'metro_analysisAdRates',
-        analysisReturnRates: 'metro_analysisReturnRates',
-        // 利润推演（表格）范围键
-        adStart: 'metro_adStart',
-        adEnd: 'metro_adEnd',
-        adStep: 'metro_adStep',
-                rrStart: 'metro_rrStart',
-        rrEnd: 'metro_rrEnd',
-        rrStep: 'metro_rrStep',
-        // 当前选中的tab
-        currentTab: 'metro_currentTab'
-      };
+      // 投放决策tab持久化
+      decBasis: 'metro_decBasis',
+      decBuyMode: 'metro_decBuyMode',
+      decCPM: 'metro_decCPM',
+      decCTR: 'metro_decCTR',
+      decAOV: 'metro_decAOV',
+      decBundleRate: 'metro_decBundleRate',
+      // 利润率目标参数（用于可达退货率阈值计算）
+      decTargetMargin: 'metro_decTargetMargin',
+      // 利润推演（表格）范围键
+      adStart: 'metro_adStart',
+      adEnd: 'metro_adEnd',
+      adStep: 'metro_adStep',
+      rrStart: 'metro_rrStart',
+      rrEnd: 'metro_rrEnd',
+      rrStep: 'metro_rrStep',
+      // 当前选中的tab
+      currentTab: 'metro_currentTab'
+    };
 
     // 保存参数到本地存储
     function saveToStorage(key, value) {
@@ -710,13 +931,16 @@
       $('cvr').value = loadFromStorage(STORAGE_KEYS.cvr, '15');
       $('simRates').value = loadFromStorage(STORAGE_KEYS.simRates, '10,12,18,20,22,25,28,30,33,35');
 
-      // 右侧新Tab默认值（若未保存，则用左侧CPC/CVR回填）
-      const defDecisionCpc = loadFromStorage(STORAGE_KEYS.decisionCpc, $('cpc').value || '');
-      const defDecisionCvr = loadFromStorage(STORAGE_KEYS.decisionCvr, $('cvr').value || '');
-      if (document.getElementById('decisionCpc')) document.getElementById('decisionCpc').value = defDecisionCpc;
-      if (document.getElementById('decisionCvr')) document.getElementById('decisionCvr').value = defDecisionCvr;
-      if (document.getElementById('analysisAdRates')) document.getElementById('analysisAdRates').value = loadFromStorage(STORAGE_KEYS.analysisAdRates, '5,10,15,20,25,30');
-      if (document.getElementById('analysisReturnRates')) document.getElementById('analysisReturnRates').value = loadFromStorage(STORAGE_KEYS.analysisReturnRates, '8,10,12,15,18');
+      // 投放决策tab默认值（有则用存储，无则给友好默认）
+      if (document.getElementById('decBasis')) document.getElementById('decBasis').value = loadFromStorage(STORAGE_KEYS.decBasis, 'effective');
+      if (document.getElementById('decBuyMode')) document.getElementById('decBuyMode').value = loadFromStorage(STORAGE_KEYS.decBuyMode, 'cpc');
+      if (document.getElementById('decCPM')) document.getElementById('decCPM').value = loadFromStorage(STORAGE_KEYS.decCPM, '30');
+      if (document.getElementById('decCTR')) document.getElementById('decCTR').value = loadFromStorage(STORAGE_KEYS.decCTR, '2.5');
+      if (document.getElementById('decAOV')) document.getElementById('decAOV').value = loadFromStorage(STORAGE_KEYS.decAOV, '');
+      if (document.getElementById('decBundleRate')) document.getElementById('decBundleRate').value = loadFromStorage(STORAGE_KEYS.decBundleRate, '0');
+      
+      // 利润率目标参数默认值
+      if (document.getElementById('decTargetMargin')) document.getElementById('decTargetMargin').value = loadFromStorage(STORAGE_KEYS.decTargetMargin, '8.0');
       
       // 利润推演（表格）默认范围（支持本地恢复）
       if (document.getElementById('adStart')) document.getElementById('adStart').value = loadFromStorage(STORAGE_KEYS.adStart, '5');
@@ -899,6 +1123,7 @@
         Profit = res.profit; Margin = res.margin; VAT_in_ad = res.VAT_in_ad;
       }
 
+
       // —— 砖墙 ——
       const wall = $('wall');
       const toPct = (v)=> Rev>0 ? Math.min(100, Math.abs(v)/Rev*100) : 0;
@@ -910,13 +1135,13 @@
         {name:'销项税（价内，需剥离）', amt: -base.VAT_out, cls:'neg', tip:'公式：VAT_out = Rev × 销项税率 ÷ (1 + 销项税率)'},
         {name:'进货抵扣（供应商开票抵扣）', amt: base.VAT_in_goods, cls:'pos', tip:'公式：VAT_in_goods = 进货价(不含税) × 进项税率 × (可退? r : 1)'},
         {name:'佣金抵扣（佣金发票进项抵扣）', amt: base.VAT_in_comm, cls:'pos', tip:'公式：VAT_in_comm = 佣金(含税) ÷ (1 + 服务VAT税率) × 服务VAT税率'},
+        {name:'毛利润（不含广告）A', amt: base.A, cls: base.A>=0? 'pos':'neg', tip:'公式：A = Rev − 进货成本 − 其它成本 − 佣金 − VAT_out + VAT_in_goods + VAT_in_comm'},
       ];
       if(adCostGiven>0){
         rows.push({name:'广告抵扣（广告费发票进项抵扣）', amt: VAT_in_ad, cls:'pos', tip:'公式：VAT_in_ad = 广告费(含税) ÷ (1 + 服务VAT税率) × 服务VAT税率'});
         rows.push({name:'广告费（按广告输入模式给定）', amt: -adCostGiven, cls:'neg', tip:'说明：来自占比/金额换算的每单广告成本'});
+        if(isFinite(Profit)) rows.push({name:'净利润（含给定广告）', amt: Profit, cls: Profit>=0? 'pos':'neg', tip:'公式：净利润 = A − 广告费 + VAT_in_ad'});
       }
-      rows.push({name:'毛利润（不含广告）A', amt: base.A, cls: base.A>=0? 'pos':'neg', tip:'公式：A = Rev − 进货成本 − 其它成本 − 佣金 − VAT_out + VAT_in_goods + VAT_in_comm'});
-      if(isFinite(Profit)) rows.push({name:'净利润（含给定广告）', amt: Profit, cls: Profit>=0? 'pos':'neg', tip:'公式：净利润 = A − 广告费 + VAT_in_ad'});
 
       wall.innerHTML = rows.map(rw=>{
         const tip = rw.tip ? rw.tip
@@ -960,20 +1185,23 @@
       const tabBtns = document.querySelectorAll('.tab-btn');
       const tabContents = document.querySelectorAll('.tab-content');
       
-              tabBtns.forEach(btn => {
-          btn.addEventListener('click', () => {
-            const targetTab = btn.getAttribute('data-tab');
-            activateTab(targetTab);
-            
-            // 保存当前选择的tab到本地存储
-            saveToStorage(STORAGE_KEYS.currentTab, targetTab);
-          });
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+          console.log('🔄 切换到tab:', targetTab);
+          activateTab(targetTab);
+          
+          // 保存当前选择的tab到本地存储
+          saveToStorage(STORAGE_KEYS.currentTab, targetTab);
+          console.log('💾 已保存tab状态:', targetTab);
         });
-        
-        // 恢复上次选择的tab
-        const savedTab = loadFromStorage(STORAGE_KEYS.currentTab, 'analysis');
-        activateTab(savedTab);
-      }
+      });
+      
+      // 恢复上次选择的tab（默认显示投放决策tab）
+      const savedTab = loadFromStorage(STORAGE_KEYS.currentTab, 'decision');
+      console.log('🔄 恢复上次选择的tab:', savedTab);
+      activateTab(savedTab);
+    }
       
       // 激活指定tab
       function activateTab(tabName) {
@@ -997,11 +1225,7 @@
           
           // 根据tab类型更新相应的显示
           if (tabName === 'decision') {
-            // 回填：若为空，用左侧参数
-            const cpcInput = document.getElementById('decCPC');
-            const cvrInput = document.getElementById('decCVR');
-            if(cpcInput && !cpcInput.value) cpcInput.value = document.getElementById('cpc')?.value || '';
-            if(cvrInput && !cvrInput.value) cvrInput.value = document.getElementById('cvr')?.value || '';
+            // 直接更新决策显示，CPC/CVR 来自左侧投放参数
             updateDecisionDisplay();
           } else if (tabName === 'analysis') {
             simulate();
@@ -1017,6 +1241,94 @@
       }
     }
     
+    // —— 二维安全地图绘制 —— 
+    function drawSafetyMap(cfg){
+      const {
+        beCPA=0, // 元/单
+        cpc=0,   // 元/次
+        cvr=0    // 小数
+      } = cfg||{};
+      const cvs = document.getElementById('safetyMap');
+      if(!cvs) return; const ctx = cvs.getContext('2d');
+      const W = cvs.clientWidth || cvs.width; const H = cvs.height;
+      // 适配宽度变化
+      if(cvs.width !== W) cvs.width = W;
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+
+      // 轴范围：自适应当前投放参数
+      const xMax = Math.max(1, cpc*1.6, beCPA*Math.max(0.05, cvr*1.6), 6);
+      const yMax = Math.min(1, Math.max(0.1, cvr*1.6, 0.3));
+      const padL=46, padB=28, padT=8, padR=12;
+      const X = v=> padL + (v/xMax)*(cvs.width - padL - padR);
+      const Y = v=> cvs.height - padB - (v/yMax)*(cvs.height - padT - padB);
+
+      // 背景网格
+      ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1;
+      for(let i=0;i<=5;i++){ // x-grid
+        const gx = padL + (cvs.width-padL-padR)*i/5; ctx.beginPath(); ctx.moveTo(gx, padT); ctx.lineTo(gx, cvs.height-padB); ctx.stroke();
+      }
+      for(let i=0;i<=5;i++){ // y-grid
+        const gy = padT + (cvs.height-padT-padB)*i/5; ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(cvs.width-padR, gy); ctx.stroke();
+      }
+
+      // 安全边界：CPC = beCPA * CVR
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+      const yEdge = Math.min(yMax, xMax/beCPA); // when CPC=xMax, y= xMax/beCPA
+      const xEdge = Math.min(xMax, beCPA*yMax);
+      // 绘制边界线
+      ctx.strokeStyle = '#007aff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+      ctx.lineTo(X(xEdge), Y(yEdge)); ctx.stroke();
+
+      // 填充安全区（线下）
+      ctx.fillStyle = 'rgba(52,199,89,0.10)';
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+      ctx.lineTo(X(xEdge), Y(0));
+      ctx.lineTo(X(xEdge), Y(yEdge));
+      ctx.closePath(); ctx.fill();
+
+      // 风险区（线以上）
+      ctx.fillStyle = 'rgba(255,59,48,0.06)';
+      ctx.beginPath(); ctx.moveTo(X(0), Y(yEdge));
+      ctx.lineTo(X(xEdge), Y(yEdge));
+      ctx.lineTo(X(xEdge), Y(yMax));
+      ctx.lineTo(X(0), Y(yMax));
+      ctx.closePath(); ctx.fill();
+
+      // 轴
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(xMax), Y(0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(yMax)); ctx.stroke();
+
+      // 刻度与标签
+      ctx.fillStyle = '#64748b'; ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+      for(let i=0;i<=5;i++){ const xv = (xMax*i/5); ctx.fillText(xv.toFixed(2), X(xMax*i/5), H-10); }
+      ctx.save(); ctx.textAlign = 'right';
+      for(let i=0;i<=5;i++){ const yv = (yMax*i/5); ctx.fillText((yv*100).toFixed(0)+'%', padL-6, Y(yMax*i/5)+4); }
+      ctx.restore();
+      ctx.fillText('CPC (元/次)', (padL+ (cvs.width-padL-padR)/2), H-4);
+      ctx.save(); ctx.translate(14, (padT+(cvs.height-padT-padB)/2)); ctx.rotate(-Math.PI/2); ctx.fillText('CVR (转化率)', 0,0); ctx.restore();
+
+
+
+      // 当前点
+      const drawDot = (x,y,color,label)=>{
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(x), Y(y), 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = color; ctx.font = '12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(label, X(x)+6, Y(y)-6);
+      };
+      if(isFinite(cpc) && isFinite(cvr) && cpc>=0 && cvr>=0){
+        const safe = (beCPA>0 && cvr>0) ? (cpc <= beCPA*cvr) : false;
+        drawDot(cpc, cvr, safe? '#34c759':'#ff3b30', '当前');
+      }
+
+      // 图例
+      ctx.fillStyle = '#0f172a'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+      ctx.fillText('安全区', padL+8, padT+16);
+      ctx.fillStyle = '#34c759'; ctx.fillRect(padL+52, padT+8, 12, 12);
+      ctx.fillStyle = '#ff3b30'; ctx.fillRect(padL+72, padT+8, 12, 12);
+      ctx.fillStyle = '#64748b'; ctx.fillText('边界：CPC = BE-CPA × CVR', padL+92, padT+18);
+    }
+
     // 更新投放决策显示（整合首页/商品分析逻辑）
     function updateDecisionDisplay(){
       const p = params();
@@ -1025,62 +1337,212 @@
       // 读取投放参数
       const basis = (document.getElementById('decBasis')?.value)||'effective';
       const buyMode = (document.getElementById('decBuyMode')?.value)||'cpc';
-      const cvr = to01(document.getElementById('decCVR')?.value);
+      
+      // 读取CVR（来自左侧投放参数）
+      const cvrEl = $('cvr'); // 移除#号，因为$函数是getElementById
+      const cvrValue = cvrEl?.value;
+      const cvr = to01(cvrValue);
+      
+      // CVR读取成功（已修复选择器问题）
+      
       const aovInput = num(document.getElementById('decAOV')?.value);
       const bundleRate = to01(document.getElementById('decBundleRate')?.value);
 
       // 有效AOV（考虑连带购买率）；AOV 为空则用左侧售价
       const effAOV = calcEffectiveAOV(aovInput>0? aovInput: p.sellingPrice, bundleRate);
 
-      // CPC/CPA（兼容 CPC 和 CPM+CTR）
+            // CPC/CPA（兼容 CPC 和 CPM+CTR）
       let cpc = 0;
       if(buyMode==='cpc'){
-        cpc = num(document.getElementById('decCPC')?.value);
+        const cpcEl = $('cpc'); // 移除#号，因为$函数是getElementById
+        const cpcValue = cpcEl?.value;
+        cpc = num(cpcValue); // 来自左侧投放参数
+        
+                 // CPC读取成功（已修复选择器问题）
       }else{ // cpm
         const cpm = num(document.getElementById('decCPM')?.value);
         const ctr = to01(document.getElementById('decCTR')?.value);
         cpc = cpcFromCpmCtr(cpm, ctr);
       }
-      const cpa = (cvr>0)? cpc / cvr : 0;
+      const cpa = (cvr>0 && cpc>0)? cpc / cvr : 0;
+      
+      // 关键参数读取完成
 
       // 保本指标（来自 engine.js 基础口径）
-      const beCPA = base.adCostBreakEven;
       const beROAS_eff = base.ROI_BE_effective;
       const beROAS_gmv = base.ROI_BE_gmv;
       const beROAS = (basis==='gmv')? beROAS_gmv : beROAS_eff;
+      
+      // 使用连带放大后的 AOV 影响 BE-CPA/MaxCPC/ROAS（不改动 BE-ROAS 本身）；按所选口径匹配分子
+      const aovWithBundle = effAOV;
+      const basisBaseForBe = (basis === 'gmv') ? aovWithBundle : (aovWithBundle * base.r);
+      const beCPA = (isFinite(beROAS) && beROAS > 0 && isFinite(basisBaseForBe))
+        ? (basisBaseForBe / beROAS)
+        : base.adCostBreakEven; // 回退到引擎计算
+      
+      // 保本指标计算完成
 
-      // 最大可承受 CPC/CPM
-      const maxCPC = (cvr>0)? beCPA * cvr : 0;
+      // 最大可承受 CPC/CPM（基于放大后的AOV）
+      const maxCPC = (cvr>0 && isFinite(beCPA))? beCPA * cvr : 0;
       let maxCPM = 0;
       const ctrVal = to01(document.getElementById('decCTR')?.value);
-      if(ctrVal>0){ maxCPM = maxCPC * (1000*ctrVal); }
+      if(ctrVal>0 && isFinite(maxCPC)){ maxCPM = maxCPC * (1000*ctrVal); }
+      
+      // 最大可承受指标计算完成
 
-      // 即时 ROAS（按所选口径）& 投1元广告净利润
-      let roas = 0, profitPerAdYuan = 0;
-      if(cpa>0){
-        const r = base.r;
-        roas = (basis==='gmv')? (p.sellingPrice / cpa) : ((p.sellingPrice * r) / cpa);
-        const resCPA = profitGivenAd(p, { adCost: cpa });
-        profitPerAdYuan = isFinite(resCPA.profit) && cpa>0 ? (resCPA.profit / cpa) : 0;
-      }
+    // 即时 ROAS（按所选口径，使用有效AOV反映客单变动）& 投1元广告净利润
+    let roas = 0, profitPerAdYuan = 0;
+    if(cpa>0){
+      const r = base.r;
+      roas = (basis==='gmv')? (effAOV / cpa) : ((effAOV * r) / cpa);
+
+      // 投1元广告带来的净利润 = 每单净利润 ÷ 每单广告费（与可视化卡片口径一致）
+      const resCPA = profitGivenAd(p, { adCost: cpa });
+      profitPerAdYuan = (isFinite(resCPA.profit) && cpa>0) ? (resCPA.profit / cpa) : 0;
+    }
 
       // 安全性&建议
       const isSafe = cpa>0 ? (cpa <= beCPA) : false;
       const safetyText = cpa>0 ? (isSafe? '安全' : '危险') : '—';
       const suggestion = cpa<=0? '请先填写 CPC/CPM 与 CVR' : (isSafe? '可继续投放，观察放量空间' : '降低CPC或提高CVR/连带率');
 
-      // 输出
+      // 读取利润率目标参数（用于可达退货率阈值计算）
+      const targetMargin = to01(document.getElementById('decTargetMargin')?.value);
+
+      // —— 安全边际（CPC）/ 缺口（CVR/ROAS）—— 统一对保本基准 ——
+      // CPC安全边际：相对最大可承受CPC（越高越安全）
+      const cpcSafetyMargin = (cpc>0 && maxCPC>0) ? ((maxCPC - cpc) / maxCPC * 100) : NaN;
+
+      // 保本所需CVR：在当前CPC下达到保本的最低CVR
+      const cvrRequired = (beCPA>0) ? (cpc / beCPA) : NaN;
+
+      // CVR缺口：需要提升多少比例才能达到保本（≤0表示已达标）
+      const cvrGapPct = (isFinite(cvrRequired) && cvr>=0)
+        ? ((cvrRequired - cvr) / cvrRequired * 100)
+        : NaN;
+
+      // ROAS缺口：相对BE-ROAS的缺口（≤0表示已达标）
+      const roasGapPct = (isFinite(beROAS) && roas>0)
+        ? ((beROAS - roas) / beROAS * 100)
+        : NaN;
+      
+      // —— 利润率：统一用小数口径做计算，再转百分比展示 —— 
+      let currentMarginFrac = NaN;
+      if (cpa>0) {
+        const resCPA = profitGivenAd(p, { adCost: cpa });
+        currentMarginFrac = resCPA.margin; // 小数
+      }
+
+
+      // 利润率目标分析卡片已删除（简化界面）
+
+      // —— 投放效率评分（更稳健的加权计算） —— 
+      let efficiencyScore = NaN;
+      if(cpa>0 && (isFinite(cpcSafetyMargin) || isFinite(cvrGapPct) || isFinite(roasGapPct))){
+        const parts = [];
+        let totalWeight = 0;
+        
+        // CPC安全边际：权重0.4（CPC是核心成本指标）
+        if (isFinite(cpcSafetyMargin)) {
+          const cpcScore = Math.max(0, 100 - Math.max(0, -cpcSafetyMargin)); // 低于目标更高分
+          parts.push(cpcScore * 0.4);
+          totalWeight += 0.4;
+        }
+        
+        // CVR缺口：权重0.3（转化率影响ROAS）
+        if (isFinite(cvrGapPct)) {
+          const cvrScore = Math.max(0, 100 - Math.max(0, cvrGapPct)); // 需要提升越少越高分
+          parts.push(cvrScore * 0.3);
+          totalWeight += 0.3;
+        }
+        
+        // ROAS缺口：权重0.3（ROAS是最终效果指标）
+        if (isFinite(roasGapPct)) {
+          const roasScore = Math.max(0, 100 - Math.max(0, roasGapPct));
+          parts.push(roasScore * 0.3);
+          totalWeight += 0.3;
+        }
+        
+        // 加权平均
+        if (totalWeight > 0) {
+          efficiencyScore = Math.round(parts.reduce((a, b) => a + b, 0) / totalWeight);
+        }
+      }
+
+      // —— 保本达成度 —— 
+      const cpcAchievement   = (cpc>0 && maxCPC>0) ? Math.min(100, (maxCPC/cpc)*100) : NaN; // CPC越低越好
+      const cvrAchievement   = (cvrRequired>0 && cvr>=0) ? Math.min(100, (cvr/cvrRequired)*100) : NaN;
+      const roasAchievement  = (beROAS>0 && roas>0) ? Math.min(100, (roas/beROAS)*100) : NaN;
+
+
+      // 优化建议已删除（简化界面）
+
+      // 输出基础指标
       const showYuan = (x)=> isFinite(x)&&x>0? fmt(x,2)+' 元':'—';
       const showNum  = (x)=> isFinite(x)&&x>0? x.toFixed(2):'—';
+      const showPercent = (x)=> isFinite(x) ? x.toFixed(1)+'%' : '—';
 
-      document.getElementById('decBeCPA').textContent = showYuan(beCPA);
-      document.getElementById('decBeROAS').textContent = isFinite(beROAS)? beROAS.toFixed(2)+' 倍' : '—';
-      document.getElementById('decMaxCPC').textContent = showYuan(maxCPC);
-      document.getElementById('decMaxCPM').textContent = showYuan(maxCPM);
+      // 显示保本指标（带连带购买率影响标识）
+      document.getElementById('decBeCPA').innerHTML = (isFinite(beCPA) && beCPA > 0) ? (showYuan(beCPA) + 
+        '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+      
+      document.getElementById('decBeROAS').innerHTML = (isFinite(beROAS) && beROAS > 0) ? (beROAS.toFixed(2)+' 倍' + 
+        '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>') : '—';
+      
+      document.getElementById('decMaxCPC').innerHTML = (isFinite(maxCPC) && maxCPC > 0) ? (showYuan(maxCPC) + 
+        '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+      
+      document.getElementById('decMaxCPM').innerHTML = (isFinite(maxCPM) && maxCPM > 0) ? (showYuan(maxCPM) + 
+        '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
 
-      document.getElementById('decCPA').textContent = showYuan(cpa);
-      document.getElementById('decROAS').textContent = showNum(roas)+' 倍';
-      document.getElementById('decProfitPerAdYuan').textContent = showYuan(profitPerAdYuan);
+      // 显示实际投放指标
+      const cpaEl = document.getElementById('decCPA');
+      if (isFinite(cpa) && cpa > 0) {
+        cpaEl.textContent = showYuan(cpa);
+        cpaEl.style.color = 'var(--bad)'; // CPA越低越好
+        cpaEl.title = `当前每单广告成本：${showYuan(cpa)}`;
+      } else {
+        cpaEl.textContent = '—';
+        cpaEl.style.color = '';
+        cpaEl.title = '';
+      }
+      
+      const roasEl = document.getElementById('decROAS');
+      if (isFinite(roas) && roas > 0) {
+        roasEl.innerHTML = showNum(roas)+' 倍' + 
+          '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+        roasEl.style.color = roas >= 1 ? 'var(--ok)' : 'var(--bad)'; // ROAS≥1为盈利
+        roasEl.title = `当前ROAS：${showNum(roas)}倍（${roas >= 1 ? '盈利' : '亏损'}）`;
+      } else {
+        roasEl.innerHTML = '—';
+        roasEl.style.color = '';
+        roasEl.title = '';
+      }
+      
+      // 显示投1元广告带来的净利润（根据盈亏显示不同提示）
+      const profitPerAdYuanEl = document.getElementById('decProfitPerAdYuan');
+      if (isFinite(profitPerAdYuan)) {
+        if (profitPerAdYuan > 0) {
+          // 盈利：显示赚多少钱
+          profitPerAdYuanEl.textContent = showYuan(profitPerAdYuan);
+          profitPerAdYuanEl.style.color = 'var(--ok)';
+          profitPerAdYuanEl.title = `投1元广告赚 ${showYuan(profitPerAdYuan)}`;
+        } else if (profitPerAdYuan < 0) {
+          // 亏本：显示亏多少钱
+          profitPerAdYuanEl.textContent = `亏${showYuan(Math.abs(profitPerAdYuan))}`;
+          profitPerAdYuanEl.style.color = 'var(--bad)';
+          profitPerAdYuanEl.title = `投1元广告亏 ${showYuan(Math.abs(profitPerAdYuan))}`;
+        } else {
+          // 保本：显示保本
+          profitPerAdYuanEl.textContent = '保本';
+          profitPerAdYuanEl.style.color = '#ff9500';
+          profitPerAdYuanEl.title = '投1元广告不赚不亏';
+        }
+      } else {
+        profitPerAdYuanEl.textContent = '—';
+        profitPerAdYuanEl.style.color = '';
+        profitPerAdYuanEl.title = '';
+      }
 
       const safetyEl = document.getElementById('decisionSafety');
       safetyEl.textContent = safetyText;
@@ -1088,8 +1550,380 @@
       const sugEl = document.getElementById('decisionSuggestion');
       sugEl.textContent = suggestion;
       sugEl.style.color = isSafe? 'var(--ok)':'var(--bad)';
+
+      // 输出新增决策分析指标（带颜色和提示）
+      const cpcSafetyEl = document.getElementById('decCPCSafetyMargin');
+      if (isFinite(cpcSafetyMargin)) {
+        cpcSafetyEl.textContent = showPercent(cpcSafetyMargin);
+        cpcSafetyEl.style.color = cpcSafetyMargin >= 0 ? 'var(--ok)' : 'var(--bad)';
+        cpcSafetyEl.title = cpcSafetyMargin >= 0 ? '低于最大可承受CPC，安全' : '高于最大可承受CPC，有风险';
+      } else {
+        cpcSafetyEl.textContent = '—';
+        cpcSafetyEl.style.color = '';
+        cpcSafetyEl.title = '';
+      }
+
+      // 防御式更新：已删元素的更新逻辑加if判断
+      const cvrImprovementEl = document.getElementById('decCVRImprovement');
+      if (cvrImprovementEl) {
+        if (isFinite(cvrGapPct)) {
+          cvrImprovementEl.textContent = cvrGapPct > 0 ? ('需提升 ' + cvrGapPct.toFixed(1) + '%') : '已达标（≥保本所需CVR）';
+          cvrImprovementEl.style.color = cvrGapPct <= 0 ? 'var(--ok)' : 'var(--bad)';
+          cvrImprovementEl.title = cvrGapPct > 0 ? '未达标：需提升至保本CVR' : '已达标：不低于保本CVR';
+        } else {
+          cvrImprovementEl.textContent = '—';
+          cvrImprovementEl.style.color = '';
+          cvrImprovementEl.title = '';
+        }
+      }
+
+      const roasImprovementEl = document.getElementById('decROASImprovement');
+      if (roasImprovementEl) {
+        if (isFinite(roasGapPct)) {
+          roasImprovementEl.textContent = roasGapPct > 0 ? ('需提升 ' + roasGapPct.toFixed(1) + '%') : '已达标（≥BE-ROAS）';
+          roasImprovementEl.style.color = roasGapPct <= 0 ? 'var(--ok)' : 'var(--bad)';
+          roasImprovementEl.title = roasGapPct > 0 ? '未达标：需提升至BE-ROAS' : '已达标：不低于BE-ROAS';
+        } else {
+          roasImprovementEl.textContent = '—';
+          roasImprovementEl.style.color = '';
+          roasImprovementEl.title = '';
+        }
+      }
+
+      const efficiencyScoreEl = document.getElementById('decEfficiencyScore');
+      if (efficiencyScoreEl) {
+        if (isFinite(efficiencyScore)) {
+          efficiencyScoreEl.textContent = efficiencyScore + '分';
+          if (efficiencyScore >= 80) {
+            efficiencyScoreEl.style.color = 'var(--ok)';
+            efficiencyScoreEl.title = '投放效率优秀';
+          } else if (efficiencyScore >= 60) {
+            efficiencyScoreEl.style.color = '#ff9500';
+            efficiencyScoreEl.title = '投放效率良好';
+          } else {
+            efficiencyScoreEl.style.color = 'var(--bad)';
+            efficiencyScoreEl.title = '投放效率需要提升';
+          }
+        } else {
+          efficiencyScoreEl.textContent = '—';
+          efficiencyScoreEl.style.color = '';
+          efficiencyScoreEl.title = '';
+        }
+      }
+
+      // —— 绘制二维安全地图 ——
+      drawSafetyMap({ beCPA, cpc, cvr });
+
+      // —— 与目标利润率联动的"可达退货率阈值" ——
+      let returnThresholdText = '—';
+      (function(){
+        const targetMarginInput = document.getElementById('decTargetMargin');
+        const targetMargin = to01(targetMarginInput?.value);
+        const curR = p.returnRate; // 当前退货率（0-1）
+        if(!(targetMargin>0)) { returnThresholdText = '请设置利润率目标（用于计算可达退货率阈值）'; return; }
+
+        // 修复1：使用决策面板选择的口径，而不是左侧投放参数口径
+        const basis = (document.getElementById('decBasis')?.value) || 'effective';
+        
+        // 修复2：广告费处理 - 当adMode='none'时使用当前CPA
+        const adv = currentAd();
+        let adCostGiven = 0;
+        if(adv.mode==='rate'){
+          adCostGiven = adRateToAmount(p, adv.adRate, basis); // 使用决策面板口径
+        }else if(adv.mode==='amount'){
+          adCostGiven = Math.max(0, adv.adCost);
+        }else{ // none -> 使用当前CPA（与即时诊断一致）
+          const cpc = num($('cpc').value);
+          const cvr = to01($('cvr').value);
+          adCostGiven = (cpc>0 && cvr>0) ? cpc/cvr : 0;
+        }
+        
+        // 调试信息：验证修复效果
+        console.log('🔍 可达退货率阈值计算参数:', {
+          决策面板口径: basis,
+          左侧投放口径: adv.basis,
+          广告模式: adv.mode,
+          广告费: adCostGiven,
+          CPC: num($('cpc').value),
+          CVR: to01($('cvr').value),
+          目标利润率: targetMargin
+        });
+
+        // 定义利润率函数 m(r): 给定退货率 r（小数）时的利润率（小数）
+        function marginAt(rSmall){
+          const pr = {...p, returnRate: rSmall};
+          if(adv.mode==='rate'){
+            // 修复3：参数传递与引擎保持一致
+            const res = profitGivenAdRateAndR(pr, adv.adRate, (1 - rSmall), basis);
+            return res.margin;
+          }else{
+            const res = profitGivenAd(pr, { adCost: adCostGiven });
+            return res.margin;
+          }
+        }
+
+        // 先检查边界：r=0 是否仍达不到目标？若达不到则无解（结构性不足）
+        const mAt0 = marginAt(0);
+        console.log('🔍 边界检查: r=0时的利润率 =', mAt0, '目标利润率 =', targetMargin);
+        
+        if(!(isFinite(mAt0))){
+          console.log('❌ mAt0 无效，退出计算');
+          return; 
+        }
+        
+        if(mAt0 < targetMargin - 1e-9){
+          console.log('❌ 无解：r=0时利润率', mAt0, '< 目标利润率', targetMargin);
+          returnThresholdText = '无解（即便退货率=0%仍低于目标利润率）';
+          return;
+        }
+        
+        console.log('✅ 边界检查通过：r=0时利润率', mAt0, '≥ 目标利润率', targetMargin);
+
+        // 二分搜索"最高允许退货率 r*"，使得 m(r*) ≥ 目标利润率（单调下降假设）
+        let lo = 0, hi = 1; // 在 [0,1] 内搜索上界
+        console.log('🔍 开始二分搜索，目标利润率 =', targetMargin);
+        
+        for(let i=0;i<40;i++){
+          const mid = (lo+hi)/2;
+          const m = marginAt(mid);
+          if(isFinite(m) && m >= targetMargin){
+            lo = mid; // 还能更高
+            if(i < 5) console.log(`  迭代${i}: r=${mid.toFixed(4)}, 利润率=${m.toFixed(4)} ≥ 目标利润率，lo=${lo.toFixed(4)}`);
+          }else{
+            hi = mid; // 超过阈值，往低找
+            if(i < 5) console.log(`  迭代${i}: r=${mid.toFixed(4)}, 利润率=${m.toFixed(4)} < 目标利润率，hi=${hi.toFixed(4)}`);
+          }
+        }
+        const rStar = lo; // 最高允许退货率
+        console.log('🔍 二分搜索完成，最高允许退货率 r* =', rStar.toFixed(4));
+
+        // 当前是否已达标
+        const mCur = marginAt(curR);
+        const curPct = isFinite(curR)? (curR*100).toFixed(2)+'%' : '—';
+        const starPct = (rStar*100).toFixed(2)+'%';
+        
+        console.log('🔍 最终结果:', {
+          当前退货率: curR,
+          当前利润率: mCur,
+          目标利润率: targetMargin,
+          最高允许退货率: rStar,
+          是否达标: isFinite(mCur) && mCur >= targetMargin
+        });
+        
+        if(isFinite(mCur) && mCur >= targetMargin){
+          returnThresholdText = `已达标（当前：${curPct}，允许≤ ${starPct}）`;
+        }else{
+          returnThresholdText = `需将退货率≤ ${starPct}（当前：${curPct}）`;
+        }
+      })();
+
+      // —— 付费占比每降低 1pp 的敏感度（保持其它参数与 r 不变） ——
+      (function(){
+        const el = document.getElementById('decAdRateSensitivity');
+        if(!el) return;
+        const basisForSens = (document.getElementById('decBasis')?.value) || 'effective';
+        const baseR = computeBase(p).r; // 固定当前 r
+
+        // 取得当前“等价广告占比”（按决策口径）；若未给定占比，则用当前CPA折算
+        const adv = currentAd();
+        let rp0 = NaN; // 当前占比（小数）
+        if(adv.mode === 'rate'){
+          rp0 = adv.adRate; // 已是小数
+        } else if(adv.mode === 'amount'){
+          const rates = adAmountToRates(p, Math.max(0, adv.adCost));
+          rp0 = (basisForSens==='gmv')? rates.gmv : rates.effective;
+        } else { // none -> 由当前CPA折算
+          const cpc0 = num($('cpc').value); const cvr0 = to01($('cvr').value);
+          const cpa0 = (cpc0>0 && cvr0>0)? cpc0/cvr0 : 0;
+          const rates = adAmountToRates(p, cpa0);
+          rp0 = (basisForSens==='gmv')? rates.gmv : rates.effective;
+        }
+        if(!(rp0>=0)) { el.textContent = '—'; return; }
+
+        const rp1 = Math.max(0, rp0 - 0.01); // ↓1pp
+
+        // 快照函数（基于占比与当前 r）
+        function snap(rp){
+          const s = profitGivenAdRateAndR(p, rp, baseR, basisForSens);
+          const adc = s.adCostGiven; // 每单广告费
+          // ROAS（按所选口径）：分子 = AOV 或 AOV×r（这里AOV取左侧售价，不引入连带率）
+          const numerator = (basisForSens==='gmv')? p.sellingPrice : (p.sellingPrice * baseR);
+          const roas = (adc>0)? (numerator/adc) : NaN;
+          const prof = profitGivenAd(p, { adCost: adc });
+          const profitPerAdYuan = (isFinite(prof.profit) && adc>0)? (prof.profit/adc) : (adc===0? 0 : NaN);
+          return { margin: s.margin, adCost: adc, roas, profitPerAdYuan };
+        }
+        const s0 = snap(rp0), s1 = snap(rp1);
+
+        // 增量（rp ↓1pp → 指标变化）
+        const dMarginPP = (isFinite(s0.margin) && isFinite(s1.margin)) ? (s1.margin - s0.margin)*100 : NaN; // 百分点
+        const dCPA      = (isFinite(s0.adCost) && isFinite(s1.adCost))   ? (s1.adCost - s0.adCost)         : NaN; // 元（期望为负）
+        const dROAS     = (isFinite(s0.roas)  && isFinite(s1.roas))      ? (s1.roas  - s0.roas)           : NaN; // 倍
+        const dPPAY     = (isFinite(s0.profitPerAdYuan) && isFinite(s1.profitPerAdYuan)) ? (s1.profitPerAdYuan - s0.profitPerAdYuan) : NaN; // 元
+
+        const chip = (txt, good)=> `<span class="tiny-hint" style="background:${good?'#e6f9ef':'#fff2f0'};color:${good?'#1e7e34':'#c0392b'};border-left:2px solid ${good?'#34c759':'#ff3b30'}">${txt}</span>`;
+        const parts = [];
+        if(isFinite(dMarginPP)) parts.push(`利润率 ${chip((dMarginPP>=0?'+':'')+dMarginPP.toFixed(2)+'pp', dMarginPP>=0)}`);
+        if(isFinite(dCPA))      parts.push(`每单广告费 ${chip((dCPA>=0?'+':'')+fmt(dCPA,2)+'元', dCPA<=0)}`);
+        if(isFinite(dROAS))     parts.push(`ROAS ${chip((dROAS>=0?'+':'')+dROAS.toFixed(2)+'倍', dROAS>=0)}`);
+        if(isFinite(dPPAY))     parts.push(`投1元广告净利润 ${chip((dPPAY>=0?'+':'')+fmt(dPPAY,2)+'元', dPPAY>=0)}`);
+
+        el.innerHTML = parts.length? parts.join(' ｜ ') : '—';
+      })();
+
+      // —— 绑定 returnThresholdText 到 DOM ——
+      const retEl = document.getElementById('decReturnThreshold');
+      if(retEl) retEl.innerHTML = returnThresholdText;
+
+      // —— 附加：退货率每降低 1pp 的敏感度（保持其它参数和广告设定不变） ——
+      (function(){
+        const sensPP = 0.01; // 1pp
+        const r0 = clamp01(p.returnRate);
+        const r1 = Math.max(0, r0 - sensPP);
+
+        // 统一使用决策口径
+        const basisForSens = (document.getElementById('decBasis')?.value) || 'effective';
+
+        // 固定广告强度：rate -> 用当前占比（按决策口径）；amount -> 固定金额；none -> 用当前CPA
+        const adv = currentAd();
+        let adCostForSens = 0;
+        if(adv.mode === 'rate'){
+          adCostForSens = adRateToAmount(p, adv.adRate, basisForSens);
+        }else if(adv.mode === 'amount'){
+          adCostForSens = Math.max(0, adv.adCost);
+        }else{
+          const cpc0 = num($('cpc').value); const cvr0 = to01($('cvr').value);
+          adCostForSens = (cpc0>0 && cvr0>0) ? cpc0/cvr0 : 0;
+        }
+
+        // 小工具：一次性取关键指标（利润率/BE-ROAS/BE-CPA/MaxCPC/MaxCPM/即时ROAS/每1元广告净利）
+        function snapshotAt(rSmall){
+          const pr = {...p, returnRate: rSmall};
+
+          // 基础与保本（基于 pr）
+          const baseX = computeBase(pr);
+          const beROAS_eff_X = baseX.ROI_BE_effective;
+          const beROAS_gmv_X = baseX.ROI_BE_gmv;
+          const beROAS_X = (basisForSens==='gmv')? beROAS_gmv_X : beROAS_eff_X;
+
+          // BE-CPA 按当前决策口径 + 有效AOV（考虑连带率）
+          const aovIn = num(document.getElementById('decAOV')?.value);
+          const bundle = to01(document.getElementById('decBundleRate')?.value);
+          const effAOV_X = calcEffectiveAOV(aovIn>0? aovIn: pr.sellingPrice, bundle);
+          const basisNumerator = (basisForSens==='gmv')? effAOV_X : (effAOV_X * baseX.r);
+          const beCPA_X = (isFinite(beROAS_X) && beROAS_X>0) ? (basisNumerator / beROAS_X) : baseX.adCostBreakEven;
+
+          // MaxCPC/MaxCPM（需要 CVR/CTR）
+          const cvr0 = to01($('cvr').value);
+          const ctr0 = to01(document.getElementById('decCTR')?.value);
+          const maxCPC_X = (cvr0>0 && isFinite(beCPA_X)) ? beCPA_X * cvr0 : NaN;
+          const maxCPM_X = (ctr0>0 && isFinite(maxCPC_X)) ? maxCPC_X * (1000*ctr0) : NaN;
+
+          // 即时利润率/净利（以固定每单广告成本 adCostForSens）
+          const resX = profitGivenAd(pr, { adCost: adCostForSens });
+          const marginX = resX.margin; // 小数
+          const profitPerAdYuanX = (isFinite(resX.profit) && adCostForSens>0) ? (resX.profit/adCostForSens) : (adCostForSens===0? 0: NaN);
+
+          // 即时 ROAS（按口径；分子取 effAOV 或 effAOV×r）
+          let roasX = NaN;
+          if(adCostForSens>0){
+            roasX = (basisForSens==='gmv')? (effAOV_X / adCostForSens) : ((effAOV_X * baseX.r) / adCostForSens);
+          }
+
+          return {marginX, beROAS_X, beCPA_X, maxCPC_X, maxCPM_X, roasX, profitPerAdYuanX};
+        }
+
+        const s0 = snapshotAt(r0);
+        const s1 = snapshotAt(r1);
+
+        // 计算增量（方向：r↓1pp → 指标变化）
+        const dMarginPP = (isFinite(s0.marginX) && isFinite(s1.marginX)) ? (s1.marginX - s0.marginX)*100 : NaN; // 百分点
+        const dBeROAS = (isFinite(s0.beROAS_X) && isFinite(s1.beROAS_X)) ? (s1.beROAS_X - s0.beROAS_X) : NaN; // 期望应为负（更易保本）
+        const dBeCPA  = (isFinite(s0.beCPA_X)  && isFinite(s1.beCPA_X))  ? (s1.beCPA_X  - s0.beCPA_X)  : NaN; // 元/单
+        const dMaxCPC = (isFinite(s0.maxCPC_X) && isFinite(s1.maxCPC_X)) ? (s1.maxCPC_X - s0.maxCPC_X) : NaN; // 元
+        const dMaxCPM = (isFinite(s0.maxCPM_X) && isFinite(s1.maxCPM_X)) ? (s1.maxCPM_X - s0.maxCPM_X) : NaN; // 元
+        const dROAS   = (isFinite(s0.roasX)    && isFinite(s1.roasX))    ? (s1.roasX    - s0.roasX)    : NaN; // 倍
+        const dPPAY   = (isFinite(s0.profitPerAdYuanX) && isFinite(s1.profitPerAdYuanX)) ? (s1.profitPerAdYuanX - s0.profitPerAdYuanX) : NaN; // 元/每1元广告
+
+        // 组织可读文案（标注 ↑/↓ 与单位）
+        function chip(txt, good){ return `<span class=\"tiny-hint\" style=\"background:${good?'#e6f9ef':'#fff2f0'};color:${good?'#1e7e34':'#c0392b'};border-left:2px solid ${good?'#34c759':'#ff3b30'}\">${txt}</span>` }
+        const lines = [];
+        if(isFinite(dMarginPP)) lines.push(`利润率 ${chip((dMarginPP>=0?'+':'')+dMarginPP.toFixed(2)+'pp', dMarginPP>=0)}`);
+        if(isFinite(dROAS))     lines.push(`ROAS（${basisForSens==='gmv'?'GMV':'有效'}） ${chip((dROAS>=0?'+':'')+dROAS.toFixed(2)+'倍', dROAS>=0)}`);
+        if(isFinite(dBeCPA))    lines.push(`BE-CPA ${chip((dBeCPA>=0?'+':'')+fmt(dBeCPA,2)+'元', dBeCPA>=0)}`);
+        if(isFinite(dBeROAS))   lines.push(`BE-ROAS ${chip((dBeROAS<=0?'下降 ':'上升 ')+Math.abs(dBeROAS).toFixed(2)+'倍', dBeROAS<=0)}`);
+        if(isFinite(dMaxCPC))   lines.push(`最大可承受CPC ${chip((dMaxCPC>=0?'+':'')+fmt(dMaxCPC,2)+'元', dMaxCPC>=0)}`);
+        if(isFinite(dMaxCPM))   lines.push(`最大可承受CPM ${chip((dMaxCPM>=0?'+':'')+fmt(dMaxCPM,2)+'元', dMaxCPM>=0)}`);
+        if(isFinite(dPPAY))     lines.push(`投1元广告净利润 ${chip((dPPAY>=0?'+':'')+fmt(dPPAY,2)+'元', dPPAY>=0)}`);
+
+        // 将敏感度拼在阈值文案后显示
+        if(lines.length){
+          returnThresholdText += `<div class=\"hint\" style=\"margin-top:6px\">每降低 <b>1pp</b> 退货率 → ${lines.join(' ｜ ')} </div>`;
+        }
+      })();
+
+      // 输出保本对齐概览（紧凑表：当前 vs 保本阈值｜差距）
+      // —— 保本对齐概览（紧凑表：当前｜保本阈值｜差距） ——
+      (function(){
+        const el = document.getElementById('goalAlignment');
+        if(!el) return;
+        const rows = [];
+
+        // helper to color gap text
+        const gapChip = (txt, good)=> `<span class="tiny-hint" style="background:${good?'#e6f9ef':'#fff2f0'};color:${good?'#1e7e34':'#c0392b'};border-left:2px solid ${good?'#34c759':'#ff3b30'}">${txt}</span>`;
+        const valChip = (v)=> `<span class="tiny-hint" style="background:#f0f9ff;color:#0366d6;border-left:2px solid #007aff">${v}</span>`;
+
+        // CPC（越低越好，对比最大可承受CPC）
+        if(isFinite(cpc) && cpc>0 && isFinite(maxCPC) && maxCPC>0){
+          const gap = cpc - maxCPC; // 正=偏高
+          const good = gap<=0;
+          rows.push(`<div><b>CPC</b>：${valChip(showYuan(cpc))} ｜ 保本阈值 ${valChip(showYuan(maxCPC))} ｜ ${gapChip(good?`已达标`:`需降 ${showYuan(gap)}`, good)}</div>`);
+        }
+
+        // CVR（越高越好，对比保本所需CVR）
+        if(isFinite(cvr) && isFinite(cvrRequired) && cvrRequired>0){
+          const gap = (cvrRequired - cvr)*100; // 正=不足
+          const good = gap<=0;
+          rows.push(`<div><b>CVR</b>：${valChip((cvr*100).toFixed(2)+ '%')} ｜ 保本阈值 ${valChip((cvrRequired*100).toFixed(2)+'%')} ｜ ${gapChip(good?`已达标`:`需提升 ${gap.toFixed(1)}pp`, good)}</div>`);
+        }
+
+        // ROAS（越高越好，对比BE-ROAS）
+        if(isFinite(roas) && roas>0 && isFinite(beROAS) && beROAS>0){
+          const gap = beROAS - roas; // 正=不足
+          const good = gap<=0;
+          rows.push(`<div><b>ROAS</b>：${valChip(showNum(roas)+' 倍')} ｜ 保本阈值 ${valChip(showNum(beROAS)+' 倍')} ｜ ${gapChip(good?`已达标`:`需提升 ${showNum(gap)} 倍`, good)}</div>`);
+        }
+
+        // 利润率（越高越好）
+        if(isFinite(currentMarginFrac) && isFinite(targetMargin) && targetMargin>0){
+          const gap = (targetMargin - currentMarginFrac)*100; // 正=不足
+          const good = gap<=0;
+          rows.push(`<div><b>利润率</b>：${valChip((currentMarginFrac*100).toFixed(2)+'%')} ｜ 目标 ${valChip((targetMargin*100).toFixed(2)+'%')} ｜ ${gapChip(good?`已达标`:`需提升 ${gap.toFixed(1)}pp`, good)}</div>`);
+        }
+
+        el.innerHTML = rows.length ? rows.join('') : '<div style="font-size:12px;color:var(--muted)">请填写CPC和CVR参数</div>';
+      })();
+
+      // 输出可达退货率阈值
+      document.getElementById('decReturnThreshold').innerHTML = returnThresholdText;
+      // 可选：添加tooltip
+      const thWrap = document.getElementById('decReturnThreshold')?.parentElement;
+      if(thWrap){
+        const tipHtml = `<div class='tt-title'>计算说明</div>`+
+          `<div>保持其它参数与当前广告设定不变，搜索满足目标利润率 m≥目标利润率 的最高允许退货率 r*。</div>`+
+          `<div>若 r=0 时仍小于目标利润率，则显示"无解"。</div>`;
+        thWrap.setAttribute('data-tip', tipHtml.replace(/"/g,'&quot;'));
+      }
+
+      // 投放优化建议已删除（简化界面）
     }
     
+    // —— 自动重绘安全地图：窗口尺寸变化时重绘 ——
+    window.addEventListener('resize', ()=>{
+      // 尺寸变化时，按最近一次的决策数据重绘
+      updateDecisionDisplay();
+    });
+
     // 利润推演（表格）算法
     function simulate(){
       const p = params();
@@ -1188,20 +2022,29 @@
       if(buySel){
         buySel.addEventListener('change', ()=>{
           const m = buySel.value;
-          const cpcWrap = document.getElementById('decCPCWrap');
           const cpmWrap = document.getElementById('decCPMWrap');
           const ctrWrap = document.getElementById('decCTRWrap');
-          if(cpcWrap) cpcWrap.style.display = (m==='cpc')? '' : 'none';
           if(cpmWrap) cpmWrap.style.display = (m==='cpm')? '' : 'none';
           if(ctrWrap) ctrWrap.style.display = (m==='cpm')? '' : 'none';
           updateDecisionDisplay();
+          // 保存买量方式选择
+          saveToStorage(STORAGE_KEYS.decBuyMode, m);
         });
       }
 
-      ;['decBasis','decCVR','decCPC','decCPM','decCTR','decAOV','decBundleRate'].forEach(id=>{
+      ;['decBasis','decCPM','decCTR','decAOV','decBundleRate','decTargetMargin'].forEach(id=>{
         const el = document.getElementById(id);
         if(el){ el.addEventListener('input', updateDecisionDisplay); el.addEventListener('change', updateDecisionDisplay); }
       });
+
+      // 保存口径选择 decBasis
+      const decBasisSel = document.getElementById('decBasis');
+      if (decBasisSel) {
+        decBasisSel.addEventListener('change', ()=>{
+          saveToStorage(STORAGE_KEYS.decBasis, decBasisSel.value);
+          updateDecisionDisplay();
+        });
+      }
       
       // 为单选按钮添加实时保存功能
       document.querySelectorAll('input[type="radio"]').forEach(radio => {
@@ -1249,10 +2092,11 @@
     fillDefaults();
     bind();
     render();
-    // 首次进入时按当前激活tab刷新一次
-    const _initActive = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
-    if (_initActive === 'decision') updateDecisionDisplay();
-    if (_initActive === 'analysis') simulate();
+    
+    // 初始化tab功能（包括状态记忆）
+    initTabs();
+    
+    // 显示本地存储状态
     showStorageStatus();
   </script>
 </body>
