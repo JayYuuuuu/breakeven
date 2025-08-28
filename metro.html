@@ -647,18 +647,12 @@
                 <div class="metric-value" id="decMaxCPM">—</div>
               </div>
               <div class="metric-card core-card">
-                <div class="metric-label">即时诊断（安全性）</div>
-                <div class="metric-value" id="decisionSafety">—</div>
-              </div>
-            </div>
-            
-            <!-- 决策分析指标 -->
-            <div class="metrics-grid" style="margin-top:10px">
-              <div class="metric-card analysis-card">
                 <div class="metric-label">CPC安全边际 <span class="dir up">越高越安全</span></div>
                 <div class="metric-value" id="decCPCSafetyMargin">—</div>
               </div>
             </div>
+            
+
 
             <!-- 即时对照 -->
             <div class="metrics-grid" style="margin-top:12px">
@@ -1544,9 +1538,7 @@
         profitPerAdYuanEl.title = '';
       }
 
-      const safetyEl = document.getElementById('decisionSafety');
-      safetyEl.textContent = safetyText;
-      safetyEl.style.color = isSafe? 'var(--ok)':'var(--bad)';
+      // 即时诊断（安全性）卡片已删除（简化界面）
       const sugEl = document.getElementById('decisionSuggestion');
       sugEl.textContent = suggestion;
       sugEl.style.color = isSafe? 'var(--ok)':'var(--bad)';
@@ -1723,6 +1715,7 @@
         if(!el) return;
         const basisForSens = (document.getElementById('decBasis')?.value) || 'effective';
         const baseR = computeBase(p).r; // 固定当前 r
+        const targetMargin = to01(document.getElementById('decTargetMargin')?.value);
 
         // 取得当前“等价广告占比”（按决策口径）；若未给定占比，则用当前CPA折算
         const adv = currentAd();
@@ -1740,9 +1733,44 @@
         }
         if(!(rp0>=0)) { el.textContent = '—'; return; }
 
-        const rp1 = Math.max(0, rp0 - 0.01); // ↓1pp
+        // —— 计算允许的最大付费占比（使利润率≥目标），口径与 r 固定 ——
+        function marginAtRP(rp){
+          const s = profitGivenAdRateAndR(p, clamp01(rp), baseR, basisForSens);
+          return s.margin; // 小数
+        }
+        let header = '';
+        let rpStar = NaN;
+        if(targetMargin>0){
+          const mAt0 = marginAtRP(0);
+          if(!(isFinite(mAt0))){
+            header = '—';
+          } else if(mAt0 < targetMargin - 1e-9){
+            header = '无解（即便占比=0%仍低于目标利润率）';
+          } else {
+            // 二分搜索在 [0, 1] 内的最大 rp*
+            let lo = 0, hi = 1;
+            for(let i=0;i<40;i++){
+              const mid = (lo+hi)/2;
+              const m = marginAtRP(mid);
+              if(isFinite(m) && m >= targetMargin){ lo = mid; } else { hi = mid; }
+            }
+            rpStar = lo;
+            const curTxt = (rp0*100).toFixed(2)+'%';
+            const starTxt = (rpStar*100).toFixed(2)+'%';
+            if(isFinite(rpStar)){
+              if(rp0 <= rpStar + 1e-9){
+                header = `已达标（当前：${curTxt}，允许≤ ${starTxt}）`;
+              }else{
+                header = `需将付费占比≤ ${starTxt}（当前：${curTxt}）`;
+              }
+            }
+          }
+        }
 
-        // 快照函数（基于占比与当前 r）
+        const headerHtml = header ? `<div style="margin-bottom:6px">${header}</div>` : '';
+
+        // —— 1pp 敏感度（保持其它参数不变） ——
+        const rp1 = Math.max(0, rp0 - 0.01); // ↓1pp
         function snap(rp){
           const s = profitGivenAdRateAndR(p, rp, baseR, basisForSens);
           const adc = s.adCostGiven; // 每单广告费
@@ -1768,7 +1796,7 @@
         if(isFinite(dROAS))     parts.push(`ROAS ${chip((dROAS>=0?'+':'')+dROAS.toFixed(2)+'倍', dROAS>=0)}`);
         if(isFinite(dPPAY))     parts.push(`投1元广告净利润 ${chip((dPPAY>=0?'+':'')+fmt(dPPAY,2)+'元', dPPAY>=0)}`);
 
-        el.innerHTML = parts.length? parts.join(' ｜ ') : '—';
+        el.innerHTML = headerHtml + (parts.length ? `<div style="font-size:12px;color:var(--muted)">${parts.join(' ｜ ')}</div>` : '—');
       })();
 
       // —— 绑定 returnThresholdText 到 DOM ——
