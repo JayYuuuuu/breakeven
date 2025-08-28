@@ -84,6 +84,11 @@
 
     .hint{font-size:12px; color:var(--muted)}
     .warn{color:var(--bad)}
+    /* Custom Tooltip */
+    .tt{position:fixed; z-index:9999; max-width:360px; background:#111827; color:#fff; padding:10px 12px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.2); font-size:12.5px; line-height:1.5; pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .12s ease, transform .12s ease}
+    .tt.show{opacity:1; transform:translateY(0)}
+    .tt .tt-title{font-weight:700; margin-bottom:4px}
+    .tt .tt-code{font-family: var(--mono); background:rgba(255,255,255,.08); padding:2px 4px; border-radius:4px}
   </style>
 </head>
 <body>
@@ -248,6 +253,60 @@
     const fmt = (x,p=2)=> isFinite(x) ? Number(x).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
     const to01 = (v)=>{ const n = Number(String(v).replace(/[^\d.\-]/g,'')); return isFinite(n) ? (n>1? n/100 : n) : 0 };
     const num = (v)=>{ const s = String(v).replace(/[^\d.\-\.]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
+
+    // —— Tooltip (hover + long-press) ——
+    const tipEl = document.createElement('div');
+    tipEl.className = 'tt';
+    document.body.appendChild(tipEl);
+    let tipTimer = null, tipTarget = null;
+    const TIP_DELAY = 150;
+    function placeTip(x,y){
+      const pad = 12; const rect = tipEl.getBoundingClientRect();
+      let tx = x + 12, ty = y + 12;
+      if(tx + rect.width + pad > window.innerWidth) tx = x - rect.width - 12;
+      if(ty + rect.height + pad > window.innerHeight) ty = y - rect.height - 12;
+      tipEl.style.left = Math.max(4, tx) + 'px';
+      tipEl.style.top  = Math.max(4, ty) + 'px';
+    }
+    function showTip(target, text, x, y){
+      if(!text) return;
+      tipEl.innerHTML = text; // 支持多行HTML
+      tipEl.classList.add('show');
+      placeTip(x,y);
+    }
+    function hideTip(){ tipEl.classList.remove('show'); }
+    function queueTip(target, text, x, y){
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(()=>{ showTip(target, text, x, y); }, TIP_DELAY);
+    }
+    document.addEventListener('mousemove', (e)=>{
+      if(tipEl.classList.contains('show')) placeTip(e.clientX, e.clientY);
+    });
+    document.addEventListener('mouseover', (e)=>{
+      const el = e.target.closest('[data-tip]');
+      if(!el) return;
+      tipTarget = el;
+      const text = el.getAttribute('data-tip');
+      queueTip(el, text, e.clientX, e.clientY);
+    });
+    document.addEventListener('mouseout', (e)=>{
+      if(!tipTarget) return;
+      const rel = e.relatedTarget;
+      if(!rel || !tipTarget.contains(rel)){
+        clearTimeout(tipTimer); hideTip(); tipTarget = null;
+      }
+    });
+    // Touch long-press
+    let touchTimer = null;
+    document.addEventListener('touchstart', (e)=>{
+      const el = e.target.closest('[data-tip]');
+      if(!el) return;
+      const touch = e.touches[0];
+      const text = el.getAttribute('data-tip');
+      touchTimer = setTimeout(()=>{ showTip(el, text, touch.clientX, touch.clientY); }, 350);
+    }, {passive:true});
+    document.addEventListener('touchmove', ()=>{ clearTimeout(touchTimer); hideTip(); }, {passive:true});
+    document.addEventListener('touchend', ()=>{ clearTimeout(touchTimer); hideTip(); }, {passive:true});
 
     // Helper to update adMode UI (enable/disable adRate/adCost)
     function updateAdModeUI(){
@@ -419,26 +478,31 @@
       const wall = $('wall');
       const toPct = (v)=> Rev>0 ? Math.min(100, Math.abs(v)/Rev*100) : 0;
       const rows = [
-        {name:'有效含税营收 Rev', amt: Rev, cls:'neu'},
-        {name:'进货成本', amt: -base.goodsCost, cls:'neg'},
-        {name:'其它固定成本（物流/运险/其他）', amt: -base.othersCost, cls:'neg'},
-        {name:'平台佣金', amt: -base.commission, cls:'neg'},
-        {name:'销项税（价内，需剥离）', amt: -base.VAT_out, cls:'neg'},
-        {name:'进货抵扣（供应商开票抵扣）', amt: base.VAT_in_goods, cls:'pos'},
-        {name:'佣金抵扣 （佣金发票进项抵扣）', amt: base.VAT_in_comm, cls:'pos'},
+        {name:'有效含税营收 Rev', amt: Rev, cls:'neu', tip:'公式：Rev = 售价 × r（r = 1 − 退货率）'},
+        {name:'进货成本', amt: -base.goodsCost, cls:'neg', tip:'说明：输入为不含税进货价；已按可退/不可退计入有效销量'},
+        {name:'其它固定成本（物流/运险/其他）', amt: -base.othersCost, cls:'neg', tip:'说明：物流费 + 运费险 + 其他成本的合计'},
+        {name:'平台佣金', amt: -base.commission, cls:'neg', tip:'说明：平台服务费（含税）计入成本'},
+        {name:'销项税（价内，需剥离）', amt: -base.VAT_out, cls:'neg', tip:'公式：VAT_out = Rev × 销项税率 ÷ (1 + 销项税率)'},
+        {name:'进货抵扣（供应商开票抵扣）', amt: base.VAT_in_goods, cls:'pos', tip:'公式：VAT_in_goods = 进货价(不含税) × 进项税率 × (可退? r : 1)'},
+        {name:'佣金抵扣（佣金发票进项抵扣）', amt: base.VAT_in_comm, cls:'pos', tip:'公式：VAT_in_comm = 佣金(含税) ÷ (1 + 服务VAT税率) × 服务VAT税率'},
       ];
       if(adCostGiven>0){
-        rows.push({name:'广告抵扣 （广告费发票进项抵扣）', amt: VAT_in_ad, cls:'pos'});
-        rows.push({name:'广告费（按广告输入模式给定）', amt: -adCostGiven, cls:'neg'});
+        rows.push({name:'广告抵扣（广告费发票进项抵扣）', amt: VAT_in_ad, cls:'pos', tip:'公式：VAT_in_ad = 广告费(含税) ÷ (1 + 服务VAT税率) × 服务VAT税率'});
+        rows.push({name:'广告费（按广告输入模式给定）', amt: -adCostGiven, cls:'neg', tip:'说明：来自占比/金额换算的每单广告成本'});
       }
-      rows.push({name:'毛利润（不含广告但已经扣除其他费用）A', amt: base.A, cls: base.A>=0? 'pos':'neg'});
-      if(isFinite(Profit)) rows.push({name:'净利润（扣除给定广告费用以后）', amt: Profit, cls: Profit>=0? 'pos':'neg'});
+      rows.push({name:'毛利润（不含广告）A', amt: base.A, cls: base.A>=0? 'pos':'neg', tip:'公式：A = Rev − 进货成本 − 其它成本 − 佣金 − VAT_out + VAT_in_goods + VAT_in_comm'});
+      if(isFinite(Profit)) rows.push({name:'净利润（含给定广告）', amt: Profit, cls: Profit>=0? 'pos':'neg', tip:'公式：净利润 = A − 广告费 + VAT_in_ad'});
 
       wall.innerHTML = rows.map(rw=>{
-        return `<div class="brick ${rw.cls}">
-          <div class="name">${rw.name}</div>
-          <div class="bar"><div class="fill" style="--w:${toPct(rw.amt).toFixed(2)}%"></div></div>
-          <div class="amt">${fmt(rw.amt,2)} 元</div>
+        const tip = rw.tip ? rw.tip
+          .replace(/公式：/g,'<div class="tt-title">公式</div>')
+          .replace(/说明：/g,'<div class="tt-title">说明</div>') : '';
+        const tipHtml = tip ? `<div>${tip}</div>` : '';
+        const tipAttr = tipHtml ? ` data-tip="${tipHtml.replace(/"/g,'&quot;')}"` : '';
+        return `<div class="brick ${rw.cls}"${tipAttr}>
+          <div class="name"${tipAttr}>${rw.name}</div>
+          <div class="bar"${tipAttr}><div class="fill"${tipAttr} style="--w:${toPct(rw.amt).toFixed(2)}%"></div></div>
+          <div class="amt"${tipAttr}>${fmt(rw.amt,2)} 元</div>
         </div>`
       }).join('');
 
