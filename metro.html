@@ -99,6 +99,14 @@
     .col-highlight{background-color:rgba(0,122,255,0.05) !important}
     .cell-highlight{background-color:rgba(0,122,255,0.15) !important;font-weight:600}
     
+    /* 投放决策条样式 */
+    .decision-item label{font-size:12px;color:var(--muted);display:block;margin:0 0 6px 2px}
+    .decision-item input,.decision-item select{width:100%;background:#fff;border:1px solid #d2d2d7;border-radius:12px;padding:10px 10px;font-size:14px}
+    .result-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e5e5ea}
+    .result-item:last-child{border-bottom:none}
+    .result-item .label{font-weight:500;color:var(--ink)}
+    .target-results{background:#f8f8f8;padding:12px;border-radius:8px;border:1px solid #e5e5ea}
+    
     /* 重置按钮样式 */
     .reset-btn {
       background: none;
@@ -417,48 +425,72 @@
         <!-- 投放决策tab -->
         <div class="tab-content" id="decision-tab">
           <div class="content">
-            <div class="pill">投放决策分析</div>
-            <div class="hint">基于当前参数，分析投放策略的可行性和风险</div>
-            
-            <div class="block">
-              <div class="pill">CPC-CVR边界分析</div>
-              <div class="grid">
-                <div>
-                  <label>当前CPC（元）</label>
-                  <input id="decisionCpc" type="text" inputmode="decimal" placeholder="2.5" />
-                </div>
-                <div>
-                  <label>当前CVR（%）</label>
-                  <input id="decisionCvr" type="text" inputmode="decimal" placeholder="15" />
-                </div>
+            <div class="pill">🎯 投放决策条</div>
+            <div class="hint">基于左侧参数（售价/退货/税费/佣金等）与下列投放参数，统一计算 BE-CPA / BE-ROAS / Max CPC / Max CPM，并输出即时诊断与建议。</div>
+
+            <div class="decision-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px">
+              <div class="decision-item">
+                <label>口径</label>
+                <select id="decBasis">
+                  <option value="effective">有效营收</option>
+                  <option value="gmv">GMV</option>
+                </select>
               </div>
-              <div class="hint">输入当前投放数据，系统将分析投放安全性</div>
+
+              <div class="decision-item">
+                <label>买量方式</label>
+                <select id="decBuyMode">
+                  <option value="cpc">按 CPC 出价</option>
+                  <option value="cpm">按 CPM 出价（需 CTR）</option>
+                </select>
+              </div>
+
+              <div class="decision-item" id="decCPCWrap">
+                <label>CPC（元/点击）</label>
+                <input type="number" id="decCPC" step="0.01" placeholder="2.50" />
+              </div>
+
+              <div class="decision-item" id="decCPMWrap" style="display:none">
+                <label>CPM（元/千次曝光）</label>
+                <input type="number" id="decCPM" step="0.01" placeholder="30" />
+              </div>
+
+              <div class="decision-item" id="decCTRWrap" style="display:none">
+                <label>CTR（%）</label>
+                <input type="number" id="decCTR" step="0.01" placeholder="2.5" />
+              </div>
+
+              <div class="decision-item">
+                <label>转化率 CVR（%）</label>
+                <input type="number" id="decCVR" step="0.01" placeholder="2.0" />
+              </div>
+
+              <div class="decision-item">
+                <label>客单价 AOV（留空则用当前售价）</label>
+                <input type="number" id="decAOV" step="0.01" placeholder="79.8" />
+              </div>
+
+              <div class="decision-item">
+                <label>连带购买率（%）</label>
+                <input type="number" id="decBundleRate" step="0.01" placeholder="0" />
+              </div>
             </div>
-            
-            <div class="block">
-              <div class="pill">投放建议</div>
-              <div class="kpi-band" id="decisionKpis">
-                <div class="kpi">
-                  <div class="label">投放安全性</div>
-                  <div class="val" id="decisionSafety">—</div>
-                </div>
-                <div class="kpi">
-                  <div class="label">CPC安全边际</div>
-                  <div class="val" id="decisionCpcMargin">—</div>
-                </div>
-                <div class="kpi">
-                  <div class="label">建议优化方向</div>
-                  <div class="val" id="decisionSuggestion">—</div>
-                </div>
-              </div>
+
+            <!-- KPIs -->
+            <div class="kpi-band" id="decisionKpis" style="margin-top:10px">
+              <div class="kpi"><div class="label">保本广告费（BE-CPA）</div><div class="val" id="decBeCPA">—</div></div>
+              <div class="kpi"><div class="label">保本ROAS（按所选口径）</div><div class="val" id="decBeROAS">—</div></div>
+              <div class="kpi"><div class="label">最大可承受CPC</div><div class="val" id="decMaxCPC">—</div></div>
+              <div class="kpi"><div class="label">最大可承受CPM（需CTR）</div><div class="val" id="decMaxCPM">—</div></div>
+              <div class="kpi"><div class="label">即时诊断（安全性）</div><div class="val" id="decisionSafety">—</div></div>
             </div>
-            
-            <div class="block">
-              <div class="pill">CVR-CPC边界曲线</div>
-              <div class="hint">基于当前参数的投放边界分析图表</div>
-              <div id="decisionChart" style="height: 300px; background: #f5f5f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--muted);">
-                图表区域 - 待开发
-              </div>
+
+            <!-- 即时对照 -->
+            <div class="target-results" style="margin-top:12px">
+              <div class="result-item"><span class="label">当前 CPA</span><span id="decCPA">—</span></div>
+              <div class="result-item"><span class="label">即时 ROAS（所选口径）</span><span id="decROAS">—</span></div>
+              <div class="result-item"><span class="label">投1元广告带来的净利润</span><span id="decProfitPerAdYuan">—</span></div>
+              <div class="result-item"><span class="label">建议</span><span id="decisionSuggestion">—</span></div>
             </div>
           </div>
         </div>
@@ -507,6 +539,17 @@
     const fmt = (x,p=2)=> isFinite(x) ? Number(x).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
     const to01 = (v)=>{ const n = Number(String(v).replace(/[^\d.\-]/g,'')); return isFinite(n) ? (n>1? n/100 : n) : 0 };
     const num = (v)=>{ const s = String(v).replace(/[^\d.\-\.]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
+
+    // —— 投放决策小工具函数 ——
+    const clamp01 = (x)=> Math.max(0, Math.min(1, x||0));
+    const calcEffectiveAOV = (aov, bundleRate)=>{
+      const A = Number(aov)||0, b = clamp01((Number(bundleRate)||0));
+      return A>0 ? A * (1 + b) : 0;
+    };
+    const cpcFromCpmCtr = (cpm, ctr)=>{ // CPM 元/千次曝光；CTR 小数
+      const clicksPerK = 1000 * clamp01(ctr);
+      return clicksPerK>0 ? (Number(cpm)||0) / clicksPerK : 0;
+    };
 
     // —— Tooltip (hover + long-press) ——
     const tipEl = document.createElement('div');
@@ -954,11 +997,11 @@
           
           // 根据tab类型更新相应的显示
           if (tabName === 'decision') {
-            // 若未填写，自动用左侧CPC/CVR回填一次
-            const dc = document.getElementById('decisionCpc');
-            const dv = document.getElementById('decisionCvr');
-            if (dc && !dc.value) dc.value = document.getElementById('cpc')?.value || '';
-            if (dv && !dv.value) dv.value = document.getElementById('cvr')?.value || '';
+            // 回填：若为空，用左侧参数
+            const cpcInput = document.getElementById('decCPC');
+            const cvrInput = document.getElementById('decCVR');
+            if(cpcInput && !cpcInput.value) cpcInput.value = document.getElementById('cpc')?.value || '';
+            if(cvrInput && !cvrInput.value) cvrInput.value = document.getElementById('cvr')?.value || '';
             updateDecisionDisplay();
           } else if (tabName === 'analysis') {
             simulate();
@@ -974,39 +1017,77 @@
       }
     }
     
-    // 更新投放决策显示
-    function updateDecisionDisplay() {
-      const cpc = num($('decisionCpc').value);
-      const cvr = to01($('decisionCvr').value);
-      
-      if (cpc > 0 && cvr > 0) {
-        const cpa = cpc / cvr; // 每单广告成本
-        const p = params();
-        const base = computeBase(p);
-        
-        // 计算投放安全性
-        const isSafe = cpa <= base.adCostBreakEven;
-        const safetyMargin = base.adCostBreakEven - cpa;
-        
-        // 更新显示
-        $('decisionSafety').textContent = isSafe ? '安全' : '危险';
-        $('decisionSafety').style.color = isSafe ? 'var(--ok)' : 'var(--bad)';
-        
-        $('decisionCpcMargin').textContent = fmt(safetyMargin, 2) + ' 元';
-        $('decisionCpcMargin').style.color = isSafe ? 'var(--ok)' : 'var(--bad)';
-        
-        if (isSafe) {
-          $('decisionSuggestion').textContent = '可继续投放';
-          $('decisionSuggestion').style.color = 'var(--ok)';
-        } else {
-          $('decisionSuggestion').textContent = '需降低CPC或提升CVR';
-          $('decisionSuggestion').style.color = 'var(--bad)';
-        }
-      } else {
-        $('decisionSafety').textContent = '—';
-        $('decisionCpcMargin').textContent = '—';
-        $('decisionSuggestion').textContent = '—';
+    // 更新投放决策显示（整合首页/商品分析逻辑）
+    function updateDecisionDisplay(){
+      const p = params();
+      const base = computeBase(p);
+
+      // 读取投放参数
+      const basis = (document.getElementById('decBasis')?.value)||'effective';
+      const buyMode = (document.getElementById('decBuyMode')?.value)||'cpc';
+      const cvr = to01(document.getElementById('decCVR')?.value);
+      const aovInput = num(document.getElementById('decAOV')?.value);
+      const bundleRate = to01(document.getElementById('decBundleRate')?.value);
+
+      // 有效AOV（考虑连带购买率）；AOV 为空则用左侧售价
+      const effAOV = calcEffectiveAOV(aovInput>0? aovInput: p.sellingPrice, bundleRate);
+
+      // CPC/CPA（兼容 CPC 和 CPM+CTR）
+      let cpc = 0;
+      if(buyMode==='cpc'){
+        cpc = num(document.getElementById('decCPC')?.value);
+      }else{ // cpm
+        const cpm = num(document.getElementById('decCPM')?.value);
+        const ctr = to01(document.getElementById('decCTR')?.value);
+        cpc = cpcFromCpmCtr(cpm, ctr);
       }
+      const cpa = (cvr>0)? cpc / cvr : 0;
+
+      // 保本指标（来自 engine.js 基础口径）
+      const beCPA = base.adCostBreakEven;
+      const beROAS_eff = base.ROI_BE_effective;
+      const beROAS_gmv = base.ROI_BE_gmv;
+      const beROAS = (basis==='gmv')? beROAS_gmv : beROAS_eff;
+
+      // 最大可承受 CPC/CPM
+      const maxCPC = (cvr>0)? beCPA * cvr : 0;
+      let maxCPM = 0;
+      const ctrVal = to01(document.getElementById('decCTR')?.value);
+      if(ctrVal>0){ maxCPM = maxCPC * (1000*ctrVal); }
+
+      // 即时 ROAS（按所选口径）& 投1元广告净利润
+      let roas = 0, profitPerAdYuan = 0;
+      if(cpa>0){
+        const r = base.r;
+        roas = (basis==='gmv')? (p.sellingPrice / cpa) : ((p.sellingPrice * r) / cpa);
+        const resCPA = profitGivenAd(p, { adCost: cpa });
+        profitPerAdYuan = isFinite(resCPA.profit) && cpa>0 ? (resCPA.profit / cpa) : 0;
+      }
+
+      // 安全性&建议
+      const isSafe = cpa>0 ? (cpa <= beCPA) : false;
+      const safetyText = cpa>0 ? (isSafe? '安全' : '危险') : '—';
+      const suggestion = cpa<=0? '请先填写 CPC/CPM 与 CVR' : (isSafe? '可继续投放，观察放量空间' : '降低CPC或提高CVR/连带率');
+
+      // 输出
+      const showYuan = (x)=> isFinite(x)&&x>0? fmt(x,2)+' 元':'—';
+      const showNum  = (x)=> isFinite(x)&&x>0? x.toFixed(2):'—';
+
+      document.getElementById('decBeCPA').textContent = showYuan(beCPA);
+      document.getElementById('decBeROAS').textContent = isFinite(beROAS)? beROAS.toFixed(2)+' 倍' : '—';
+      document.getElementById('decMaxCPC').textContent = showYuan(maxCPC);
+      document.getElementById('decMaxCPM').textContent = showYuan(maxCPM);
+
+      document.getElementById('decCPA').textContent = showYuan(cpa);
+      document.getElementById('decROAS').textContent = showNum(roas)+' 倍';
+      document.getElementById('decProfitPerAdYuan').textContent = showYuan(profitPerAdYuan);
+
+      const safetyEl = document.getElementById('decisionSafety');
+      safetyEl.textContent = safetyText;
+      safetyEl.style.color = isSafe? 'var(--ok)':'var(--bad)';
+      const sugEl = document.getElementById('decisionSuggestion');
+      sugEl.textContent = suggestion;
+      sugEl.style.color = isSafe? 'var(--ok)':'var(--bad)';
     }
     
     // 利润推演（表格）算法
@@ -1100,6 +1181,26 @@
             }
           });
         }
+      });
+
+      // 买量方式切换（CPC vs CPM）
+      const buySel = document.getElementById('decBuyMode');
+      if(buySel){
+        buySel.addEventListener('change', ()=>{
+          const m = buySel.value;
+          const cpcWrap = document.getElementById('decCPCWrap');
+          const cpmWrap = document.getElementById('decCPMWrap');
+          const ctrWrap = document.getElementById('decCTRWrap');
+          if(cpcWrap) cpcWrap.style.display = (m==='cpc')? '' : 'none';
+          if(cpmWrap) cpmWrap.style.display = (m==='cpm')? '' : 'none';
+          if(ctrWrap) ctrWrap.style.display = (m==='cpm')? '' : 'none';
+          updateDecisionDisplay();
+        });
+      }
+
+      ;['decBasis','decCVR','decCPC','decCPM','decCTR','decAOV','decBundleRate'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el){ el.addEventListener('input', updateDecisionDisplay); el.addEventListener('change', updateDecisionDisplay); }
       });
       
       // 为单选按钮添加实时保存功能
