@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>费用可视化墙｜参数→费用→利润（实时）</title>
+  <style>
+    :root{
+      --bg:#F5F5F7; --card:#FFFFFF; --ink:#111111; --muted:#6e6e73; --accent:#007aff;
+      --ok:#34c759; --warn:#ff9f0a; --bad:#ff3b30; --grid:12px; --radius:14px;
+      --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, Segoe UI, Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans)}
+    header{padding:20px 20px 0}
+    h1{margin:0; font-size:22px}
+    .sub{color:var(--muted); font-size:13px; margin-top:4px}
+    main{padding:20px; display:grid; gap:16px}
+    .wrap{display:grid; grid-template-columns: minmax(360px, 0.9fr) 1.1fr; gap:16px}
+    @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
+    .card{background:var(--card); border:1px solid #d2d2d7; border-radius:var(--radius); box-shadow:0 1px 2px rgba(0,0,0,.06)}
+    .card h2{margin:0; font-size:15px; padding:12px 14px; border-bottom:1px solid #e5e5ea; color:#111; background:linear-gradient(180deg,#fafafa,#fff); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius)}
+    .content{padding:14px}
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width:680px){.grid{grid-template-columns:1fr}}
+    label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
+    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:16px; font-weight:600; outline:none}
+    input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .switch{display:inline-flex; gap:8px; align-items:center; padding:6px 8px; border:1px solid #d2d2d7; border-radius:999px; background:#fff}
+    .pill{padding:2px 8px; border-radius:999px; background:#f2f2f7; border:1px solid #d2d2d7; font-size:11px; color:#111}
+
+    /* KPI */
+    .kpi-band{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px}
+    .kpi{border:1px solid #e5e5ea; border-radius:12px; padding:10px; background:#fff}
+    .kpi .label{font-size:12px; color:var(--muted)}
+    .kpi .val{margin-top:6px; font-family:var(--mono); font-size:20px}
+
+    /* 墙体：瀑布/砖墙混合 */
+    .wall{display:flex; flex-direction:column; gap:8px}
+    .brick{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding:8px 10px; border:1px solid #e5e5ea; border-radius:10px; background:#fff}
+    .brick .name{font-size:12px; color:#3a3a3c}
+    .brick .bar{position:relative; height:14px; border-radius:999px; background:linear-gradient(180deg,#fafafa,#fff); border:1px solid #e5e5ea; overflow:hidden}
+    .brick .fill{position:absolute; inset:0 auto 0 0; width:var(--w,0%); background:var(--c,#007aff); opacity:.9}
+    .brick .amt{font-family:var(--mono); font-size:14px}
+    .pos{--c: var(--ok)} .neg{--c: var(--bad)} .neu{--c: var(--accent)}
+    .legend{display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted)}
+    .legend .dot{width:10px; height:10px; border-radius:50%; background:#ccc; display:inline-block; vertical-align:middle}
+
+    /* 迷你推演条 */
+    .mini-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px}
+    .mini{border:1px dashed #e5e5ea; border-radius:10px; padding:8px}
+    .mini .t{font-size:12px; color:var(--muted)}
+    .mini .v{font-family:var(--mono); font-size:18px; margin-top:4px}
+
+    .hint{font-size:12px; color:var(--muted)}
+    .warn{color:var(--bad)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>费用可视化墙</h1>
+    <div class="sub">实时把 <strong>参数</strong> → <strong>费用/税负</strong> → <strong>广告/利润</strong> 链路展开；一眼看懂“哪个旋钮带动了哪块费用”。</div>
+  </header>
+  <main>
+    <div class="wrap">
+      <!-- 参数输入 -->
+      <section class="card">
+        <h2>参数输入</h2>
+        <div class="content" id="paramForm">
+          <!-- 重要参数 -->
+          <div class="pill">重要参数</div>
+          <div class="grid">
+            <div>
+              <label>含税售价（¥）</label>
+              <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
+            </div>
+            <div>
+              <label>进货价（不含税，¥）</label>
+              <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
+            </div>
+            <div>
+              <label>退货率（%）</label>
+              <input id="returnRate" type="text" inputmode="decimal" placeholder="10" />
+            </div>
+            <div>
+              <label>进货模式</label>
+              <div class="switch">
+                <label><input type="radio" name="goodsMode" value="canReturn" checked> 可退</label>
+                <label><input type="radio" name="goodsMode" value="cannotReturn"> 不可退</label>
+              </div>
+            </div>
+          </div>
+          <div class="sep" style="height:8px"></div>
+          <!-- 税费参数 -->
+          <div class="pill">税费参数</div>
+          <div class="grid">
+            <div><label>销项税率（%）</label><input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
+            <div><label>商品进项税率（%）</label><input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
+            <div><label>开票成本比例（%）</label><input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6"></div>
+            <div><label>服务费税率（佣金/广告，%）</label><input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6"></div>
+          </div>
+          <div class="sep" style="height:8px"></div>
+          <!-- 基础参数 -->
+          <div class="pill">基础参数</div>
+          <div class="grid">
+            <div><label>平台佣金率（%）</label><input id="platformRate" type="text" inputmode="decimal" placeholder="5.5"></div>
+            <div><label>物流费（¥）</label><input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8"></div>
+            <div><label>运费险（¥）</label><input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5"></div>
+            <div><label>其他成本（¥）</label><input id="otherCost" type="text" inputmode="decimal" placeholder="2.5"></div>
+          </div>
+          <div class="sep" style="height:8px"></div>
+          <!-- 投放参数 -->
+          <div class="pill">投放参数</div>
+          <div class="grid">
+            <div>
+              <label>广告输入模式</label>
+              <div class="switch">
+                <label><input type="radio" name="adMode" value="none" checked> 不给定</label>
+                <label><input type="radio" name="adMode" value="rate"> 占比</label>
+                <label><input type="radio" name="adMode" value="amount"> 金额</label>
+              </div>
+            </div>
+            <div>
+              <label>占比口径</label>
+              <div class="switch">
+                <label><input type="radio" name="adRateBasis" value="effective" checked> 有效营收</label>
+                <label><input type="radio" name="adRateBasis" value="gmv"> GMV</label>
+              </div>
+            </div>
+            <div>
+              <label>广告占比（%）</label>
+              <input id="adRate" type="text" inputmode="decimal" placeholder="10">
+            </div>
+            <div>
+              <label>广告金额（¥）</label>
+              <input id="adCost" type="text" inputmode="decimal" placeholder="0">
+            </div>
+            <div>
+              <label>CPC（¥/次点击）</label>
+              <input id="cpc" type="text" inputmode="decimal" placeholder="0.80">
+            </div>
+            <div>
+              <label>CVR（转化率，%）</label>
+              <input id="cvr" type="text" inputmode="decimal" placeholder="15">
+            </div>
+          </div>
+          <div class="hint">说明：占比→金额将按所选口径基数换算；金额→占比会同步显示两口径等价占比。</div>
+          <div class="sep" style="height:8px"></div>
+          <!-- 推演参数 -->
+          <div class="pill">推演参数</div>
+          <div class="grid">
+            <div>
+              <label>广告占比列表（%，逗号分隔）</label>
+              <input id="simRates" type="text" inputmode="text" value="5,8,10,12,15">
+            </div>
+            <div>
+              <label>推演口径</label>
+              <div class="switch">
+                <label><input type="radio" name="simBasis" value="effective" checked> 有效营收</label>
+                <label><input type="radio" name="simBasis" value="gmv"> GMV</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧可视化 -->
+      <section class="card">
+        <h2>可视化展示</h2>
+        <div class="content">
+          <div class="kpi-band" id="kpis">
+            <div class="kpi"><div class="label">有效比例 r</div><div class="val" id="kpiR">—</div></div>
+            <div class="kpi"><div class="label">保本广告费</div><div class="val" id="kpiAdCost">—</div></div>
+            <div class="kpi"><div class="label">保本广告占比（有效）</div><div class="val" id="kpiAdRateEff">—</div></div>
+            <div class="kpi"><div class="label">保本ROI（有效）</div><div class="val" id="kpiROASEff">—</div></div>
+            <div class="kpi"><div class="label">保本广告占比（GMV）</div><div class="val" id="kpiAdRateGMV">—</div></div>
+            <div class="kpi"><div class="label">保本ROI（GMV）</div><div class="val" id="kpiROASGMV">—</div></div>
+          </div>
+          <div class="sep" style="height:8px"></div>
+          <div class="pill">CPC/CVR→即时利润率</div>
+          <div class="mini-grid" id="cpcCard"></div>
+
+          <div class="legend" style="margin:10px 0 6px">
+            <span><span class="dot" style="background:var(--accent)"></span> 营收</span>
+            <span><span class="dot" style="background:var(--bad)"></span> 成本/税负支出（向下）</span>
+            <span><span class="dot" style="background:var(--ok)"></span> 税额抵扣/回流（向上）</span>
+          </div>
+
+          <div class="wall" id="wall"></div>
+          <div id="cpaSummary" class="hint" style="margin-top:6px"></div>
+
+          <div class="sep" style="height:8px"></div>
+          <div class="pill">迷你推演</div>
+          <div class="mini-grid" id="mini"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { computeBase, profitGivenAd, adRateToAmount, adAmountToRates, profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent } from './engine.js';
+    import { SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
+
+    // —— 工具 ——
+    const $ = (id)=>document.getElementById(id);
+    const pct = (x,p=2)=> isFinite(x) ? (x*100).toFixed(p)+'%' : '—';
+    const fmt = (x,p=2)=> isFinite(x) ? Number(x).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
+    const to01 = (v)=>{ const n = Number(String(v).replace(/[^\d.\-]/g,'')); return isFinite(n) ? (n>1? n/100 : n) : 0 };
+    const num = (v)=>{ const s = String(v).replace(/[^\d.\-\.]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
+
+    // 预填默认参数（与系统示例保持一致）
+    function fillDefaults(){
+      $('sellingPrice').value = '79.8';
+      $('costPrice').value = '38';
+      $('returnRate').value = '10';
+      $('salesTaxRate').value = (SYSTEM_PARAMS_EXAMPLE.salesTaxRate*100).toFixed(0);
+      $('outputTaxRate').value = (SYSTEM_PARAMS_EXAMPLE.outputTaxRate*100).toFixed(0);
+      $('inputTaxRate').value = (SYSTEM_PARAMS_EXAMPLE.inputTaxRate*100).toFixed(0);
+      $('serviceVATRate').value = (SYSTEM_PARAMS_EXAMPLE.serviceVATRate*100).toFixed(0);
+      $('platformRate').value = (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1);
+      $('shippingCost').value = SYSTEM_PARAMS_EXAMPLE.shippingCost;
+      $('shippingInsurance').value = SYSTEM_PARAMS_EXAMPLE.shippingInsurance;
+      $('otherCost').value = SYSTEM_PARAMS_EXAMPLE.otherCost;
+      document.querySelector('input[name="goodsMode"][value="canReturn"]').checked = true;
+      document.querySelector('input[name="adMode"][value="none"]').checked = true;
+      document.querySelector('input[name="adRateBasis"][value="effective"]').checked = true;
+      $('adRate').value = '10';
+      $('adCost').value = '';
+      $('cpc').value = '0.80';
+      $('cvr').value = '15';
+      $('simRates').value = '5,8,10,12,15';
+    }
+
+    function params(){
+      const p = {
+        sellingPrice: num($('sellingPrice').value),
+        returnRate: to01($('returnRate').value),
+        costPrice: num($('costPrice').value),
+        inputTaxRate: to01($('inputTaxRate').value),
+        outputTaxRate: to01($('outputTaxRate').value),
+        platformRate: to01($('platformRate').value),
+        shippingCost: num($('shippingCost').value),
+        shippingInsurance: num($('shippingInsurance').value),
+        otherCost: num($('otherCost').value),
+        salesTaxRate: to01($('salesTaxRate').value),
+        serviceVATRate: to01($('serviceVATRate').value),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+      };
+      return p;
+    }
+
+    function currentAd(){
+      const mode = document.querySelector('input[name="adMode"]:checked')?.value || 'none';
+      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
+      let adCost = 0, adRate = NaN;
+      if(mode==='rate'){
+        adRate = to01($('adRate').value);
+      }else if(mode==='amount'){
+        adCost = num($('adCost').value);
+      }
+      return { mode, basis, adRate, adCost };
+    }
+
+    function render(){
+      const p = params();
+      const base = computeBase(p);
+      const r = base.r; const Rev = base.Rev;
+
+      // —— KPIs ——
+      $('kpiR').textContent = pct(r,2);
+      $('kpiAdCost').textContent = fmt(base.adCostBreakEven,2)+' 元';
+      $('kpiAdRateEff').textContent = pct(base.adRateBE_effective,2);
+      $('kpiROASEff').textContent = isFinite(base.ROI_BE_effective)? base.ROI_BE_effective.toFixed(2)+' 倍' : '—';
+      $('kpiAdRateGMV').textContent = pct(base.adRateBE_gmv,2);
+      $('kpiROASGMV').textContent = isFinite(base.ROI_BE_gmv)? base.ROI_BE_gmv.toFixed(2)+' 倍' : '—';
+
+      // —— CPC/CVR → 即时利润率（有效口径计入广告费） ——
+      const cpcV = num($('cpc').value);
+      const cvrV = to01($('cvr').value);
+      const cpcCard = document.getElementById('cpcCard');
+      let cpa = NaN, effRateCPA = NaN, gmvRateCPA = NaN, marginCPA = NaN, profitCPA = NaN;
+      let roasGMV = NaN, roasEff = NaN;
+      if (cpcV > 0 && cvrV > 0) {
+        cpa = cpcV / cvrV; // 每单广告成本
+        const rts = adAmountToRates(p, cpa);
+        effRateCPA = rts.effective;
+        gmvRateCPA = rts.gmv;
+        const resCPA = profitGivenAd(p, { adCost: cpa });
+        marginCPA = resCPA.margin;
+        profitCPA = resCPA.profit;
+        if (cpa > 0) {
+          roasGMV = p.sellingPrice / cpa;               // GMV 口径：售价 ÷ CPA
+          roasEff  = (p.sellingPrice * r) / cpa;        // 有效口径：(售价×r) ÷ CPA
+        }
+      }
+      cpcCard.innerHTML = `
+        <div class="mini">
+          <div class="t">CPA（由 CPC/CVR 推得）</div>
+          <div class="v">${isFinite(cpa) ? fmt(cpa,2) + ' 元' : '—'}</div>
+          <div class="hint">公式：CPA = CPC ÷ CVR</div>
+        </div>
+        <div class="mini">
+          <div class="t">等价广告占比（有效）</div>
+          <div class="v">${isFinite(effRateCPA) ? (effRateCPA*100).toFixed(2) + '%' : '—'}</div>
+          <div class="hint">按有效营收 Rev 作为基数</div>
+        </div>
+        <div class="mini">
+          <div class="t">等价广告占比（GMV）</div>
+          <div class="v">${isFinite(gmvRateCPA) ? (gmvRateCPA*100).toFixed(2) + '%' : '—'}</div>
+          <div class="hint">按 GMV（含税售价）作为基数</div>
+        </div>
+        <div class="mini">
+          <div class="t">即时利润率（含该 CPA）</div>
+          <div class="v" style="color:${!isFinite(marginCPA) ? '#6e6e73' : (marginCPA>=0? 'var(--ok)':'var(--bad)')}">${isFinite(marginCPA) ? (marginCPA*100).toFixed(2)+'%' : '—'}</div>
+          <div class="hint">已计入广告进项抵扣</div>
+        </div>
+        <div class="mini">
+          <div class="t">即时净利润（含该 CPA）</div>
+          <div class="v" style="color:${!isFinite(profitCPA) ? '#6e6e73' : (profitCPA>=0? 'var(--ok)':'var(--bad)')}">${isFinite(profitCPA) ? fmt(profitCPA,2)+' 元' : '—'}</div>
+          <div class="hint">与上方砖墙口径一致</div>
+        </div>
+        <div class="mini">
+          <div class="t">即时 ROAS（GMV口径）</div>
+          <div class="v">${isFinite(roasGMV) ? roasGMV.toFixed(2) + ' 倍' : '—'}</div>
+          <div class="hint">GMV ÷ CPA = 含税售价 ÷ CPA</div>
+        </div>
+        <div class="mini">
+          <div class="t">即时 ROAS（有效口径）</div>
+          <div class="v">${isFinite(roasEff) ? roasEff.toFixed(2) + ' 倍' : '—'}</div>
+          <div class="hint">(售价×r) ÷ CPA；与上方 r 一致</div>
+        </div>
+      `;
+
+      // —— 砖墙下小计：当前 CPA 下 ROAS/利润率 对照 ——
+      const cpaSummary = document.getElementById('cpaSummary');
+      if (isFinite(roasGMV) || isFinite(roasEff) || isFinite(marginCPA)) {
+        const partGMV = isFinite(roasGMV) ? `${roasGMV.toFixed(2)} 倍` : '—';
+        const partEFF = isFinite(roasEff) ? `${roasEff.toFixed(2)} 倍` : '—';
+        const partMRG = isFinite(marginCPA) ? `${(marginCPA*100).toFixed(2)}%` : '—';
+        cpaSummary.innerHTML = `当前 CPA 下：ROAS(GMV) = <b>${partGMV}</b> ｜ ROAS(有效) = <b>${partEFF}</b> ｜ 利润率 = <b>${partMRG}</b>`;
+      } else {
+        cpaSummary.innerHTML = '';
+      }
+
+      // —— 广告换算 + 利润 ——
+      const adv = currentAd();
+      let adCostGiven = 0, VAT_in_ad = 0, Profit = NaN, Margin = NaN, effectiveRate = NaN, gmvRate = NaN;
+      if(adv.mode==='rate'){
+        adCostGiven = adRateToAmount(p, adv.adRate, adv.basis);
+        const rates = adAmountToRates(p, adCostGiven);
+        effectiveRate = rates.effective; gmvRate = rates.gmv;
+      }else if(adv.mode==='amount'){
+        adCostGiven = Math.max(0, adv.adCost);
+        const rates = adAmountToRates(p, adCostGiven);
+        effectiveRate = rates.effective; gmvRate = rates.gmv;
+      }
+      if(adCostGiven>0){
+        const res = profitGivenAd(p, { adCost: adCostGiven });
+        Profit = res.profit; Margin = res.margin; VAT_in_ad = res.VAT_in_ad;
+      }
+
+      // —— 砖墙 ——
+      const wall = $('wall');
+      const toPct = (v)=> Rev>0 ? Math.min(100, Math.abs(v)/Rev*100) : 0;
+      const rows = [
+        {name:'有效含税营收 Rev', amt: Rev, cls:'neu'},
+        {name:'进货成本', amt: -base.goodsCost, cls:'neg'},
+        {name:'其它固定成本（物流/运险/其他）', amt: -base.othersCost, cls:'neg'},
+        {name:'平台佣金', amt: -base.commission, cls:'neg'},
+        {name:'销项税（价内，需剥离）', amt: -base.VAT_out, cls:'neg'},
+        {name:'进货抵扣 VAT_in_goods', amt: base.VAT_in_goods, cls:'pos'},
+        {name:'佣金抵扣 VAT_in_comm', amt: base.VAT_in_comm, cls:'pos'},
+      ];
+      if(adCostGiven>0){
+        rows.push({name:'广告抵扣 VAT_in_ad', amt: VAT_in_ad, cls:'pos'});
+        rows.push({name:'广告费（给定）', amt: -adCostGiven, cls:'neg'});
+      }
+      rows.push({name:'毛利润（不含广告）A', amt: base.A, cls: base.A>=0? 'pos':'neg'});
+      if(isFinite(Profit)) rows.push({name:'净利润（含给定广告）', amt: Profit, cls: Profit>=0? 'pos':'neg'});
+
+      wall.innerHTML = rows.map(rw=>{
+        return `<div class="brick ${rw.cls}">
+          <div class="name">${rw.name}</div>
+          <div class="bar"><div class="fill" style="--w:${toPct(rw.amt).toFixed(2)}%"></div></div>
+          <div class="amt">${fmt(rw.amt,2)} 元</div>
+        </div>`
+      }).join('');
+
+      // 迷你推演：不同广告占比下的利润率
+      const mini = $('mini');
+      const basis = document.querySelector('input[name="simBasis"]:checked')?.value || 'effective';
+      const list = parseListPercents($('simRates').value).map(v => (v>1? v/100: v));
+      mini.innerHTML = list.map(rp=>{
+        const { margin, adCostGiven } = profitGivenAdRateAndR(p, rp, r, basis);
+        const color = !isFinite(margin) ? '#6e6e73' : (margin>=0? 'var(--ok)':'var(--bad)');
+        const roasEffMini = isFinite(adCostGiven) && adCostGiven>0 ? (p.sellingPrice * r) / adCostGiven : NaN;
+        return `<div class="mini">
+          <div class="t">占比${(rp*100).toFixed(1)}%（${basis==='gmv'?'GMV':'有效'}）</div>
+          <div class="v" style="color:${color}">${isFinite(margin)? (margin*100).toFixed(2)+'%':'—'}</div>
+          <div class="hint">广告金额≈ ${fmt(adCostGiven,2)} 元</div>
+          <div class="hint">ROAS（按当前 r）≈ ${isFinite(roasEffMini)? roasEffMini.toFixed(2)+' 倍':'—'}</div>
+        </div>`
+      }).join('');
+    }
+
+    function bind(){
+      document.querySelectorAll('input,select').forEach(el=>{
+        const handler = ()=> render();
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+      });
+    }
+
+    fillDefaults();
+    bind();
+    render();
+  </script>
+</body>
+</html>
