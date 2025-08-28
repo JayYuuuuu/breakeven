@@ -18,10 +18,85 @@
     h1{margin:0; font-size:22px}
     .sub{color:var(--muted); font-size:13px; margin-top:4px}
     main{padding:20px; display:grid; gap:16px}
-    .wrap{display:grid; grid-template-columns: 35% 64%; gap:16px}
+    .wrap{display:grid; grid-template-columns: 35% 64%; gap:16px; align-items: start}
     @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
+    
+    /* 左侧参数输入区固定高度，不允许滚动 */
+    .wrap > section:first-child {
+      position: sticky;
+      top: 20px;
+      height: calc(100vh - 40px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* 左侧参数输入区内容可滚动 */
+    .wrap > section:first-child .content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    /* 右侧内容区域自适应高度，可滚动 */
+    .wrap > section:last-child {
+      min-height: calc(100vh - 40px);
+      overflow: visible;
+    }
+    
+    /* 右侧内容区域内部可滚动 */
+    .wrap > section:last-child .content {
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    /* 移动端适配：取消sticky效果 */
+    @media (max-width: 980px) {
+      .wrap > section:first-child {
+        position: static;
+        height: auto;
+        overflow: visible;
+      }
+      
+      .wrap > section:first-child .content {
+        overflow: visible;
+      }
+      
+      .wrap > section:last-child {
+        min-height: auto;
+      }
+      
+      .wrap > section:last-child .content {
+        max-height: none;
+        overflow: visible;
+      }
+    }
+    
+    /* 自定义滚动条样式 */
+    .wrap > section:first-child .content::-webkit-scrollbar,
+    .wrap > section:last-child .content::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .wrap > section:first-child .content::-webkit-scrollbar-track,
+    .wrap > section:last-child .content::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    .wrap > section:first-child .content::-webkit-scrollbar-thumb,
+    .wrap > section:last-child .content::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    
+    .wrap > section:first-child .content::-webkit-scrollbar-thumb:hover,
+    .wrap > section:last-child .content::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
     .card{background:var(--card); border:1px solid #d2d2d7; border-radius:var(--radius); box-shadow:0 1px 2px rgba(0,0,0,.06)}
-    .card h2{margin:0; font-size:20px; padding:16px 14px; border-bottom:1px solid #e5e5ea; color:#111; background:linear-gradient(180deg,#fafafa,#fff); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius); min-height: 52px; display: flex; align-items: center; justify-content: space-between}
+    .card h2{margin:0; font-size:20px; padding:16px 14px; border-bottom:1px solid #e5e5ea; color:#111; background:linear-gradient(180deg,#fafafa,#fff); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius); min-height: 52px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0}
     .content{padding:14px}
     .grid{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
     .grid-4{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px}
@@ -1796,7 +1871,7 @@
         if(isFinite(dROAS))     parts.push(`ROAS ${chip((dROAS>=0?'+':'')+dROAS.toFixed(2)+'倍', dROAS>=0)}`);
         if(isFinite(dPPAY))     parts.push(`投1元广告净利润 ${chip((dPPAY>=0?'+':'')+fmt(dPPAY,2)+'元', dPPAY>=0)}`);
 
-        el.innerHTML = headerHtml + (parts.length ? `<div style="font-size:12px;color:var(--muted)">${parts.join(' ｜ ')}</div>` : '—');
+        el.innerHTML = headerHtml + (parts.length ? `<div style="font-size:12px;color:var(--muted)">每降低 <b>1pp</b> 付费占比 → ${parts.join(' ｜ ')}</div>` : '—');
       })();
 
       // —— 绑定 returnThresholdText 到 DOM ——
