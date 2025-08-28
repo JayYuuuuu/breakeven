@@ -86,10 +86,10 @@
     /* 推演表格样式（移植自 single） */
     table{width:100%;border-collapse:collapse;font-size:14px}
     th,td{border-bottom:1px solid #f0f0f0;padding:8px 6px;text-align:right;font-family:var(--mono);position:relative}
-    th:first-child,td:first-child{text-align:left}
+    th:first-child,td:first-child{text-align:left;font-size:13px;font-weight:500}
     th .th-top{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
-    th .th-num{font-size:14px;font-weight:600;color:var(--ink)}
-    .pos{color:var(--ok)} .neg{color:var(--bad)}
+    th .th-num{font-size:12px;font-weight:600;color:var(--ink)}
+    .pos{color:var(--ok); font-size:13px} .neg{color:var(--bad); font-size:13px}
     /* 表格悬停聚焦效果 */
     tr:hover{background-color:rgba(0,122,255,0.05)}
     td:hover{background-color:rgba(0,122,255,0.1);font-weight:600}
@@ -369,17 +369,17 @@
       <!-- 右侧可视化 -->
       <section class="card">
         <h2>
-          <span id="tabTitle">可视化展示</span>
+          <span id="tabTitle">利润推演</span>
           <!-- Tab切换按钮 -->
           <div class="tab-buttons">
-            <button class="tab-btn active" data-tab="visualization">可视化展示</button>
+            <button class="tab-btn" data-tab="visualization">可视化展示</button>
             <button class="tab-btn" data-tab="decision">投放决策</button>
-            <button class="tab-btn" data-tab="analysis">利润推演</button>
+            <button class="tab-btn active" data-tab="analysis">利润推演</button>
           </div>
         </h2>
         
         <!-- 可视化展示tab -->
-        <div class="tab-content active" id="visualization-tab">
+        <div class="tab-content" id="visualization-tab">
           <div class="content">
             <div class="pill">关键指标 / KPI→快速查看有效成交比例以及保本阈值</div>
             <div class="kpi-band" id="kpis">
@@ -464,7 +464,7 @@
         </div>
         
         <!-- 利润推演tab -->
-        <div class="tab-content" id="analysis-tab">
+        <div class="tab-content active" id="analysis-tab">
           <div class="content">
             <div class="pill">利润推演（付费占比 × 退货率）</div>
             <div class="derivation-controls">
@@ -607,10 +607,12 @@
         adStart: 'metro_adStart',
         adEnd: 'metro_adEnd',
         adStep: 'metro_adStep',
-        rrStart: 'metro_rrStart',
+                rrStart: 'metro_rrStart',
         rrEnd: 'metro_rrEnd',
-        rrStep: 'metro_rrStep'
-    };
+        rrStep: 'metro_rrStep',
+        // 当前选中的tab
+        currentTab: 'metro_currentTab'
+      };
 
     // 保存参数到本地存储
     function saveToStorage(key, value) {
@@ -915,35 +917,54 @@
       const tabBtns = document.querySelectorAll('.tab-btn');
       const tabContents = document.querySelectorAll('.tab-content');
       
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const targetTab = btn.getAttribute('data-tab');
-          
-          // 移除所有active状态
-          tabBtns.forEach(b => b.classList.remove('active'));
-          tabContents.forEach(c => c.classList.remove('active'));
-          
-          // 激活当前tab
-          btn.classList.add('active');
-          document.getElementById(`${targetTab}-tab`).classList.add('active');
+              tabBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const targetTab = btn.getAttribute('data-tab');
+            activateTab(targetTab);
+            
+            // 保存当前选择的tab到本地存储
+            saveToStorage(STORAGE_KEYS.currentTab, targetTab);
+          });
+        });
+        
+        // 恢复上次选择的tab
+        const savedTab = loadFromStorage(STORAGE_KEYS.currentTab, 'analysis');
+        activateTab(savedTab);
+      }
+      
+      // 激活指定tab
+      function activateTab(tabName) {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // 移除所有active状态
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        // 激活指定tab
+        const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
+        const targetContent = document.getElementById(`${tabName}-tab`);
+        
+        if (targetBtn && targetContent) {
+          targetBtn.classList.add('active');
+          targetContent.classList.add('active');
           
           // 更新标题
-          updateTabTitle(targetTab);
+          updateTabTitle(tabName);
           
           // 根据tab类型更新相应的显示
-          if (targetTab === 'decision') {
+          if (tabName === 'decision') {
             // 若未填写，自动用左侧CPC/CVR回填一次
             const dc = document.getElementById('decisionCpc');
             const dv = document.getElementById('decisionCvr');
             if (dc && !dc.value) dc.value = document.getElementById('cpc')?.value || '';
             if (dv && !dv.value) dv.value = document.getElementById('cvr')?.value || '';
             updateDecisionDisplay();
-          } else if (targetTab === 'analysis') {
+          } else if (tabName === 'analysis') {
             simulate();
           }
-        });
-      });
-    }
+        }
+      }
     
     // 更新tab标题
     function updateTabTitle(tabName) {
