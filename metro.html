@@ -29,7 +29,7 @@
     .col-span-2{grid-column: span 2}
     .nowrap{white-space: nowrap}
     .switch{display:flex; width:100%; gap:0; align-items:center; padding:6px; border:1px solid #d2d2d7; border-radius:999px; background:#fff; overflow:hidden}
-    .switch label{white-space:nowrap; flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 8px}
+    .switch label{white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 8px}
     .switch input{margin:0}
     .switch label{border-radius:999px; transition:background .15s ease, font-weight .15s ease}
     .switch label:has(input:checked){background:#f2f2f7; font-weight:700}
@@ -57,6 +57,7 @@
       color:#0f172a;
       letter-spacing:.2px;
       margin-bottom:10px;
+      margin-top:10px;
     }
 
     /* KPI */
@@ -76,7 +77,7 @@
     .legend{display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted)}
     .legend .dot{width:10px; height:10px; border-radius:50%; background:#ccc; display:inline-block; vertical-align:middle}
 
-    /* 迷你推演条 */
+    /* 迷你推演→不同广告占比下的利润率变化条 */
     .mini-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px}
     .mini{border:1px dashed #e5e5ea; border-radius:10px; padding:8px}
     .mini .t{font-size:12px; color:var(--muted)}
@@ -84,6 +85,46 @@
 
     .hint{font-size:12px; color:var(--muted)}
     .warn{color:var(--bad)}
+    
+    /* Tab切换样式 */
+    .tab-buttons {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    
+    .tab-btn {
+      padding: 6px 12px;
+      border: 1px solid #d2d2d7;
+      background: #f5f5f7;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    
+    .tab-btn:hover {
+      background: #e5e5ea;
+      color: var(--ink);
+    }
+    
+    .tab-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
     /* Custom Tooltip */
     .tt{position:fixed; z-index:9999; max-width:360px; background:#111827; color:#fff; padding:10px 12px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.2); font-size:12.5px; line-height:1.5; pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .12s ease, transform .12s ease}
     .tt.show{opacity:1; transform:translateY(0)}
@@ -96,28 +137,32 @@
     <h1>费用可视化墙</h1>
     <div class="sub">实时把 <strong>参数</strong> → <strong>费用/税负</strong> → <strong>广告/利润</strong> 链路展开；一眼看懂“哪个旋钮带动了哪块费用”。</div>
   </header>
+
   <main>
     <div class="wrap">
       <!-- 参数输入 -->
       <section class="card">
-        <h2>参数输入</h2>
+        <h2 style="display: flex; justify-content: space-between; align-items: center;">
+          参数输入
+          <button id="resetBtn" style="background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; text-decoration: underline; padding: 0;">重置</button>
+        </h2>
         <div class="content" id="paramForm">
           <!-- 重要参数 -->
           <div class="block">
             <div class="pill">重要参数</div>
-            <div class="grid">
+            <div class="grid-4">
               <div>
                 <label>含税售价（¥）</label>
                 <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
               </div>
               <div>
-                <label>进货价（不含税，¥）</label>
+                <label>进货价（¥）</label>
                 <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
               </div>
-              <div>
-                <label>退货率（%）</label>
-                <input id="returnRate" type="text" inputmode="decimal" placeholder="10" />
-              </div>
+                          <div>
+              <label>退货率（%）</label>
+              <input id="returnRate" type="text" inputmode="decimal" placeholder="12" />
+            </div>
               <div>
                 <label>进货模式</label>
                 <div class="switch">
@@ -171,23 +216,24 @@
                 <input id="adRate" type="text" inputmode="decimal" placeholder="10">
               </div>
               <div>
-                <label>广告金额（¥）</label>
+                <label>广告费（¥）</label>
                 <input id="adCost" type="text" inputmode="decimal" placeholder="0">
+                <div class="hint" id="adCostHint"></div>
               </div>
+                          <div>
+              <label>CPC（模拟点击单价）</label>
+              <input id="cpc" type="text" inputmode="decimal" placeholder="2.5">
+            </div>
               <div>
-                <label>CPC（¥/次点击）</label>
-                <input id="cpc" type="text" inputmode="decimal" placeholder="0.80">
-              </div>
-              <div>
-                <label>CVR（转化率，%）</label>
+                <label>CVR（模拟转化率）</label>
                 <input id="cvr" type="text" inputmode="decimal" placeholder="15">
               </div>
             </div>
             <div class="hint">说明：占比→金额将按所选口径基数换算；金额→占比会同步显示两口径等价占比。</div>
           </div>
-          <!-- 推演参数 -->
+          <!-- 迷你推演参数 -->
           <div class="block">
-            <div class="pill">推演参数</div>
+            <div class="pill">迷你推演参数</div>
             <div class="grid">
               <div>
                 <label>广告占比列表（%，逗号分隔）</label>
@@ -207,37 +253,136 @@
 
       <!-- 右侧可视化 -->
       <section class="card">
-        <h2>可视化展示</h2>
-        <div class="content">
-          <div class="kpi-band" id="kpis">
-            <div class="kpi"><div class="label">有效比例 r（扣除退货后）</div><div class="val" id="kpiR">—</div></div>
-            <div class="kpi"><div class="label">保本广告费</div><div class="val" id="kpiAdCost">—</div></div>
-            <div class="kpi"><div class="label">保本广告占比（有效）</div><div class="val" id="kpiAdRateEff">—</div></div>
-            <div class="kpi"><div class="label">保本ROI（有效）</div><div class="val" id="kpiROASEff">—</div></div>
-            <div class="kpi"><div class="label">保本广告占比（GMV）</div><div class="val" id="kpiAdRateGMV">—</div></div>
-            <div class="kpi"><div class="label">保本ROI（GMV）</div><div class="val" id="kpiROASGMV">—</div></div>
+        <h2 style="display: flex; justify-content: space-between; align-items: center;">
+          <span id="tabTitle">可视化展示</span>
+          <!-- Tab切换按钮 -->
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="visualization">可视化展示</button>
+            <button class="tab-btn" data-tab="decision">投放决策</button>
+            <button class="tab-btn" data-tab="analysis">利润推演</button>
           </div>
-          <div class="sep" style="height:8px"></div>
-          <div class="pill">CPC/CVR→即时利润率</div>
-          <div class="mini-grid" id="cpcCard"></div>
+        </h2>
+        
+        <!-- 可视化展示tab -->
+        <div class="tab-content active" id="visualization-tab">
+          <div class="content">
+            <div class="pill">关键指标 / KPI→快速查看有效成交比例以及保本阈值</div>
+            <div class="kpi-band" id="kpis">
+              <div class="kpi"><div class="label">有效比例 r（扣除退货后）</div><div class="val" id="kpiR">—</div></div>
+              <div class="kpi"><div class="label">保本广告费</div><div class="val" id="kpiAdCost">—</div></div>
+              <div class="kpi"><div class="label">保本广告占比（有效）</div><div class="val" id="kpiAdRateEff">—</div></div>
+              <div class="kpi"><div class="label">保本ROAS（有效）</div><div class="val" id="kpiROASEff">—</div></div>
+              <div class="kpi"><div class="label">保本广告占比（GMV）</div><div class="val" id="kpiAdRateGMV">—</div></div>
+              <div class="kpi"><div class="label">保本ROAS（GMV）</div><div class="val" id="kpiROASGMV">—</div></div>
+            </div>
+            <div class="sep" style="height:8px"></div>
+            <div class="pill">根据模拟CPC/CVR→计算即时利润率</div>
+            <div class="mini-grid" id="cpcCard"></div>
 
-          <div class="legend" style="margin:10px 0 6px">
-            <span><span class="dot" style="background:var(--accent)"></span> 营收</span>
-            <span><span class="dot" style="background:var(--bad)"></span> 成本/税负支出（向下）</span>
-            <span><span class="dot" style="background:var(--ok)"></span> 税额抵扣/回流（向上）</span>
+            <div class="legend" style="margin:10px 0 6px">
+              <span><span class="dot" style="background:var(--accent)"></span> 营收</span>
+              <span><span class="dot" style="background:var(--bad)"></span> 成本/税负支出（向下）</span>
+              <span><span class="dot" style="background:var(--ok)"></span> 税额抵扣/回流（向上）</span>
+            </div>
+
+            <div class="wall" id="wall"></div>
+            <div id="cpaSummary" class="hint" style="margin-top:6px"></div>
+
+            <div class="sep" style="height:8px"></div>
+            <div class="pill">迷你推演→不同广告占比下的利润率变化</div>
+            <div class="hint" style="margin:4px 0 8px">
+              提示：ROAS（广告投入产出比）是衡量广告效率的重要口径。
+              GMV口径：GMV ÷ 广告费；有效口径：(售价×r) ÷ 广告费。
+              当推演口径为"有效"时，ROAS≈1/占比；当口径为"GMV"时，ROAS≈r/占比。
+            </div>
+            <div class="mini-grid" id="mini"></div>
           </div>
-
-          <div class="wall" id="wall"></div>
-          <div id="cpaSummary" class="hint" style="margin-top:6px"></div>
-
-          <div class="sep" style="height:8px"></div>
-          <div class="pill">迷你推演</div>
-          <div class="hint" style="margin:4px 0 8px">
-            提示：ROAS（广告投入产出比）是衡量广告效率的重要口径。
-            GMV口径：GMV ÷ 广告费；有效口径：(售价×r) ÷ 广告费。
-            当推演口径为“有效”时，ROAS≈1/占比；当口径为“GMV”时，ROAS≈r/占比。
+        </div>
+        
+        <!-- 投放决策tab -->
+        <div class="tab-content" id="decision-tab">
+          <div class="content">
+            <div class="pill">投放决策分析</div>
+            <div class="hint">基于当前参数，分析投放策略的可行性和风险</div>
+            
+            <div class="block">
+              <div class="pill">CPC-CVR边界分析</div>
+              <div class="grid">
+                <div>
+                  <label>当前CPC（元）</label>
+                  <input id="decisionCpc" type="text" inputmode="decimal" placeholder="2.5" />
+                </div>
+                <div>
+                  <label>当前CVR（%）</label>
+                  <input id="decisionCvr" type="text" inputmode="decimal" placeholder="15" />
+                </div>
+              </div>
+              <div class="hint">输入当前投放数据，系统将分析投放安全性</div>
+            </div>
+            
+            <div class="block">
+              <div class="pill">投放建议</div>
+              <div class="kpi-band" id="decisionKpis">
+                <div class="kpi">
+                  <div class="label">投放安全性</div>
+                  <div class="val" id="decisionSafety">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">CPC安全边际</div>
+                  <div class="val" id="decisionCpcMargin">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">建议优化方向</div>
+                  <div class="val" id="decisionSuggestion">—</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="block">
+              <div class="pill">CVR-CPC边界曲线</div>
+              <div class="hint">基于当前参数的投放边界分析图表</div>
+              <div id="decisionChart" style="height: 300px; background: #f5f5f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--muted);">
+                图表区域 - 待开发
+              </div>
+            </div>
           </div>
-          <div class="mini-grid" id="mini"></div>
+        </div>
+        
+        <!-- 利润推演tab -->
+        <div class="tab-content" id="analysis-tab">
+          <div class="content">
+            <div class="pill">利润推演分析</div>
+            <div class="hint">模拟不同参数组合下的利润变化趋势</div>
+            
+            <div class="block">
+              <div class="pill">推演参数设置</div>
+              <div class="grid">
+                <div>
+                  <label>广告占比范围（%，逗号分隔）</label>
+                  <input id="analysisAdRates" type="text" inputmode="text" value="5,10,15,20,25,30" />
+                </div>
+                <div>
+                  <label>退货率范围（%，逗号分隔）</label>
+                  <input id="analysisReturnRates" type="text" inputmode="text" value="8,10,12,15,18" />
+                </div>
+              </div>
+              <div class="hint">设置推演范围，系统将生成利润变化矩阵</div>
+            </div>
+            
+            <div class="block">
+              <div class="pill">推演结果</div>
+              <div class="hint">利润推演结果将在这里显示</div>
+              <div id="analysisResults" class="mini-grid"></div>
+            </div>
+            
+            <div class="block">
+              <div class="pill">利润变化趋势图</div>
+              <div class="hint">多维度参数组合下的利润变化可视化</div>
+              <div id="analysisChart" style="height: 300px; background: #f5f5f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--muted);">
+                图表区域 - 待开发
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -322,27 +467,95 @@
       }
     }
 
+    // 本地存储键名
+    const STORAGE_KEYS = {
+      sellingPrice: 'metro_sellingPrice',
+      costPrice: 'metro_costPrice',
+      returnRate: 'metro_returnRate',
+      salesTaxRate: 'metro_salesTaxRate',
+      outputTaxRate: 'metro_outputTaxRate',
+      inputTaxRate: 'metro_inputTaxRate',
+      serviceVATRate: 'metro_serviceVATRate',
+      platformRate: 'metro_platformRate',
+      shippingCost: 'metro_shippingCost',
+      shippingInsurance: 'metro_shippingInsurance',
+      otherCost: 'metro_otherCost',
+      goodsMode: 'metro_goodsMode',
+      adMode: 'metro_adMode',
+      adRateBasis: 'metro_adRateBasis',
+      adRate: 'metro_adRate',
+      adCost: 'metro_adCost',
+      cpc: 'metro_cpc',
+      cvr: 'metro_cvr',
+      simRates: 'metro_simRates',
+      simBasis: 'metro_simBasis',
+      // 新tab持久化
+      decisionCpc: 'metro_decisionCpc',
+      decisionCvr: 'metro_decisionCvr',
+      analysisAdRates: 'metro_analysisAdRates',
+      analysisReturnRates: 'metro_analysisReturnRates'
+    };
+
+    // 保存参数到本地存储
+    function saveToStorage(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        console.warn('本地存储失败:', e);
+      }
+    }
+
+    // 从本地存储加载参数
+    function loadFromStorage(key, defaultValue = '') {
+      try {
+        const value = localStorage.getItem(key);
+        return value !== null ? value : defaultValue;
+      } catch (e) {
+        console.warn('本地存储读取失败:', e);
+        return defaultValue;
+      }
+    }
+
     // 预填默认参数（与系统示例保持一致）
     function fillDefaults(){
-      $('sellingPrice').value = '79.8';
-      $('costPrice').value = '38';
-      $('returnRate').value = '10';
-      $('salesTaxRate').value = (SYSTEM_PARAMS_EXAMPLE.salesTaxRate*100).toFixed(0);
-      $('outputTaxRate').value = (SYSTEM_PARAMS_EXAMPLE.outputTaxRate*100).toFixed(0);
-      $('inputTaxRate').value = (SYSTEM_PARAMS_EXAMPLE.inputTaxRate*100).toFixed(0);
-      $('serviceVATRate').value = (SYSTEM_PARAMS_EXAMPLE.serviceVATRate*100).toFixed(0);
-      $('platformRate').value = (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1);
-      $('shippingCost').value = SYSTEM_PARAMS_EXAMPLE.shippingCost;
-      $('shippingInsurance').value = SYSTEM_PARAMS_EXAMPLE.shippingInsurance;
-      $('otherCost').value = SYSTEM_PARAMS_EXAMPLE.otherCost;
-      document.querySelector('input[name="goodsMode"][value="canReturn"]').checked = true;
-      document.querySelector('input[name="adMode"][value="rate"]').checked = true;
-      document.querySelector('input[name="adRateBasis"][value="effective"]').checked = true;
-      $('adRate').value = '22';
-      $('adCost').value = '';
-      $('cpc').value = '0.80';
-      $('cvr').value = '15';
-      $('simRates').value = '10,12,18,20,22,25,28,30,33,35';
+      $('sellingPrice').value = loadFromStorage(STORAGE_KEYS.sellingPrice, '79.8');
+      $('costPrice').value = loadFromStorage(STORAGE_KEYS.costPrice, '38');
+      $('returnRate').value = loadFromStorage(STORAGE_KEYS.returnRate, '12');
+      $('salesTaxRate').value = loadFromStorage(STORAGE_KEYS.salesTaxRate, (SYSTEM_PARAMS_EXAMPLE.salesTaxRate*100).toFixed(0));
+      $('outputTaxRate').value = loadFromStorage(STORAGE_KEYS.outputTaxRate, (SYSTEM_PARAMS_EXAMPLE.outputTaxRate*100).toFixed(0));
+      $('inputTaxRate').value = loadFromStorage(STORAGE_KEYS.inputTaxRate, (SYSTEM_PARAMS_EXAMPLE.inputTaxRate*100).toFixed(0));
+      $('serviceVATRate').value = loadFromStorage(STORAGE_KEYS.serviceVATRate, (SYSTEM_PARAMS_EXAMPLE.serviceVATRate*100).toFixed(0));
+      $('platformRate').value = loadFromStorage(STORAGE_KEYS.platformRate, (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1));
+      $('shippingCost').value = loadFromStorage(STORAGE_KEYS.shippingCost, SYSTEM_PARAMS_EXAMPLE.shippingCost);
+      $('shippingInsurance').value = loadFromStorage(STORAGE_KEYS.shippingInsurance, SYSTEM_PARAMS_EXAMPLE.shippingInsurance);
+      $('otherCost').value = loadFromStorage(STORAGE_KEYS.otherCost, SYSTEM_PARAMS_EXAMPLE.otherCost);
+      
+      // 加载单选按钮状态
+      const goodsMode = loadFromStorage(STORAGE_KEYS.goodsMode, 'canReturn');
+      document.querySelector(`input[name="goodsMode"][value="${goodsMode}"]`).checked = true;
+      
+      const adMode = loadFromStorage(STORAGE_KEYS.adMode, 'rate');
+      document.querySelector(`input[name="adMode"][value="${adMode}"]`).checked = true;
+      
+      const adRateBasis = loadFromStorage(STORAGE_KEYS.adRateBasis, 'effective');
+      document.querySelector(`input[name="adRateBasis"][value="${adRateBasis}"]`).checked = true;
+      
+      const simBasis = loadFromStorage(STORAGE_KEYS.simBasis, 'effective');
+      document.querySelector(`input[name="simBasis"][value="${simBasis}"]`).checked = true;
+      
+      $('adRate').value = loadFromStorage(STORAGE_KEYS.adRate, '22');
+      $('adCost').value = loadFromStorage(STORAGE_KEYS.adCost, '');
+      $('cpc').value = loadFromStorage(STORAGE_KEYS.cpc, '2.5');
+      $('cvr').value = loadFromStorage(STORAGE_KEYS.cvr, '15');
+      $('simRates').value = loadFromStorage(STORAGE_KEYS.simRates, '10,12,18,20,22,25,28,30,33,35');
+
+      // 右侧新Tab默认值（若未保存，则用左侧CPC/CVR回填）
+      const defDecisionCpc = loadFromStorage(STORAGE_KEYS.decisionCpc, $('cpc').value || '');
+      const defDecisionCvr = loadFromStorage(STORAGE_KEYS.decisionCvr, $('cvr').value || '');
+      if (document.getElementById('decisionCpc')) document.getElementById('decisionCpc').value = defDecisionCpc;
+      if (document.getElementById('decisionCvr')) document.getElementById('decisionCvr').value = defDecisionCvr;
+      if (document.getElementById('analysisAdRates')) document.getElementById('analysisAdRates').value = loadFromStorage(STORAGE_KEYS.analysisAdRates, '5,10,15,20,25,30');
+      if (document.getElementById('analysisReturnRates')) document.getElementById('analysisReturnRates').value = loadFromStorage(STORAGE_KEYS.analysisReturnRates, '8,10,12,15,18');
     }
 
     function params(){
@@ -389,12 +602,12 @@
       $('kpiAdRateGMV').textContent = pct(base.adRateBE_gmv,2);
       $('kpiROASGMV').textContent = isFinite(base.ROI_BE_gmv)? base.ROI_BE_gmv.toFixed(2)+' 倍' : '—';
 
-      // —— CPC/CVR → 即时利润率（有效口径计入广告费） ——
+      // —— CPC/CVR → 即时利润率（根据投放参数口径显示对应数据） ——
       const cpcV = num($('cpc').value);
       const cvrV = to01($('cvr').value);
       const cpcCard = document.getElementById('cpcCard');
       let cpa = NaN, effRateCPA = NaN, gmvRateCPA = NaN, marginCPA = NaN, profitCPA = NaN;
-      let roasGMV = NaN, roasEff = NaN;
+      let roasGMV = NaN, roasEff = NaN, roiCPA = NaN;
       if (cpcV > 0 && cvrV > 0) {
         cpa = cpcV / cvrV; // 每单广告成本
         const rts = adAmountToRates(p, cpa);
@@ -407,22 +620,31 @@
           roasGMV = p.sellingPrice / cpa;               // GMV 口径：售价 ÷ CPA
           roasEff  = (p.sellingPrice * r) / cpa;        // 有效口径：(售价×r) ÷ CPA
         }
+        if (cpa > 0 && isFinite(profitCPA)) {
+          roiCPA = profitCPA / cpa; // 即时 ROI = 利润 ÷ 广告费
+        }
       }
+      
+      // 获取当前投放参数的口径设置
+      const cpcAdv = currentAd();
+      const cpcBasisLabel = (cpcAdv.basis === 'gmv') ? 'GMV' : '有效营收';
+      const chosenRate = (cpcAdv.basis === 'gmv') ? gmvRateCPA : effRateCPA;
+      const chosenROAS = (cpcAdv.basis === 'gmv') ? roasGMV : roasEff;
       cpcCard.innerHTML = `
         <div class="mini">
-          <div class="t">CPA（由 CPC/CVR 推得）</div>
+          <div class="t">CPA（平均转化成本）</div>
           <div class="v">${isFinite(cpa) ? fmt(cpa,2) + ' 元' : '—'}</div>
           <div class="hint">公式：CPA = CPC ÷ CVR</div>
         </div>
         <div class="mini">
-          <div class="t">等价广告占比（有效）</div>
-          <div class="v">${isFinite(effRateCPA) ? (effRateCPA*100).toFixed(2) + '%' : '—'}</div>
-          <div class="hint">按有效营收 Rev 作为基数</div>
+          <div class="t">等价广告占比（${cpcBasisLabel}）</div>
+          <div class="v">${isFinite(chosenRate) ? (chosenRate*100).toFixed(2) + '%' : '—'}</div>
+          <div class="hint">按${cpcBasisLabel}基数计算</div>
         </div>
         <div class="mini">
-          <div class="t">等价广告占比（GMV）</div>
-          <div class="v">${isFinite(gmvRateCPA) ? (gmvRateCPA*100).toFixed(2) + '%' : '—'}</div>
-          <div class="hint">按 GMV（含税售价）作为基数</div>
+          <div class="t">即时 ROAS（${cpcBasisLabel}口径）</div>
+          <div class="v">${isFinite(chosenROAS) ? chosenROAS.toFixed(2) + ' 倍' : '—'}</div>
+          <div class="hint">${cpcAdv.basis === 'gmv' ? 'GMV ÷ CPA = 含税售价 ÷ CPA' : '(售价×r) ÷ CPA；与上方 r 一致'}</div>
         </div>
         <div class="mini">
           <div class="t">即时利润率（含该 CPA）</div>
@@ -435,24 +657,22 @@
           <div class="hint">与上方砖墙口径一致</div>
         </div>
         <div class="mini">
-          <div class="t">即时 ROAS（GMV口径）</div>
-          <div class="v">${isFinite(roasGMV) ? roasGMV.toFixed(2) + ' 倍' : '—'}</div>
-          <div class="hint">GMV ÷ CPA = 含税售价 ÷ CPA</div>
-        </div>
-        <div class="mini">
-          <div class="t">即时 ROAS（有效口径）</div>
-          <div class="v">${isFinite(roasEff) ? roasEff.toFixed(2) + ' 倍' : '—'}</div>
-          <div class="hint">(售价×r) ÷ CPA；与上方 r 一致</div>
+          <div class="t">投1元广告带来的净利润</div>
+          <div class="v" style="color:${!isFinite(roiCPA) ? '#6e6e73' : (roiCPA>=0? 'var(--ok)':'var(--bad)')}">${isFinite(roiCPA) ? fmt(roiCPA,2) + ' 元' : '—'}</div>
+          <div class="hint">按 1 元广告费折算</div>
         </div>
       `;
 
-      // —— 砖墙下小计：当前 CPA 下 ROAS/利润率 对照 ——
+      // —— 砖墙下小计：当前平均转化成本下 ROAS/利润率 对照（新版：显示两口径ROAS+投1元广告净利润） ——
       const cpaSummary = document.getElementById('cpaSummary');
       if (isFinite(roasGMV) || isFinite(roasEff) || isFinite(marginCPA)) {
         const partGMV = isFinite(roasGMV) ? `${roasGMV.toFixed(2)} 倍` : '—';
         const partEFF = isFinite(roasEff) ? `${roasEff.toFixed(2)} 倍` : '—';
         const partMRG = isFinite(marginCPA) ? `${(marginCPA*100).toFixed(2)}%` : '—';
-        cpaSummary.innerHTML = `当前 CPA 下：ROAS(GMV) = <b>${partGMV}</b> ｜ ROAS(有效) = <b>${partEFF}</b> ｜ 利润率 = <b>${partMRG}</b>`;
+        const partGainPer1 = isFinite(roiCPA) ? `${fmt(roiCPA,2)} 元` : '—';
+        const chosenROASDisplay = (cpcAdv.basis === 'gmv') ? partGMV : partEFF;
+        const basisDisplay = (cpcAdv.basis === 'gmv') ? 'GMV' : '有效';
+        cpaSummary.innerHTML = `当前平均转化成本（CPA）下：ROAS(${basisDisplay}) = <b>${chosenROASDisplay}</b> ｜ 利润率 = <b>${partMRG}</b> ｜ 投1元广告净利润 = <b>${partGainPer1}</b> ｜ 说明：流量效率（ROAS） → 结果效率（利润率） → 投入回报（净利润/广告费）`;
       } else {
         cpaSummary.innerHTML = '';
       }
@@ -468,6 +688,42 @@
         adCostGiven = Math.max(0, adv.adCost);
         const rates = adAmountToRates(p, adCostGiven);
         effectiveRate = rates.effective; gmvRate = rates.gmv;
+      }
+      // —— 同步显示等价口径：占比↔金额（即使输入框被禁用也展示） ——
+      const adRateEl = $('adRate');
+      const adCostEl = $('adCost');
+      const adRateHint = document.getElementById('adRateHint');
+      const adCostHint = document.getElementById('adCostHint');
+      const basisLabel = (adv.basis === 'gmv') ? 'GMV' : '有效营收';
+      if (adv.mode === 'rate') {
+        // 用所选口径把占比换算为金额，并同时展示两种口径的等价占比
+        if (isFinite(adCostGiven)) {
+          adCostEl.value = fmt(adCostGiven, 2); // 只读展示
+          adCostHint.textContent = `按${basisLabel}基数换算金额 ≈ ${fmt(adCostGiven,2)} 元`;
+        } else {
+          adCostHint.textContent = '';
+        }
+        if (adRateHint) {
+          if (isFinite(effectiveRate) && isFinite(gmvRate)) {
+            adRateHint.textContent = `等价占比：有效 ${pct(effectiveRate)} ｜ GMV ${pct(gmvRate)}`;
+          } else {
+            adRateHint.textContent = '';
+          }
+        }
+      } else if (adv.mode === 'amount') {
+        // 金额→占比：把金额折算为两口径占比，同时把当前所选口径的占比填入输入框供参考
+        if (isFinite(effectiveRate) && isFinite(gmvRate)) {
+          const chosenRate = (adv.basis === 'gmv') ? gmvRate : effectiveRate;
+          adRateEl.value = (chosenRate*100).toFixed(2); // 只读展示当前所选口径的等价占比
+          if (adRateHint) adRateHint.textContent = `等价占比：有效 ${pct(effectiveRate)} ｜ GMV ${pct(gmvRate)}`;
+          adCostHint.textContent = '';
+        } else {
+          if (adRateHint) adRateHint.textContent = '';
+          adCostHint.textContent = '';
+        }
+      } else { // none
+        if (adRateHint) adRateHint.textContent = '';
+        adCostHint.textContent = '';
       }
       if(adCostGiven>0){
         const res = profitGivenAd(p, { adCost: adCostGiven });
@@ -506,7 +762,7 @@
         </div>`
       }).join('');
 
-      // 迷你推演：不同广告占比下的利润率
+      // 迷你推演→不同广告占比下的利润率变化：不同广告占比下的利润率
       const mini = $('mini');
       const basis = document.querySelector('input[name="simBasis"]:checked')?.value || 'effective';
       const list = parseListPercents($('simRates').value).map(v => (v>1? v/100: v));
@@ -517,23 +773,215 @@
         return `<div class="mini">
           <div class="t">占比${(rp*100).toFixed(1)}%（${basis==='gmv'?'GMV':'有效'}）</div>
           <div class="v" style="color:${color}">${isFinite(margin)? (margin*100).toFixed(2)+'%':'—'}</div>
-          <div class="hint">广告金额≈ ${fmt(adCostGiven,2)} 元</div>
+          <div class="hint">广告费≈ ${fmt(adCostGiven,2)} 元</div>
           <div class="hint">ROAS≈ ${isFinite(roasEffMini)? roasEffMini.toFixed(2)+' 倍':'—'}</div>
         </div>`
       }).join('');
     }
 
+    // Tab标题映射表
+    const TAB_TITLES = {
+      'visualization': '可视化展示',
+      'decision': '投放决策',
+      'analysis': '利润推演'
+    };
+    
+    // Tab切换功能
+    function initTabs() {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+          
+          // 移除所有active状态
+          tabBtns.forEach(b => b.classList.remove('active'));
+          tabContents.forEach(c => c.classList.remove('active'));
+          
+          // 激活当前tab
+          btn.classList.add('active');
+          document.getElementById(`${targetTab}-tab`).classList.add('active');
+          
+          // 更新标题
+          updateTabTitle(targetTab);
+          
+          // 根据tab类型更新相应的显示
+          if (targetTab === 'decision') {
+            // 若未填写，自动用左侧CPC/CVR回填一次
+            const dc = document.getElementById('decisionCpc');
+            const dv = document.getElementById('decisionCvr');
+            if (dc && !dc.value) dc.value = document.getElementById('cpc')?.value || '';
+            if (dv && !dv.value) dv.value = document.getElementById('cvr')?.value || '';
+            updateDecisionDisplay();
+          } else if (targetTab === 'analysis') {
+            updateAnalysisDisplay();
+          }
+        });
+      });
+    }
+    
+    // 更新tab标题
+    function updateTabTitle(tabName) {
+      const titleElement = document.getElementById('tabTitle');
+      if (titleElement && TAB_TITLES[tabName]) {
+        titleElement.textContent = TAB_TITLES[tabName];
+      }
+    }
+    
+    // 更新投放决策显示
+    function updateDecisionDisplay() {
+      const cpc = num($('decisionCpc').value);
+      const cvr = to01($('decisionCvr').value);
+      
+      if (cpc > 0 && cvr > 0) {
+        const cpa = cpc / cvr; // 每单广告成本
+        const p = params();
+        const base = computeBase(p);
+        
+        // 计算投放安全性
+        const isSafe = cpa <= base.adCostBreakEven;
+        const safetyMargin = base.adCostBreakEven - cpa;
+        
+        // 更新显示
+        $('decisionSafety').textContent = isSafe ? '安全' : '危险';
+        $('decisionSafety').style.color = isSafe ? 'var(--ok)' : 'var(--bad)';
+        
+        $('decisionCpcMargin').textContent = fmt(safetyMargin, 2) + ' 元';
+        $('decisionCpcMargin').style.color = isSafe ? 'var(--ok)' : 'var(--bad)';
+        
+        if (isSafe) {
+          $('decisionSuggestion').textContent = '可继续投放';
+          $('decisionSuggestion').style.color = 'var(--ok)';
+        } else {
+          $('decisionSuggestion').textContent = '需降低CPC或提升CVR';
+          $('decisionSuggestion').style.color = 'var(--bad)';
+        }
+      } else {
+        $('decisionSafety').textContent = '—';
+        $('decisionCpcMargin').textContent = '—';
+        $('decisionSuggestion').textContent = '—';
+      }
+    }
+    
+    // 更新利润推演显示
+    function updateAnalysisDisplay() {
+      const adRates = parseListPercents($('analysisAdRates').value);
+      const returnRates = parseListPercents($('analysisReturnRates').value);
+      const p = params();
+      
+      if (adRates.length > 0 && returnRates.length > 0) {
+        let resultsHtml = '';
+        
+        // 生成利润变化矩阵
+        adRates.forEach(adRate => {
+          returnRates.forEach(returnRate => {
+            const r = Math.max(0, 1 - returnRate);
+            const { margin } = profitGivenAdRateAndR(p, adRate, r, 'effective');
+            
+            if (isFinite(margin)) {
+              const color = margin >= 0 ? 'var(--ok)' : 'var(--bad)';
+              resultsHtml += `
+                <div class="mini">
+                  <div class="t">广告${(adRate*100).toFixed(1)}% + 退货${(returnRate*100).toFixed(1)}%</div>
+                  <div class="v" style="color:${color}">${(margin*100).toFixed(2)}%</div>
+                </div>
+              `;
+            }
+          });
+        });
+        
+        $('analysisResults').innerHTML = resultsHtml;
+      } else {
+        $('analysisResults').innerHTML = '<div class="hint">请输入有效的参数范围</div>';
+      }
+    }
+    
     function bind(){
+      // 初始化Tab切换
+      initTabs();
+      
+      // 为所有输入框添加事件监听
       document.querySelectorAll('input,select').forEach(el=>{
-        const handler = ()=>{ updateAdModeUI(); render(); };
+        const handler = ()=>{ 
+          updateAdModeUI(); 
+          render(); 
+          
+          // 根据当前激活的tab，联动刷新右侧视图
+          const activeTabBtn = document.querySelector('.tab-btn.active');
+          const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'visualization';
+          if (activeTab === 'decision') {
+            updateDecisionDisplay();
+          } else if (activeTab === 'analysis') {
+            updateAnalysisDisplay();
+          }
+        };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
+        
+        // 为输入框添加选中全部内容功能
+        if (el.type === 'text' || el.type === 'number') {
+          el.addEventListener('focus', function() {
+            this.select(); // 选中全部内容
+          });
+          
+          // 为输入框添加实时保存功能
+          el.addEventListener('input', function() {
+            const key = this.id;
+            if (key && STORAGE_KEYS[key]) {
+              saveToStorage(STORAGE_KEYS[key], this.value);
+            }
+          });
+        }
       });
+      
+      // 为单选按钮添加实时保存功能
+      document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+          const name = this.name;
+          const value = this.value;
+          if (name === 'goodsMode' && STORAGE_KEYS.goodsMode) {
+            saveToStorage(STORAGE_KEYS.goodsMode, value);
+          } else if (name === 'adMode' && STORAGE_KEYS.adMode) {
+            saveToStorage(STORAGE_KEYS.adMode, value);
+          } else if (name === 'adRateBasis' && STORAGE_KEYS.adRateBasis) {
+            saveToStorage(STORAGE_KEYS.adRateBasis, value);
+          } else if (name === 'simBasis' && STORAGE_KEYS.simBasis) {
+            saveToStorage(STORAGE_KEYS.simBasis, value);
+          }
+        });
+      });
+      
+      // 重置按钮事件
+      const resetBtn = document.getElementById('resetBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          // 清除所有本地存储
+          Object.values(STORAGE_KEYS).forEach(key => {
+            localStorage.removeItem(key);
+          });
+          // 重新加载页面
+          location.reload();
+        });
+      }
+    }
+
+    // 显示本地存储状态
+    function showStorageStatus() {
+      const savedCount = Object.values(STORAGE_KEYS).filter(key => localStorage.getItem(key) !== null).length;
+      if (savedCount > 0) {
+        console.log(`已加载 ${savedCount} 个本地保存的参数`);
+      }
     }
 
     fillDefaults();
     bind();
     render();
+    // 首次进入时按当前激活tab刷新一次
+    const _initActive = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
+    if (_initActive === 'decision') updateDecisionDisplay();
+    if (_initActive === 'analysis') updateAnalysisDisplay();
+    showStorageStatus();
   </script>
 </body>
 </html>
