@@ -1389,6 +1389,59 @@ export function profitPerAdYuan(p, cpa) {
   return isFinite(result.profit) ? result.profit / cpaVal : NaN;
 }
 
+/**
+ * 统一的 CPC/CVR → CPA/ROAS/利润 计算入口（纯函数、无副作用）
+ * - 输入：商品参数 p，和当前的 cpc/cvr
+ * - 输出：
+ *   { cpa, effectiveRate, gmvRate, roasEff, roasGMV, margin, profit, roiPerAdYuan }
+ * 说明：
+ *  - effectiveRate/gmvRate 为将 CPA 金额折算成两口径的等价广告占比
+ *  - roasEff/roasGMV 为两口径下的即时 ROAS
+ *  - margin/profit 为在该 CPA 下的即时利润率/利润
+ *  - roiPerAdYuan 为“投 1 元广告的净利润”（= profit / CPA）
+ */
+export function computeCPAMetrics(p, { cpc, cvr }) {
+  const cpcVal = Number(cpc) || 0;
+  const cvrVal = clamp01(Number(cvr) || 0);
+
+  let cpa = NaN,
+      effectiveRate = NaN,
+      gmvRate = NaN,
+      roasEff = NaN,
+      roasGMV = NaN,
+      margin = NaN,
+      profit = NaN,
+      roiPerAdYuan = NaN;
+
+  if (cpcVal > 0 && cvrVal > 0) {
+    cpa = cpcVal / cvrVal; // 每单广告费
+
+    // 两口径等价占比
+    const rates = adAmountToRates(p, cpa);
+    effectiveRate = rates.effective;
+    gmvRate = rates.gmv;
+
+    // 即时利润与利润率
+    const res = profitGivenAd(p, { adCost: cpa });
+    margin = res.margin;
+    profit = res.profit;
+
+    // 两口径 ROAS
+    if (cpa > 0) {
+      const base = computeBase(p);
+      roasEff = (p.sellingPrice * base.r) / cpa;
+      roasGMV = p.sellingPrice / cpa;
+    }
+
+    // 投 1 元广告净利
+    if (cpa > 0 && isFinite(profit)) {
+      roiPerAdYuan = profit / cpa;
+    }
+  }
+
+  return { cpa, effectiveRate, gmvRate, roasEff, roasGMV, margin, profit, roiPerAdYuan };
+}
+
 /** ===== 新增：二分搜索类函数 ===== */
 
 /**

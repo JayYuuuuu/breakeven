@@ -1193,6 +1193,7 @@
   clamp01, to01, num, cpcFromCpmCtr, calcEffectiveAOV,
   computeBeCPAFromROAS, computeMaxCPC, computeMaxCPM,
   roasFromCPA, profitPerAdYuan,
+  computeCPAMetrics,
   allowedReturnRateForTargetMargin, allowedAdRateForTargetMargin,
   snapshotAt, deltaForAdRateDown1pp,
   solveSellingPrice, solveCostPrice, taxBurdenGiven,
@@ -1716,24 +1717,15 @@
       const cpcV = num($('cpc').value);
       const cvrV = to01($('cvr').value);
       const cpcCard = document.getElementById('cpcCard');
-      let cpa = NaN, effRateCPA = NaN, gmvRateCPA = NaN, marginCPA = NaN, profitCPA = NaN;
-      let roasGMV = NaN, roasEff = NaN, roiCPA = NaN;
-      if (cpcV > 0 && cvrV > 0) {
-        cpa = cpcV / cvrV; // 每单广告成本
-        const rts = adAmountToRates(p, cpa);
-        effRateCPA = rts.effective;
-        gmvRateCPA = rts.gmv;
-        const resCPA = profitGivenAd(p, { adCost: cpa });
-        marginCPA = resCPA.margin;
-        profitCPA = resCPA.profit;
-        if (cpa > 0) {
-          roasGMV = p.sellingPrice / cpa;               // GMV 口径：售价 ÷ CPA
-          roasEff  = (p.sellingPrice * r) / cpa;        // 有效口径：(售价×r) ÷ CPA
-        }
-        if (cpa > 0 && isFinite(profitCPA)) {
-          roiCPA = profitCPA / cpa; // 即时 ROI = 利润 ÷ 广告费
-        }
-      }
+      const cpaPack = computeCPAMetrics(p, { cpc: cpcV, cvr: cvrV });
+      const cpa = cpaPack.cpa;
+      const effRateCPA = cpaPack.effectiveRate;
+      const gmvRateCPA = cpaPack.gmvRate;
+      const marginCPA = cpaPack.margin;
+      const profitCPA = cpaPack.profit;
+      const roasEff = cpaPack.roasEff;
+      const roasGMV = cpaPack.roasGMV;
+      const roiCPA = cpaPack.roiPerAdYuan;
       
       // 获取当前投放参数的口径设置
       const cpcAdv = currentAd();
@@ -1949,13 +1941,16 @@
       if (decPairedCPA) decPairedCPA.innerHTML = pairedCPA;
       const decPairedROAS = document.getElementById('decPairedROAS');
       if (decPairedROAS) decPairedROAS.innerHTML = pairedROAS;
-      // 投1元净利
-      const profitPerAd = profitPerAdYuan(p, adCostGiven);
-      const decProfitPerAdYuan = document.getElementById('decProfitPerAdYuan');
-      if (decProfitPerAdYuan)
-        decProfitPerAdYuan.innerHTML = isFinite(profitPerAd)
-          ? `<span style="color:${profitPerAd>=0?'var(--ok)':'var(--bad)'}">${fmt(profitPerAd,2)} 元</span>`
-          : '—';
+      // 投1元净利（统一用 CPC/CVR 推导的 CPA 计算）
+      {
+        const decProfitPerAdYuan = document.getElementById('decProfitPerAdYuan');
+        if (decProfitPerAdYuan) {
+          const v = cpaPack.roiPerAdYuan;
+          decProfitPerAdYuan.innerHTML = isFinite(v)
+            ? `<span style="color:${v>=0?'var(--ok)':'var(--bad)'}">${fmt(v,2)} 元</span>`
+            : '—';
+        }
+      }
 
       // —— 可达退货率阈值 & 付费占比敏感度 ——
       // 依赖：solveAllowedReturnRateForTargetMargin / solveAllowedAdRateForTargetMargin
@@ -2284,9 +2279,10 @@
     const isSellingPriceValid = p.sellingPrice > 0 && isFinite(p.sellingPrice);
     
     if(cpa>0 && isSellingPriceValid){
-      // 使用engine.js中的函数计算ROAS和profitPerAdYuan
+      // 统一使用 computeCPAMetrics 计算链路（避免事件驱动的中间变量）
       roas = roasFromCPA({ basis, aov: effAOV, r: base.r, cpa });
-      profitPerAdYuanValue = profitPerAdYuan(p, cpa);
+      const pack = computeCPAMetrics(p, { cpc, cvr });
+      profitPerAdYuanValue = pack.roiPerAdYuan;
     }
 
       // 安全性&建议
