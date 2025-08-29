@@ -187,17 +187,31 @@
     .mini .t{font-size:12px; color:var(--muted)}
     .mini .v{font-family:var(--mono); font-size:18px; margin-top:4px}
 
-    /* 推演表格样式（移植自 single） */
-    table{width:100%;border-collapse:collapse;font-size:14px}
-    th,td{border-bottom:1px solid #f0f0f0;padding:8px 6px;text-align:right;font-family:var(--mono);position:relative}
-    th:first-child,td:first-child{text-align:left;font-size:13px;font-weight:500}
+    /* —— 推演表格：统一系统风格 —— */
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #eef0f3;padding:10px 8px;text-align:right;font-family:var(--mono);position:relative}
+    th{background:#fafafa;color:var(--muted);font-weight:600;font-size:12px}
+    td{font-size:13px;color:#111}
+    th:first-child,td:first-child{text-align:left;font-family:var(--sans);font-size:13px;font-weight:600;color:#111}
     th .th-top{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
-    th .th-num{font-size:12px;font-weight:600;color:var(--ink)}
-    .pos{color:var(--ok); font-size:13px} .neg{color:var(--bad); font-size:13px}
+    th .th-num{font-size:12px;font-weight:600;color:#2b2b2e}
+    /* 数值正负色调更柔和 */
+    .pos{color:rgba(52,199,89,.92)}
+    .neg{color:rgba(255,59,48,.92)}
     /* 表格悬停聚焦效果 */
     tr:hover{background-color:rgba(0,122,255,0.05)}
-    td:hover{background-color:rgba(0,122,255,0.1);font-weight:600}
+    td:hover{background-color:rgba(0,122,255,0.08);font-weight:600}
     th:hover{background-color:rgba(0,122,255,0.05)}
+    /* 容器内的表统一边框与圆角 */
+    #simTableWrap table, #priceSimWrap table, #taxSimWrap table, #costSimWrap table{border:1px solid #e5e5ea; border-radius:12px; overflow:hidden}
+    #simTableWrap thead th, #priceSimWrap thead th, #taxSimWrap thead th, #costSimWrap thead th{position:sticky; top:0; z-index:1}
+    #simTableWrap td .muted, #taxSimWrap td .muted{ color:var(--muted); font-size:11px }
+    #simTableWrap td, #priceSimWrap td, #taxSimWrap td, #costSimWrap td{ white-space:nowrap }
+
+    /* —— 说明块（统一风格） —— */
+    .note{margin:8px 0 10px;background:#f8f9fa;border:1px solid #e5e5ea;border-radius:10px;padding:10px 12px;color:#0f172a;font-size:12.5px;line-height:1.6}
+    .note strong{color:#111}
+    .mono{font-family:var(--mono);background:#f3f4f6;padding:0 4px;border-radius:4px}
     /* 行列与格子聚焦 */
     .row-highlight{background-color:rgba(0,122,255,0.05) !important}
     .col-highlight{background-color:rgba(0,122,255,0.05) !important}
@@ -518,6 +532,29 @@
       border-color: var(--accent);
     }
     
+    /* 外部链接样式 */
+    .tab-btn.external-link {
+      background: #f0f8ff;
+      border-color: #007acc;
+      color: #007acc;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .tab-btn.external-link:hover {
+      background: #e6f3ff;
+      border-color: #0056cc;
+      color: #0056cc;
+    }
+    
+    .tab-btn.external-link::after {
+      content: "↗";
+      font-size: 10px;
+      font-weight: bold;
+    }
+    
     .tab-content {
       display: none;
     }
@@ -666,6 +703,7 @@
             <button class="tab-btn" data-tab="tax">税费推演</button>
             <button class="tab-btn" data-tab="cost">成本价推演</button>
             <button class="tab-btn" data-tab="listprice">标价计算</button>
+            <a href="product_analysis.html" target="_blank" class="tab-btn external-link" onclick="event.stopPropagation(); return true;">商品分析</a>
           </div>
         </h2>
         
@@ -680,6 +718,7 @@
               <div class="kpi"><div class="label">保本ROAS（有效） <span class="dir down">越低越好</span></div><div class="val" id="kpiROASEff">—</div></div>
               <div class="kpi"><div class="label">保本广告占比（GMV） <span class="dir down">越低越好</span></div><div class="val" id="kpiAdRateGMV">—</div></div>
               <div class="kpi"><div class="label">保本ROAS（GMV） <span class="dir down">越低越好</span></div><div class="val" id="kpiROASGMV">—</div></div>
+              <div class="kpi"><div class="label">模拟利润率（按当前广告设定）</div><div class="val" id="kpiSimMargin">—</div></div>
             </div>
             <div class="sep" style="height:8px"></div>
             <div class="pill">根据模拟CPC/CVR→计算即时利润率</div>
@@ -893,13 +932,6 @@
                 <input id="pRateStep" type="number" step="0.1" value="2.5">
                 <span class="unit">%</span>
               </div>
-              <div class="control-group">
-                <span class="control-label">占比口径：</span>
-                <div class="switch">
-                  <label><input type="radio" name="pBasis" value="effective" checked> 有效营收</label>
-                  <label><input type="radio" name="pBasis" value="gmv"> GMV</label>
-                </div>
-              </div>
               <button class="btn" id="priceSimRun">推演</button>
             </div>
             <div class="derivation-controls">
@@ -933,13 +965,6 @@
                 <input id="tRateStep" type="number" step="0.1" value="2.5">
                 <span class="unit">%</span>
               </div>
-              <div class="control-group">
-                <span class="control-label">占比口径：</span>
-                <div class="switch">
-                  <label><input type="radio" name="tBasis" value="effective" checked> 有效营收</label>
-                  <label><input type="radio" name="tBasis" value="gmv"> GMV</label>
-                </div>
-              </div>
               <button class="btn" id="taxSimRun">推演</button>
             </div>
             <div class="derivation-controls">
@@ -949,7 +974,7 @@
                 <span class="unit">%</span>
               </div>
             </div>
-            <div class="note" style="margin:8px 0 10px">此推演的"实际税费占比"= <strong>净应纳税额 ÷ 售价（GMV）</strong>，其中净应纳税额 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣。</div>
+            <div class="note">此推演的“实际税费占比”= <strong>净应纳税额 ÷ 售价（GMV）</strong>，其中净应纳税额 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣。</div>
             <div id="taxSimWrap"></div>
           </div>
         </div>
@@ -969,13 +994,6 @@
                 <input id="cRateStep" type="number" step="0.1" value="2.5">
                 <span class="unit">%</span>
               </div>
-              <div class="control-group">
-                <span class="control-label">占比口径：</span>
-                <div class="switch">
-                  <label><input type="radio" name="cBasis" value="effective" checked> 有效营收</label>
-                  <label><input type="radio" name="cBasis" value="gmv"> GMV</label>
-                </div>
-              </div>
               <button class="btn" id="costSimRun">推演</button>
             </div>
             <div class="derivation-controls">
@@ -990,7 +1008,7 @@
                 <span class="unit">%</span>
               </div>
             </div>
-            <div class="note" style="margin:8px 0 10px">说明：反推 <strong>进货价（costPrice）</strong> 使得 <span class="mono">利润率 = 目标值</span>。利润率定义为 <span class="mono">Profit ÷ (售价 × r)</span>；广告占比用于换算广告金额并影响广告进项抵扣。</div>
+            <div class="note">说明：反推 <strong>进货价（costPrice）</strong> 使得 <span class="mono">利润率 = 目标值</span>。利润率定义为 <span class="mono">Profit ÷ (售价 × r)</span>；广告占比用于换算广告金额并影响广告进项抵扣。</div>
             <div id="costSimWrap"></div>
           </div>
         </div>
@@ -1289,18 +1307,14 @@
       if (document.getElementById('pRateStep')) document.getElementById('pRateStep').value = loadFromStorage(STORAGE_KEYS.pRateStep, '2.5');
       if (document.getElementById('pMarginScenarios')) document.getElementById('pMarginScenarios').value = loadFromStorage(STORAGE_KEYS.pMarginScenarios, '0,3,5,7,9,10,12,13,15,18,20');
       if (document.getElementById('pReturnScenarios')) document.getElementById('pReturnScenarios').value = loadFromStorage(STORAGE_KEYS.pReturnScenarios, '5,8,10,12,15,18,20,22,25,28,30');
-      const pBasis = loadFromStorage(STORAGE_KEYS.pBasis, 'effective');
-      const pBasisEl = document.querySelector(`input[name="pBasis"][value="${pBasis}"]`);
-      if (pBasisEl) pBasisEl.checked = true;
+      // 占比口径统一用左侧 adRateBasis
 
       // 税费推演默认值
       if (document.getElementById('tRateFrom')) document.getElementById('tRateFrom').value = loadFromStorage(STORAGE_KEYS.tRateFrom, '0');
       if (document.getElementById('tRateTo')) document.getElementById('tRateTo').value = loadFromStorage(STORAGE_KEYS.tRateTo, '35');
       if (document.getElementById('tRateStep')) document.getElementById('tRateStep').value = loadFromStorage(STORAGE_KEYS.tRateStep, '2.5');
       if (document.getElementById('tReturnScenarios')) document.getElementById('tReturnScenarios').value = loadFromStorage(STORAGE_KEYS.tReturnScenarios, '5,8,10,12,15,18,20,22,25,28,30');
-      const tBasis = loadFromStorage(STORAGE_KEYS.tBasis, 'effective');
-      const tBasisEl = document.querySelector(`input[name=\"tBasis\"][value=\"${tBasis}\"]`);
-      if (tBasisEl) tBasisEl.checked = true;
+      // 占比口径统一用左侧 adRateBasis
 
       // 成本价推演默认值
       if (document.getElementById('cRateFrom')) document.getElementById('cRateFrom').value = loadFromStorage(STORAGE_KEYS.cRateFrom, '0');
@@ -1308,9 +1322,7 @@
       if (document.getElementById('cRateStep')) document.getElementById('cRateStep').value = loadFromStorage(STORAGE_KEYS.cRateStep, '2.5');
       if (document.getElementById('cMarginScenarios')) document.getElementById('cMarginScenarios').value = loadFromStorage(STORAGE_KEYS.cMarginScenarios, '0,3,5,7,9,10,12,13,15,18,20');
       if (document.getElementById('cReturnScenarios')) document.getElementById('cReturnScenarios').value = loadFromStorage(STORAGE_KEYS.cReturnScenarios, '5,8,10,12,15,18,20,22,25,28,30');
-      const cBasis = loadFromStorage(STORAGE_KEYS.cBasis, 'effective');
-      const cBasisEl = document.querySelector(`input[name=\"cBasis\"][value=\"${cBasis}\"]`);
-      if (cBasisEl) cBasisEl.checked = true;
+      // 占比口径统一用左侧 adRateBasis
     }
 
     function params(){
@@ -1480,9 +1492,15 @@
         if (adRateHint) adRateHint.textContent = '';
         adCostHint.textContent = '';
       }
-      if(adCostGiven>0){
+      {
         const res = profitGivenAd(p, { adCost: adCostGiven });
         Profit = res.profit; Margin = res.margin; VAT_in_ad = res.VAT_in_ad;
+      }
+
+      // KPI：模拟利润率（按当前广告设定，不依赖 CPC/CVR）
+      const kpiSim = document.getElementById('kpiSimMargin');
+      if (kpiSim) {
+        kpiSim.textContent = isFinite(Margin) ? (Margin*100).toFixed(2) + '%' : '—';
       }
 
 
@@ -2322,11 +2340,13 @@
       const ads=[]; for(let a=adStart; a<=adEnd+1e-9; a+=adStep){ ads.push(Number(a.toFixed(6))) }
 
       let html = '<table><thead><tr><th>广告占比</th>' + rrs.map(r=>`<th><div class="th-top">退货率</div><div class="th-num">${(r*100).toFixed(1)}%</div></th>`).join('') + '</tr></thead><tbody>';
+      // 按左侧占比口径计算
+      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
       for(const a of ads){
         html += `<tr><td>${(a*100).toFixed(0)}%</td>`;
         for(const r of rrs){
           const p2 = {...p, returnRate:r};
-          const {margin} = profitGivenAd(p2,{adRate:a,basis:'effective'});
+          const {margin} = profitGivenAd(p2,{adRate:a,basis});
           const cls = margin>=0? 'pos' : 'neg';
           html += `<td class="${cls}">${(margin*100).toFixed(1)}%</td>`;
         }
@@ -2455,12 +2475,6 @@
             saveToStorage(STORAGE_KEYS.adRateBasis, value);
           } else if (name === 'simBasis' && STORAGE_KEYS.simBasis) {
             saveToStorage(STORAGE_KEYS.simBasis, value);
-          } else if (name === 'pBasis' && STORAGE_KEYS.pBasis) {
-            saveToStorage(STORAGE_KEYS.pBasis, value);
-          } else if (name === 'tBasis' && STORAGE_KEYS.tBasis) {
-            saveToStorage(STORAGE_KEYS.tBasis, value);
-          } else if (name === 'cBasis' && STORAGE_KEYS.cBasis) {
-            saveToStorage(STORAGE_KEYS.cBasis, value);
           }
         });
       });
@@ -2513,7 +2527,9 @@
             const discEl = document.getElementById('lpDiscountPct');
             if (discEl) discEl.value = '10';
             lpAddTierRow();
-            lpAddTargetRow('79.80');
+            // 从左侧参数区的售价获取默认值
+            const leftSellingPrice = document.getElementById('sellingPrice')?.value || '79.80';
+            lpAddTargetRow(leftSellingPrice);
             lpRecalcAll();
             const bD = document.getElementById('mcBaseDisc');
             const bG = document.getElementById('mcBaseGM');
@@ -2545,6 +2561,23 @@
       if (lpAddRow) lpAddRow.addEventListener('click', ()=>{ const inp = lpAddTargetRow(''); if (inp){ inp.focus(); inp.select(); } lpSave(); });
       const lpDisc = document.getElementById('lpDiscountPct');
       if (lpDisc) lpDisc.addEventListener('input', ()=>{ lpRecalcAll(); lpSave(); });
+      
+      // 监听左侧售价变化，自动同步到标价计算页面
+      const sellingPriceEl = document.getElementById('sellingPrice');
+      if (sellingPriceEl) {
+        sellingPriceEl.addEventListener('input', () => {
+          // 如果当前在标价计算tab，且没有目标到手价行，则自动添加一行
+          const activeTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
+          if (activeTab === 'listprice') {
+            const lpRows = document.getElementById('lpRows');
+            if (lpRows && lpRows.childElementCount === 0) {
+              const newPrice = sellingPriceEl.value || '79.80';
+              lpAddTargetRow(newPrice);
+              lpSave();
+            }
+          }
+        });
+      }
 
       // 毛利率换算模块事件
       ;['mcBaseDisc','mcBaseGM','mcTargetDisc','mcExtraFold'].forEach(id=>{
@@ -2765,8 +2798,14 @@
         const tiers = Array.isArray(data?.tiers) ? data.tiers : [];
         if (tiers.length === 0){ lpAddTierRow(); } else { tiers.forEach(t=> lpAddTierRow(t.threshold||'', t.off||'')); }
         // 目标到手价行
-        const targets = Array.isArray(data?.targets) && data.targets.length ? data.targets : ['79.80'];
-        targets.forEach(v=> lpAddTargetRow(v));
+        const targets = Array.isArray(data?.targets) && data.targets.length ? data.targets : [];
+        if (targets.length === 0) {
+          // 从左侧参数区的售价获取默认值
+          const leftSellingPrice = document.getElementById('sellingPrice')?.value || '79.80';
+          lpAddTargetRow(leftSellingPrice);
+        } else {
+          targets.forEach(v=> lpAddTargetRow(v));
+        }
         // 毛利率换算
         if (data?.marginConv){
           const mc = data.marginConv;
@@ -2786,7 +2825,7 @@
     // ===== 到手价推演（反推售价） =====
     function renderPriceSim(){
       const p = params();
-      const basis = document.querySelector('input[name="pBasis"]:checked')?.value || 'effective';
+      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
       const rates = [];
       const from = parseFloat(document.getElementById('pRateFrom')?.value) || 0;
       const to = parseFloat(document.getElementById('pRateTo')?.value) || 0;
@@ -2827,7 +2866,7 @@
     // ===== 税费推演：实际税负占比 =====
     function renderTaxSim(){
       const p = params();
-      const basis = document.querySelector('input[name="tBasis"]:checked')?.value || 'effective';
+      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
       const rates = [];
       const from = parseFloat(document.getElementById('tRateFrom')?.value) || 0;
       const to = parseFloat(document.getElementById('tRateTo')?.value) || 0;
@@ -2849,7 +2888,7 @@
         return `<tr><td>${pct.toFixed(1)}%</td>${cols.join('')}</tr>`;
       }).join('');
       const html = `
-        <div class="note" style="margin:8px 0 10px">说明：净税 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣；占比= 净税 ÷ 售价（GMV）。广告占比口径用于换算广告金额（影响"广告可抵扣"）。</div>
+        <div class="note">说明：净税 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣；占比= 净税 ÷ 售价（GMV）。广告占比口径用于换算广告金额（影响"广告可抵扣"）。</div>
         <table>
           <thead>${headTop}${head}</thead>
           <tbody>${rows}</tbody>
@@ -2865,7 +2904,7 @@
     // ===== 成本价推演（反推进货价） =====
     function renderCostSim(){
       const p = params();
-      const basis = document.querySelector('input[name="cBasis"]:checked')?.value || 'effective';
+      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
       const rates = [];
       const from = parseFloat(document.getElementById('cRateFrom')?.value) || 0;
       const to = parseFloat(document.getElementById('cRateTo')?.value) || 0;
