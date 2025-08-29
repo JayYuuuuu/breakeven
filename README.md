@@ -302,14 +302,45 @@ adCostBreakEven = (1 + serviceVATRate) × A
 - 函数职责不清，难以维护
 - 无法在其他环境中复用
 - 难以进行单元测试
+- 多个页面存在重复的计算函数
 
 ### 重构后的优势
 - **关注点分离**：计算逻辑与UI完全分离
 - **纯函数化**：所有计算函数都是纯函数，无副作用
-- **可复用性**：计算引擎可以独立使用
+- **可复用性**：计算引擎可以独立使用，多页面共享
 - **可测试性**：便于编写单元测试
 - **可维护性**：代码结构清晰，易于理解和修改
 - **模块化**：支持按需导入，减少打包体积
+- **口径统一**：确保所有页面使用相同的计算逻辑
+
+### 最新重构成果（2024年）
+新增了大量通用工具函数和高级计算函数到 `engine.js` 中：
+
+#### 通用工具函数
+- `clamp01(x)` - 数值夹到 [0,1] 区间
+- `to01(input)` - 安全转换百分比格式到小数
+- `num(input)` - 安全转换字符串到数值
+- `cpcFromCpmCtr(cpm, ctr)` - CPM转CPC计算
+- `calcEffectiveAOV(aov, bundleRate)` - 有效AOV计算
+
+#### BE系列衍生函数
+- `computeBeCPAFromROAS(beROAS, aovBasisValue)` - 从BE-ROAS计算BE-CPA
+- `computeMaxCPC(beCPA, cvr)` - 计算最大可承受CPC
+- `computeMaxCPM(maxCPC, ctr)` - 计算最大可承受CPM
+
+#### 即时效果指标
+- `roasFromCPA(params)` - 根据CPA计算ROAS
+- `profitPerAdYuan(p, cpa)` - 投1元广告带来的净利润
+
+#### 二分搜索类函数
+- `allowedReturnRateForTargetMargin(p, opts)` - 计算可达退货率阈值
+- `allowedAdRateForTargetMargin(p, opts)` - 计算允许的最大广告占比
+
+#### 敏感度快照函数
+- `snapshotAt(p, opts)` - 在给定参数下的指标快照
+- `deltaForAdRateDown1pp(p, opts)` - 广告占比降低1pp的敏感度分析
+
+这些函数现在可以在 `metro.html`、`index.html`、`single.html` 等多个页面中复用，确保计算逻辑的一致性和可维护性。
 
 ## 🚀 部署和使用
 

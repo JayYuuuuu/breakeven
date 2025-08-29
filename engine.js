@@ -1145,3 +1145,380 @@ export function computeWithAd(params, adAmount) {
   
   return { roiEffective, roiGMV, profit, margin };
 }
+
+/** ===== 新增：通用工具函数 ===== */
+
+/**
+ * 将任意数夹到 [0,1] 区间
+ * @param {number} x - 输入数值
+ * @returns {number} 夹到 [0,1] 区间的数值
+ */
+export function clamp01(x) {
+  return Math.max(0, Math.min(1, x || 0));
+}
+
+/**
+ * 将输入框字符串安全转换成小数（支持百分比格式）
+ * @param {string|number} input - 输入值，支持 "15%" 或 "15" 或 "0.15" 格式
+ * @returns {number} 转换后的小数（0-1）
+ */
+export function to01(input) {
+  if (!input && input !== 0) return 0;
+  const str = String(input).trim();
+  if (str === '') return 0;
+  
+  // 移除所有非数字、小数点和负号字符
+  const cleanStr = str.replace(/[^\d.\-]/g, '');
+  const num = parseFloat(cleanStr);
+  
+  if (!isFinite(num)) return 0;
+  
+  // 如果大于1，认为是百分比数值，除以100
+  return num > 1 ? num / 100 : num;
+}
+
+/**
+ * 将输入框字符串安全转换成数值
+ * @param {string|number} input - 输入值
+ * @returns {number} 转换后的数值
+ */
+export function num(input) {
+  if (!input && input !== 0) return 0;
+  const str = String(input).replace(/[^\d.\-]/g, '');
+  const num = parseFloat(str);
+  return isFinite(num) ? num : 0;
+}
+
+/**
+ * CPM转CPC计算（CPM→CPC的换算）
+ * @param {number} cpm - 千次展示成本（元/千次）
+ * @param {number} ctr - 点击率（小数0-1）
+ * @returns {number} CPC（元/点击）
+ */
+export function cpcFromCpmCtr(cpm, ctr) {
+  const cpmVal = Number(cpm) || 0;
+  const ctrVal = clamp01(Number(ctr) || 0);
+  const clicksPerK = 1000 * ctrVal; // 千次展示的点击数
+  return clicksPerK > 0 ? cpmVal / clicksPerK : 0;
+}
+
+/**
+ * 计算有效AOV（考虑连带购买率）
+ * @param {number} aov - 基础客单价
+ * @param {number} bundleRate - 连带购买率（小数0-1）
+ * @returns {number} 有效客单价
+ */
+export function calcEffectiveAOV(aov, bundleRate) {
+  const aovVal = Number(aov) || 0;
+  const bundleVal = clamp01(Number(bundleRate) || 0);
+  return aovVal * (1 + bundleVal);
+}
+
+/** ===== 新增：BE系列衍生函数 ===== */
+
+/**
+ * 从BE-ROAS计算BE-CPA
+ * @param {number} beROAS - 保本ROAS
+ * @param {number} aovBasisValue - 分子值（GMV口径=AOV；有效口径=AOV×r）
+ * @returns {number} BE-CPA（保本每单广告费）
+ */
+export function computeBeCPAFromROAS(beROAS, aovBasisValue) {
+  const roi = Number(beROAS) || 0;
+  const aov = Number(aovBasisValue) || 0;
+  return roi > 0 ? aov / roi : NaN;
+}
+
+/**
+ * 计算最大可承受CPC
+ * @param {number} beCPA - 保本CPA
+ * @param {number} cvr - 转化率（小数0-1）
+ * @returns {number} 最大可承受CPC
+ */
+export function computeMaxCPC(beCPA, cvr) {
+  const cpa = Number(beCPA) || 0;
+  const cvrVal = clamp01(Number(cvr) || 0);
+  return cpa > 0 && cvrVal > 0 ? cpa * cvrVal : NaN;
+}
+
+/**
+ * 计算最大可承受CPM
+ * @param {number} maxCPC - 最大可承受CPC
+ * @param {number} ctr - 点击率（小数0-1）
+ * @returns {number} 最大可承受CPM
+ */
+export function computeMaxCPM(maxCPC, ctr) {
+  const cpc = Number(maxCPC) || 0;
+  const ctrVal = clamp01(Number(ctr) || 0);
+  return cpc > 0 && ctrVal > 0 ? cpc * (1000 * ctrVal) : NaN;
+}
+
+/** ===== 新增：即时效果指标 ===== */
+
+/**
+ * 根据CPA计算ROAS（按所选口径）
+ * @param {Object} params - 参数对象
+ * @param {string} params.basis - 口径：'effective' 或 'gmv'
+ * @param {number} params.aov - 客单价
+ * @param {number} params.r - 有效率（小数）
+ * @param {number} params.cpa - 每单广告费
+ * @returns {number} ROAS值
+ */
+export function roasFromCPA({ basis, aov, r, cpa }) {
+  const aovVal = Number(aov) || 0;
+  const rVal = clamp01(Number(r) || 0);
+  const cpaVal = Number(cpa) || 0;
+  
+  if (cpaVal <= 0) return NaN;
+  
+  if (basis === 'gmv') {
+    // GMV口径：ROAS = AOV / CPA
+    return aovVal / cpaVal;
+  } else {
+    // 有效口径：ROAS = (AOV × r) / CPA
+    return (aovVal * rVal) / cpaVal;
+  }
+}
+
+/**
+ * 投1元广告带来的净利润
+ * @param {Object} p - 商品参数
+ * @param {number} cpa - 每单广告费
+ * @returns {number} 投1元广告的净利润
+ */
+export function profitPerAdYuan(p, cpa) {
+  const cpaVal = Number(cpa) || 0;
+  if (cpaVal <= 0) return NaN;
+  
+  // 调用现有的profitGivenAd函数
+  const result = profitGivenAd(p, { adCost: cpaVal });
+  return isFinite(result.profit) ? result.profit / cpaVal : NaN;
+}
+
+/** ===== 新增：二分搜索类函数 ===== */
+
+/**
+ * 计算可达退货率阈值（达成目标利润率）
+ * @param {Object} p - 商品参数
+ * @param {Object} opts - 选项
+ * @param {number} opts.targetMargin - 目标利润率（小数）
+ * @param {string} opts.basis - 计算口径：'effective' 或 'gmv'
+ * @param {Object} opts.adSpec - 广告规格
+ * @param {string} opts.adSpec.mode - 模式：'rate'、'amount'、'cpa'
+ * @param {number} opts.adSpec.adRate - 广告占比（mode='rate'时使用）
+ * @param {number} opts.adSpec.adCost - 广告金额（mode='amount'时使用）
+ * @param {number} opts.adSpec.cpa - 每单广告费（mode='cpa'时使用）
+ * @returns {Object} 计算结果
+ */
+export function allowedReturnRateForTargetMargin(p, { targetMargin, basis, adSpec }) {
+  const target = Number(targetMargin) || 0;
+  if (target <= 0) return { error: '目标利润率必须大于0' };
+  
+  // 定义利润率函数 m(r): 给定退货率 r 时的利润率
+  function marginAt(r) {
+    const pr = { ...p, returnRate: r };
+    
+    if (adSpec.mode === 'rate') {
+      const res = profitGivenAdRateAndR(pr, adSpec.adRate, (1 - r), basis);
+      return res.margin;
+    } else if (adSpec.mode === 'amount') {
+      const res = profitGivenAd(pr, { adCost: adSpec.adCost });
+      return res.margin;
+    } else if (adSpec.mode === 'cpa') {
+      const res = profitGivenAd(pr, { adCost: adSpec.cpa });
+      return res.margin;
+    }
+    
+    return NaN;
+  }
+  
+  // 先检查边界：r=0 是否仍达不到目标？
+  const mAt0 = marginAt(0);
+  if (!isFinite(mAt0)) {
+    return { error: '无法计算r=0时的利润率' };
+  }
+  
+  if (mAt0 < target - 1e-9) {
+    return { error: '无解（即便退货率=0%仍低于目标利润率）' };
+  }
+  
+  // 二分搜索"最高允许退货率 r*"
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    const m = marginAt(mid);
+    if (isFinite(m) && m >= target) {
+      lo = mid; // 还能更高
+    } else {
+      hi = mid; // 超过阈值，往低找
+    }
+  }
+  
+  const rStar = lo; // 最高允许退货率
+  const currentR = p.returnRate;
+  const mCur = marginAt(currentR);
+  
+  return {
+    success: true,
+    rStar, // 最高允许退货率
+    currentR, // 当前退货率
+    mCur, // 当前利润率
+    targetMargin: target,
+    isAchieved: isFinite(mCur) && mCur >= target
+  };
+}
+
+/**
+ * 计算允许的最大广告占比（达成目标利润率）
+ * @param {Object} p - 商品参数
+ * @param {Object} opts - 选项
+ * @param {number} opts.targetMargin - 目标利润率（小数）
+ * @param {number} opts.r - 固定退货率（小数）
+ * @param {string} opts.basis - 计算口径：'effective' 或 'gmv'
+ * @returns {Object} 计算结果
+ */
+export function allowedAdRateForTargetMargin(p, { targetMargin, r, basis }) {
+  const target = Number(targetMargin) || 0;
+  const rVal = clamp01(Number(r) || 0);
+  
+  if (target <= 0) return { error: '目标利润率必须大于0' };
+  
+  // 定义利润率函数 m(rp): 给定广告占比 rp 时的利润率
+  function marginAtRP(rp) {
+    const res = profitGivenAdRateAndR(p, clamp01(rp), rVal, basis);
+    return res.margin;
+  }
+  
+  // 先检查边界：rp=0 是否仍达不到目标？
+  const mAt0 = marginAtRP(0);
+  if (!isFinite(mAt0)) {
+    return { error: '无法计算rp=0时的利润率' };
+  }
+  
+  if (mAt0 < target - 1e-9) {
+    return { error: '无解（即便广告占比=0%仍低于目标利润率）' };
+  }
+  
+  // 二分搜索在 [0, 1] 内的最大 rp*
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    const m = marginAtRP(mid);
+    if (isFinite(m) && m >= target) {
+      lo = mid; // 还能更高
+    } else {
+      hi = mid; // 超过阈值，往低找
+    }
+  }
+  
+  const rpStar = lo; // 最大允许广告占比
+  
+  return {
+    success: true,
+    rpStar, // 最大允许广告占比
+    targetMargin: target,
+    r: rVal
+  };
+}
+
+/** ===== 新增：敏感度快照函数 ===== */
+
+/**
+ * 在给定参数下的指标快照
+ * @param {Object} p - 商品参数
+ * @param {Object} opts - 选项
+ * @param {string} opts.basis - 计算口径：'effective' 或 'gmv'
+ * @param {number} opts.r - 退货率（小数）
+ * @param {number} opts.adRate - 广告占比（小数）
+ * @param {number} opts.aov - 客单价（可选，默认使用售价）
+ * @param {number} opts.bundleRate - 连带购买率（小数，可选）
+ * @param {number} opts.cvr - 转化率（小数，可选）
+ * @param {number} opts.ctr - 点击率（小数，可选）
+ * @returns {Object} 指标快照
+ */
+export function snapshotAt(p, { basis, r, adRate, aov, bundleRate = 0, cvr, ctr }) {
+  const pr = { ...p, returnRate: r };
+  
+  // 基础与保本（基于 pr）
+  const base = computeBase(pr);
+  const beROAS_eff = base.ROI_BE_effective;
+  const beROAS_gmv = base.ROI_BE_gmv;
+  const beROAS = (basis === 'gmv') ? beROAS_gmv : beROAS_eff;
+  
+  // BE-CPA 按当前决策口径 + 有效AOV（考虑连带率）
+  const aovVal = aov || p.sellingPrice;
+  const effAOV = calcEffectiveAOV(aovVal, bundleRate);
+  const basisNumerator = (basis === 'gmv') ? effAOV : (effAOV * base.r);
+  const beCPA = (isFinite(beROAS) && beROAS > 0) ? (basisNumerator / beROAS) : base.adCostBreakEven;
+  
+  // MaxCPC/MaxCPM（需要 CVR/CTR）
+  const maxCPC = (cvr && cvr > 0 && isFinite(beCPA)) ? beCPA * cvr : NaN;
+  const maxCPM = (ctr && ctr > 0 && isFinite(maxCPC)) ? maxCPC * (1000 * ctr) : NaN;
+  
+  // 即时利润率/净利（以固定每单广告成本）
+  const adCost = adRateToAmount(pr, adRate, basis);
+  const res = profitGivenAd(pr, { adCost });
+  const margin = res.margin;
+  const profitPerAdYuan = (isFinite(res.profit) && adCost > 0) ? (res.profit / adCost) : (adCost === 0 ? 0 : NaN);
+  
+  // 即时 ROAS（按口径）
+  let roas = NaN;
+  if (adCost > 0) {
+    roas = (basis === 'gmv') ? (effAOV / adCost) : ((effAOV * base.r) / adCost);
+  }
+  
+  return {
+    margin,
+    adCost,
+    roas,
+    profitPerAdYuan,
+    beROAS,
+    beCPA,
+    maxCPC,
+    maxCPM,
+    effAOV
+  };
+}
+
+/**
+ * 广告占比降低1pp的敏感度分析
+ * @param {Object} p - 商品参数
+ * @param {Object} opts - 选项
+ * @param {string} opts.basis - 计算口径：'effective' 或 'gmv'
+ * @param {number} opts.r - 退货率（小数）
+ * @param {number} opts.adRate - 当前广告占比（小数）
+ * @param {number} opts.aov - 客单价（可选，默认使用售价）
+ * @param {number} opts.bundleRate - 连带购买率（小数，可选）
+ * @param {number} opts.cvr - 转化率（小数，可选）
+ * @param {number} opts.ctr - 点击率（小数，可选）
+ * @returns {Object} 敏感度分析结果
+ */
+export function deltaForAdRateDown1pp(p, { basis, r, adRate, aov, bundleRate = 0, cvr, ctr }) {
+  const sensPP = 0.01; // 1pp
+  const rp0 = clamp01(adRate);
+  const rp1 = Math.max(0, rp0 - sensPP);
+  
+  // 获取两个状态的快照
+  const s0 = snapshotAt(p, { basis, r, adRate: rp0, aov, bundleRate, cvr, ctr });
+  const s1 = snapshotAt(p, { basis, r, adRate: rp1, aov, bundleRate, cvr, ctr });
+  
+  // 计算增量（rp ↓1pp → 指标变化）
+  const dMarginPP = (isFinite(s0.margin) && isFinite(s1.margin)) ? (s1.margin - s0.margin) * 100 : NaN;
+  const dAdCost = (isFinite(s0.adCost) && isFinite(s1.adCost)) ? (s1.adCost - s0.adCost) : NaN;
+  const dROAS = (isFinite(s0.roas) && isFinite(s1.roas)) ? (s1.roas - s0.roas) : NaN;
+  const dProfitPerAdYuan = (isFinite(s0.profitPerAdYuan) && isFinite(s1.profitPerAdYuan)) ? (s1.profitPerAdYuan - s0.profitPerAdYuan) : NaN;
+  const dBeCPA = (isFinite(s0.beCPA) && isFinite(s1.beCPA)) ? (s1.beCPA - s0.beCPA) : NaN;
+  const dMaxCPC = (isFinite(s0.maxCPC) && isFinite(s1.maxCPC)) ? (s1.maxCPC - s0.maxCPC) : NaN;
+  const dMaxCPM = (isFinite(s0.maxCPM) && isFinite(s1.maxCPM)) ? (s1.maxCPM - s0.maxCPM) : NaN;
+  
+  return {
+    dMarginPP,        // 利润率变化（百分点）
+    dAdCost,          // 每单广告费变化（元）
+    dROAS,            // ROAS变化（倍）
+    dProfitPerAdYuan, // 投1元广告净利润变化（元）
+    dBeCPA,           // BE-CPA变化（元）
+    dMaxCPC,          // 最大可承受CPC变化（元）
+    dMaxCPM,          // 最大可承受CPM变化（元）
+    s0,               // 原始状态快照
+    s1                // 变化后状态快照
+  };
+}

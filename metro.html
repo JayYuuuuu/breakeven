@@ -816,26 +816,22 @@
   </main>
 
   <script type="module">
-    import { computeBase, profitGivenAd, adRateToAmount, adAmountToRates, profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent } from './engine.js';
+    import { 
+  computeBase, profitGivenAd, adRateToAmount, adAmountToRates, profitGivenAdRateAndR, 
+  parseListPercents, formatNumber, formatPercent,
+  clamp01, to01, num, cpcFromCpmCtr, calcEffectiveAOV,
+  computeBeCPAFromROAS, computeMaxCPC, computeMaxCPM,
+  roasFromCPA, profitPerAdYuan,
+  allowedReturnRateForTargetMargin, allowedAdRateForTargetMargin,
+  snapshotAt, deltaForAdRateDown1pp
+} from './engine.js';
     import { SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
 
     // —— 工具 ——
     const $ = (id)=>document.getElementById(id);
     const pct = (x,p=2)=> isFinite(x) ? (x*100).toFixed(p)+'%' : '—';
     const fmt = (x,p=2)=> isFinite(x) ? Number(x).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
-    const to01 = (v)=>{ const n = Number(String(v).replace(/[^\d.\-]/g,'')); return isFinite(n) ? (n>1? n/100 : n) : 0 };
-    const num = (v)=>{ const s = String(v).replace(/[^\d.\-]/g,''); const n = parseFloat(s); return isFinite(n)? n:0 };
 
-    // —— 投放决策小工具函数 ——
-    const clamp01 = (x)=> Math.max(0, Math.min(1, x||0));
-    const calcEffectiveAOV = (aov, bundleRate)=>{
-      const A = Number(aov)||0, b = clamp01(Number(bundleRate)||0);
-      return A>0 ? A * (1 + b) : 0;
-    };
-    const cpcFromCpmCtr = (cpm, ctr)=>{ // CPM 元/千次曝光；CTR 小数
-      const clicksPerK = 1000 * clamp01(ctr);
-      return clicksPerK>0 ? (Number(cpm)||0) / clicksPerK : 0;
-    };
 
     // —— Tooltip (hover + long-press) ——
     const tipEl = document.createElement('div');
@@ -1460,14 +1456,11 @@
       // 最大可承受指标计算完成
 
     // 即时 ROAS（按所选口径，使用有效AOV反映客单变动）& 投1元广告净利润
-    let roas = 0, profitPerAdYuan = 0;
+    let roas = 0, profitPerAdYuanValue = 0;
     if(cpa>0){
-      const r = base.r;
-      roas = (basis==='gmv')? (effAOV / cpa) : ((effAOV * r) / cpa);
-
-      // 投1元广告带来的净利润 = 每单净利润 ÷ 每单广告费（与可视化卡片口径一致）
-      const resCPA = profitGivenAd(p, { adCost: cpa });
-      profitPerAdYuan = (isFinite(resCPA.profit) && cpa>0) ? (resCPA.profit / cpa) : 0;
+      // 使用engine.js中的函数计算ROAS和profitPerAdYuan
+      roas = roasFromCPA({ basis, aov: effAOV, r: base.r, cpa });
+      profitPerAdYuanValue = profitPerAdYuan(p, cpa);
     }
 
       // 安全性&建议
@@ -1590,17 +1583,17 @@
       
       // 显示投1元广告带来的净利润（根据盈亏显示不同提示）
       const profitPerAdYuanEl = document.getElementById('decProfitPerAdYuan');
-      if (isFinite(profitPerAdYuan)) {
-        if (profitPerAdYuan > 0) {
+      if (isFinite(profitPerAdYuanValue)) {
+        if (profitPerAdYuanValue > 0) {
           // 盈利：显示赚多少钱
-          profitPerAdYuanEl.textContent = showYuan(profitPerAdYuan);
+          profitPerAdYuanEl.textContent = showYuan(profitPerAdYuanValue);
           profitPerAdYuanEl.style.color = 'var(--ok)';
-          profitPerAdYuanEl.title = `投1元广告赚 ${showYuan(profitPerAdYuan)}`;
-        } else if (profitPerAdYuan < 0) {
+          profitPerAdYuanEl.title = `投1元广告赚 ${showYuan(profitPerAdYuanValue)}`;
+        } else if (profitPerAdYuanValue < 0) {
           // 亏本：显示亏多少钱
-          profitPerAdYuanEl.textContent = `亏${showYuan(Math.abs(profitPerAdYuan))}`;
+          profitPerAdYuanEl.textContent = `亏${showYuan(Math.abs(profitPerAdYuanValue))}`;
           profitPerAdYuanEl.style.color = 'var(--bad)';
-          profitPerAdYuanEl.title = `投1元广告亏 ${showYuan(Math.abs(profitPerAdYuan))}`;
+          profitPerAdYuanEl.title = `投1元广告亏 ${showYuan(Math.abs(profitPerAdYuanValue))}`;
         } else {
           // 保本：显示保本
           profitPerAdYuanEl.textContent = '保本';
@@ -1850,11 +1843,9 @@
           const s = profitGivenAdRateAndR(p, rp, baseR, basisForSens);
           const adc = s.adCostGiven; // 每单广告费
           // ROAS（按所选口径）：分子 = AOV 或 AOV×r（这里AOV取左侧售价，不引入连带率）
-          const numerator = (basisForSens==='gmv')? p.sellingPrice : (p.sellingPrice * baseR);
-          const roas = (adc>0)? (numerator/adc) : NaN;
-          const prof = profitGivenAd(p, { adCost: adc });
-          const profitPerAdYuan = (isFinite(prof.profit) && adc>0)? (prof.profit/adc) : (adc===0? 0 : NaN);
-          return { margin: s.margin, adCost: adc, roas, profitPerAdYuan };
+          const roas = roasFromCPA({ basis: basisForSens, aov: p.sellingPrice, r: baseR, cpa: adc });
+          const profitPerAdYuanValue = profitPerAdYuan(p, adc);
+          return { margin: s.margin, adCost: adc, roas, profitPerAdYuan: profitPerAdYuanValue };
         }
         const s0 = snap(rp0), s1 = snap(rp1);
 
@@ -1899,54 +1890,35 @@
           adCostForSens = (cpc0>0 && cvr0>0) ? cpc0/cvr0 : 0;
         }
 
-        // 小工具：一次性取关键指标（利润率/BE-ROAS/BE-CPA/MaxCPC/MaxCPM/即时ROAS/每1元广告净利）
-        function snapshotAt(rSmall){
-          const pr = {...p, returnRate: rSmall};
 
-          // 基础与保本（基于 pr）
-          const baseX = computeBase(pr);
-          const beROAS_eff_X = baseX.ROI_BE_effective;
-          const beROAS_gmv_X = baseX.ROI_BE_gmv;
-          const beROAS_X = (basisForSens==='gmv')? beROAS_gmv_X : beROAS_eff_X;
 
-          // BE-CPA 按当前决策口径 + 有效AOV（考虑连带率）
-          const aovIn = num(document.getElementById('decAOV')?.value);
-          const bundle = to01(document.getElementById('decBundleRate')?.value);
-          const effAOV_X = calcEffectiveAOV(aovIn>0? aovIn: pr.sellingPrice, bundle);
-          const basisNumerator = (basisForSens==='gmv')? effAOV_X : (effAOV_X * baseX.r);
-          const beCPA_X = (isFinite(beROAS_X) && beROAS_X>0) ? (basisNumerator / beROAS_X) : baseX.adCostBreakEven;
-
-          // MaxCPC/MaxCPM（需要 CVR/CTR）
-          const cvr0 = to01($('cvr').value);
-          const ctr0 = to01(document.getElementById('decCTR')?.value);
-          const maxCPC_X = (cvr0>0 && isFinite(beCPA_X)) ? beCPA_X * cvr0 : NaN;
-          const maxCPM_X = (ctr0>0 && isFinite(maxCPC_X)) ? maxCPC_X * (1000*ctr0) : NaN;
-
-          // 即时利润率/净利（以固定每单广告成本 adCostForSens）
-          const resX = profitGivenAd(pr, { adCost: adCostForSens });
-          const marginX = resX.margin; // 小数
-          const profitPerAdYuanX = (isFinite(resX.profit) && adCostForSens>0) ? (resX.profit/adCostForSens) : (adCostForSens===0? 0: NaN);
-
-          // 即时 ROAS（按口径；分子取 effAOV 或 effAOV×r）
-          let roasX = NaN;
-          if(adCostForSens>0){
-            roasX = (basisForSens==='gmv')? (effAOV_X / adCostForSens) : ((effAOV_X * baseX.r) / adCostForSens);
-          }
-
-          return {marginX, beROAS_X, beCPA_X, maxCPC_X, maxCPM_X, roasX, profitPerAdYuanX};
-        }
-
-        const s0 = snapshotAt(r0);
-        const s1 = snapshotAt(r1);
+        const s0 = snapshotAt(p, { 
+          basis: basisForSens, 
+          r: r0, 
+          adRate: adv.mode === 'rate' ? adv.adRate : 0, 
+          aov: num(document.getElementById('decAOV')?.value) || p.sellingPrice,
+          bundleRate: to01(document.getElementById('decBundleRate')?.value),
+          cvr: to01($('cvr').value),
+          ctr: to01(document.getElementById('decCTR')?.value)
+        });
+        const s1 = snapshotAt(p, { 
+          basis: basisForSens, 
+          r: r1, 
+          adRate: adv.mode === 'rate' ? adv.adRate : 0, 
+          aov: num(document.getElementById('decAOV')?.value) || p.sellingPrice,
+          bundleRate: to01(document.getElementById('decBundleRate')?.value),
+          cvr: to01($('cvr').value),
+          ctr: to01(document.getElementById('decCTR')?.value)
+        });
 
         // 计算增量（方向：r↓1pp → 指标变化）
-        const dMarginPP = (isFinite(s0.marginX) && isFinite(s1.marginX)) ? (s1.marginX - s0.marginX)*100 : NaN; // 百分点
-        const dBeROAS = (isFinite(s0.beROAS_X) && isFinite(s1.beROAS_X)) ? (s1.beROAS_X - s0.beROAS_X) : NaN; // 期望应为负（更易保本）
-        const dBeCPA  = (isFinite(s0.beCPA_X)  && isFinite(s1.beCPA_X))  ? (s1.beCPA_X  - s0.beCPA_X)  : NaN; // 元/单
-        const dMaxCPC = (isFinite(s0.maxCPC_X) && isFinite(s1.maxCPC_X)) ? (s1.maxCPC_X - s0.maxCPC_X) : NaN; // 元
-        const dMaxCPM = (isFinite(s0.maxCPM_X) && isFinite(s1.maxCPM_X)) ? (s1.maxCPM_X - s0.maxCPM_X) : NaN; // 元
-        const dROAS   = (isFinite(s0.roasX)    && isFinite(s1.roasX))    ? (s1.roasX    - s0.roasX)    : NaN; // 倍
-        const dPPAY   = (isFinite(s0.profitPerAdYuanX) && isFinite(s1.profitPerAdYuanX)) ? (s1.profitPerAdYuanX - s0.profitPerAdYuanX) : NaN; // 元/每1元广告
+        const dMarginPP = (isFinite(s0.margin) && isFinite(s1.margin)) ? (s1.margin - s0.margin)*100 : NaN; // 百分点
+        const dBeROAS = (isFinite(s0.beROAS) && isFinite(s1.beROAS)) ? (s1.beROAS - s0.beROAS) : NaN; // 期望应为负（更易保本）
+        const dBeCPA  = (isFinite(s0.beCPA)  && isFinite(s1.beCPA))  ? (s1.beCPA  - s0.beCPA)  : NaN; // 元/单
+        const dMaxCPC = (isFinite(s0.maxCPC) && isFinite(s1.maxCPC)) ? (s1.maxCPC - s0.maxCPC) : NaN; // 元
+        const dMaxCPM = (isFinite(s0.maxCPM) && isFinite(s1.maxCPM)) ? (s1.maxCPM - s0.maxCPM) : NaN; // 元
+        const dROAS   = (isFinite(s0.roas)    && isFinite(s1.roas))    ? (s1.roas    - s0.roas)    : NaN; // 倍
+        const dPPAY   = (isFinite(s0.profitPerAdYuan) && isFinite(s1.profitPerAdYuan)) ? (s1.profitPerAdYuan - s0.profitPerAdYuan) : NaN; // 元/每1元广告
 
         // 组织可读文案（标注 ↑/↓ 与单位）
         function chip(txt, good){ return `<span class=\"tiny-hint\" style=\"background:${good?'#e6f9ef':'#fff2f0'};color:${good?'#1e7e34':'#c0392b'};border-left:2px solid ${good?'#34c759':'#ff3b30'}\">${txt}</span>` }
