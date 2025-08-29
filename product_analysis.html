@@ -27,7 +27,7 @@
       margin:0; background:var(--bg);
       color:var(--ink); font-family:var(--sans);
     }
-    header{ padding:24px 24px 0; }
+    header{ padding:24px 24px 0; position: relative; }
     h1{ margin:0 0 6px 0; font-size:22px; letter-spacing:.3px; }
     .sub{ color:var(--muted); font-size:13px; }
     main{ padding:24px; }
@@ -88,6 +88,14 @@
       padding: 4px 8px; font-size: 11px;
       min-width: 40px;
     }
+
+    /* 顶部低存在感的“系统参数”开关 */
+    .settings-toggle{
+      position:absolute; right:24px; top:24px;
+      opacity: .5;
+    }
+    .settings-toggle:hover{ opacity: .9; }
+    .settings-toggle.active{ opacity: .95; border-color:#b3d9ff; color:#0066cc; background:#f0f8ff; }
     
     /* 清除筛选按钮高亮样式 */
     .btn#clearFilters.active {
@@ -1356,11 +1364,12 @@
   <header>
     <h1>商品分析</h1>
             <div class="sub">批量分析商品保本ROI和保本广告，支持单一价格和多档价格模式</div>
+            <button id="toggleSystemParams" class="btn-icon settings-toggle" title="系统参数开关">⚙️ 系统参数</button>
   </header>
 
   <main>
-    <!-- 系统参数设置 -->
-    <section class="card">
+    <!-- 系统参数设置（默认隐藏，点击右上角开关显示） -->
+    <section class="card" id="systemParamsSection" style="display:none;">
       <h2>系统参数设置</h2>
       <div class="content">
         <div class="params-grid">
@@ -8606,6 +8615,45 @@
       }, 1500);
     });
 
+    </script>
+
+    <!-- 轻量“系统参数”显示切换与状态保存 -->
+    <script>
+      (function(){
+        function setSystemParamsVisible(show){
+          const section = document.getElementById('systemParamsSection');
+          const btn = document.getElementById('toggleSystemParams');
+          if (!section || !btn) return;
+          section.style.display = show ? '' : 'none';
+          btn.classList.toggle('active', !!show);
+          try{ localStorage.setItem('systemParamsVisible', show ? 'true' : 'false'); }catch(e){}
+          if (show){
+            try{ section.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
+          }
+        }
+
+        function restoreSystemParamsVisibility(){
+          let show = false;
+          try{
+            show = localStorage.getItem('systemParamsVisible') === 'true';
+          }catch(e){}
+          setSystemParamsVisible(show);
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+          // 恢复显示状态
+          restoreSystemParamsVisibility();
+          // 绑定切换按钮
+          const btn = document.getElementById('toggleSystemParams');
+          const section = document.getElementById('systemParamsSection');
+          if (btn && section){
+            btn.addEventListener('click', function(){
+              const willShow = section.style.display === 'none';
+              setSystemParamsVisible(willShow);
+            });
+          }
+        });
+      })();
     </script>
   
   <!-- TODO: 快捷筛选按钮选中状态功能已完成

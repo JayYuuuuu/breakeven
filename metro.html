@@ -533,7 +533,7 @@
     }
     
     /* 外部链接样式 */
-    .tab-btn.external-link {
+    .external-tab-link {
       background: #f0f8ff;
       border-color: #007acc;
       color: #007acc;
@@ -541,15 +541,23 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      padding: 6px 12px;
+      border: 1px solid;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
     
-    .tab-btn.external-link:hover {
+    .external-tab-link:hover {
       background: #e6f3ff;
       border-color: #0056cc;
       color: #0056cc;
     }
     
-    .tab-btn.external-link::after {
+    .external-tab-link::after {
       content: "↗";
       font-size: 10px;
       font-weight: bold;
@@ -703,7 +711,7 @@
             <button class="tab-btn" data-tab="tax">税费推演</button>
             <button class="tab-btn" data-tab="cost">成本价推演</button>
             <button class="tab-btn" data-tab="listprice">标价计算</button>
-            <a href="product_analysis.html" target="_blank" class="tab-btn external-link" onclick="event.stopPropagation(); return true;">商品分析</a>
+            <a href="product_analysis.html" target="_blank" class="external-tab-link">商品分析</a>
           </div>
         </h2>
         
