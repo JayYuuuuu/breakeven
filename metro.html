@@ -10,6 +10,7 @@
       --ok:#34c759; --warn:#ff9f0a; --bad:#ff3b30; --grid:12px; --radius:14px;
       --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, Segoe UI, Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       --mono: "Inter var", "Inter", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "DIN Alternate", "DIN Condensed", sans-serif;
+      --header-h: 0px; /* 由 JS 动态设置：header 实际高度 */
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -49,6 +50,17 @@
       max-height: calc(100vh - 120px);
       overflow-y: auto;
       overflow-x: hidden;
+    }
+
+    /* 大屏（>1100px）时：将 header 高度计算在可视区域内 */
+    body.large-screen .wrap > section:first-child{
+      height: calc(100vh - var(--header-h) - 40px);
+    }
+    body.large-screen .wrap > section:last-child{
+      min-height: calc(100vh - var(--header-h) - 40px);
+    }
+    body.large-screen .wrap > section:last-child .content{
+      max-height: calc(100vh - var(--header-h) - 120px);
     }
     
     /* 移动端适配：取消sticky效果 */
@@ -2534,6 +2546,18 @@
       }
     }
 
+    // —— 自适应高度（考虑 header 高度，适用于大屏） ——
+    function adjustLayoutForHeader(){
+      const header = document.querySelector('header');
+      const h = header ? header.offsetHeight : 0;
+      document.documentElement.style.setProperty('--header-h', h + 'px');
+      if (window.innerHeight > 1100){
+        document.body.classList.add('large-screen');
+      }else{
+        document.body.classList.remove('large-screen');
+      }
+    }
+
     // ===== 标价计算（到手价 ↔ 标价） =====
     function lpReadTiers(){
       const rows = document.querySelectorAll('#lpTierRows .lp-tier');
@@ -2864,6 +2888,8 @@
     fillDefaults();
     bind();
     render();
+    adjustLayoutForHeader();
+    window.addEventListener('resize', adjustLayoutForHeader);
     
     // 初始化tab功能（包括状态记忆）
     initTabs();
