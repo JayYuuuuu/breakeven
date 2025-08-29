@@ -148,6 +148,28 @@
     body.ipad-pro-11 .big-input{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .big-output{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .lp-compare{ padding:8px 10px; margin:6px 0 8px }
+    
+    /* —— 示例商品输入：比其他输入小2px —— */
+    #examplePlatformFilter,
+    #exampleSearch,
+    #exampleProductSelect,
+    #exampleTierSelect{
+      font-size:18px; /* 全局输入为22px，这里小4px */
+      padding:10px 9px; /* 略收紧与整体风格协调 */
+      border-radius:10px;
+    }
+    #exampleSearch::placeholder{ font-size:18px; color: var(--muted); }
+    
+    /* iPad Pro 11 专项：整体输入为20px，这里小2px -> 18px */
+    body.ipad-pro-11 #examplePlatformFilter,
+    body.ipad-pro-11 #exampleSearch,
+    body.ipad-pro-11 #exampleProductSelect,
+    body.ipad-pro-11 #exampleTierSelect{
+      font-size:16px;
+      padding:9px 8px;
+      border-radius:9px;
+    }
+    body.ipad-pro-11 #exampleSearch::placeholder{ font-size:18px; }
     .pill{
       display:inline-flex;
       align-items:center;
@@ -273,47 +295,74 @@
         border-color: #007acc;
         border-left: 3px solid #007acc;
       }
-      
       .achievement-card .metric-label {
         color: #007acc;
         font-weight: 600;
       }
-      
       /* 核心指标卡片样式 */
       .core-card {
         background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
         border-color: var(--accent);
         border-left: 3px solid var(--accent);
       }
-      
       .core-card .metric-label {
         color: var(--accent);
         font-weight: 600;
       }
-      
       /* 决策分析卡片样式 */
       .analysis-card {
         background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
         border-color: #007acc;
         border-left: 3px solid #007acc;
       }
-      
       .analysis-card .metric-label {
         color: #007acc;
         font-weight: 600;
       }
-      
       /* 投放优化建议卡片样式 */
       .suggestion-card {
-        background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
-        border-color: #ff9500;
+        background: #fffbe6;
+        border: 1px solid #ffe58f;
         border-left: 3px solid #ff9500;
       }
-      
       .suggestion-card .metric-label {
         color: #ff9500;
         font-weight: 600;
       }
+      /* Paired KPI display */
+      .paired {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        justify-content: flex-start;
+        font-size: inherit;
+      }
+      .paired .actual,
+      .paired .be {
+        font-family: var(--mono);
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .paired .be {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .paired .delta {
+        margin-left: 4px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+             .delta.good { color: var(--ok); }
+       .delta.bad { color: var(--bad); }
+       /* Emphasize core metrics values */
+       .core-card .metric-value {
+         font-size: 20px;
+       }
+       
+       /* 保本对齐概览行距 */
+       .metric-line{ margin: 2px 0; }
       
       /* 响应式布局优化 */
       @media (max-width: 768px) {
@@ -352,6 +401,10 @@
         white-space: nowrap;
         flex-shrink: 0;
       }
+
+      /* 数据来源徽标 */
+      .src-badge{ display:inline-flex; align-items:center; gap:4px; margin-left:6px; padding:2px 6px; border-radius:999px; font-size:10px; font-weight:600; color:#0f172a; background:#eef2f7; border:1px solid #cfd3da; white-space:nowrap }
+      .src-badge .dot{ width:6px; height:6px; border-radius:50%; background:#64748b }
 
       /* 指标方向提示 */
       .dir{font-size:10px; color:#64748b; margin-left:6px; padding:1px 6px; border:1px solid #dfe3ea; border-radius:999px; background:#f8fafc; white-space:nowrap}
@@ -846,68 +899,63 @@
             <!-- 核心指标 -->
             <div class="metrics-grid" style="margin-top:10px">
               <div class="metric-card core-card">
-                <div class="metric-label">每单最多广告费（BE-CPA） <span class="dir up">越高越宽松</span></div>
+                <div class="metric-label">每单最多广告费（BE-CPA） <span class="dir up">越高越宽松</span><span class="src-badge" id="decBeCPASrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decBeCPA">—</div>
               </div>
               <div class="metric-card core-card">
-                <div class="metric-label">保本ROAS（按所选口径） <span class="dir down">越低越好</span></div>
+                <div class="metric-label">保本ROAS（按所选口径） <span class="dir down">越低越好</span><span class="src-badge" id="decBeROASSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decBeROAS">—</div>
               </div>
               <div class="metric-card core-card">
-                <div class="metric-label">最大可承受CPC <span class="dir up">越高越好</span></div>
+                <div class="metric-label">最大可承受CPC <span class="dir up">越高越好</span><span class="src-badge" id="decMaxCPCSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decMaxCPC">—</div>
               </div>
               <div class="metric-card core-card">
-                <div class="metric-label">最大可承受CPM（需CTR） <span class="dir up">越高越好</span></div>
+                <div class="metric-label">最大可承受CPM（需CTR） <span class="dir up">越高越好</span><span class="src-badge" id="decMaxCPMSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decMaxCPM">—</div>
               </div>
               <div class="metric-card core-card">
-                <div class="metric-label">CPC安全边际 <span class="dir up">越高越安全</span></div>
+                <div class="metric-label">CPC安全边际 <span class="dir up">越高越安全</span><span class="src-badge" id="decCPCSafetySrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decCPCSafetyMargin">—</div>
               </div>
             </div>
-            
 
-
-            <!-- 即时对照 -->
+            <!-- 即时对照（合并卡片） -->
             <div class="metrics-grid" style="margin-top:12px">
               <div class="metric-card">
-                <div class="metric-label">当前每单广告费 <span class="dir down">越低越好</span></div>
-                <div class="metric-value" id="decCPA">—</div>
+                <div class="metric-label">当前每单广告费 vs 保本阈值（BE-CPA）<span class="src-badge" id="decPairedCPASrc"><span class="dot"></span>来源</span></div>
+                <div class="metric-value" id="decPairedCPA">—</div>
               </div>
               <div class="metric-card">
-                <div class="metric-label">即时 ROAS（所选口径） <span class="dir up">越高越好</span></div>
-                <div class="metric-value" id="decROAS">—</div>
+                <div class="metric-label">即时 ROAS vs 保本阈值（BE-ROAS）<span class="src-badge" id="decPairedROASSrc"><span class="dot"></span>来源</span></div>
+                <div class="metric-value" id="decPairedROAS">—</div>
               </div>
               <div class="metric-card">
-                <div class="metric-label">投1元广告带来的净利润 <span class="dir up">越高越好</span></div>
+                <div class="metric-label">投1元净利<span class="src-badge" id="decProfitPerAdSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decProfitPerAdYuan">—</div>
               </div>
-              <div class="metric-card">
-                <div class="metric-label">建议</div>
+              <div class="metric-card suggestion-card">
+                <div class="metric-label">建议<span class="src-badge" id="decisionSuggestionSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decisionSuggestion">—</div>
               </div>
             </div>
-            
+
             <!-- 目标达成分析 -->
             <div class="metrics-grid" style="margin-top:12px">
               <div class="metric-card achievement-card">
-                <div class="metric-label">可达退货率阈值（达成目标利润率） <span class="dir down">越低越安全</span></div>
-                <div class="metric-value" id="decReturnThreshold">—</div>
+                <div class="metric-label" id="decReturnAndSensitivityLabel">可承受广告占比（有效，目标:8%利润率）<span class="src-badge" id="decReturnAndSensitivitySrc"><span class="dot"></span>来源</span></div>
+                <div class="metric-value" id="decReturnAndSensitivity">
+                  <div>—</div>
+                  <div>—</div>
+                </div>
               </div>
-              <div class="metric-card achievement-card">
-                <div class="metric-label">付费占比敏感度（占比↓1pp） <span class="dir up">利好为正</span></div>
-                <div class="metric-value" id="decAdRateSensitivity">—</div>
-              </div>
-
               <div class="metric-card achievement-card" id="goalAlignWrap" data-tip="<div class='tt-title'>说明</div><div>用'当前值 vs 保本阈值'和'差距'替代抽象的百分比达成度；红绿一眼可判，避免误解。</div>">
-                <div class="metric-label">保本对齐概览（当前 vs 保本阈值｜差距）</div>
-                <div class="metric-value" id="goalAlignment">
+                <div class="metric-label">保本对齐概览<span class="src-badge" id="goalAlignSrc"><span class="dot"></span>来源</span></div>
+                <div class="metric-value" id="goalAlignmentBars">
                   <div style="font-size:12px;color:var(--muted)">暂无</div>
                 </div>
               </div>
             </div>
-            
 
 
             <!-- 二维安全地图：CPC vs CVR -->
@@ -1549,7 +1597,67 @@
       return { mode, basis, adRate, adCost };
     }
 
+    // —— Solvers for thresholds (binary search) ——
+    // 在固定广告费/其它参数下，求"达到目标利润率"的最大可承受退货率
+    function solveAllowedReturnRateForTargetMargin(p, targetMargin, adCostGiven){
+      let lo = 0, hi = 0.9;                         // 0%~90% 够用了
+      if (!isFinite(targetMargin)) return NaN;
+      for (let i=0;i<42;i++){
+        const mid = (lo+hi)/2;
+        const pmid = { ...p, returnRate: mid };
+        const { margin } = profitGivenAd(pmid, { adCost: adCostGiven||0 });
+        if (!isFinite(margin)) return NaN;
+        if (margin >= targetMargin) lo = mid; else hi = mid;
+      }
+      return lo; // 最大可承受退货率
+    }
+
+    // 在固定其它参数下，求"达到目标利润率"的最大可承受广告占比（指定口径）
+    function solveAllowedAdRateForTargetMargin(p, targetMargin, basis){
+      let lo = 0, hi = 0.9;                         // 0%~90%
+      if (!isFinite(targetMargin)) return NaN;
+      for (let i=0;i<42;i++){
+        const mid = (lo+hi)/2;                      // 候选占比
+        const adCost = adRateToAmount(p, mid, basis||'effective');
+        const { margin } = profitGivenAd(p, { adCost });
+        if (!isFinite(margin)) return NaN;
+        if (margin >= targetMargin) lo = mid; else hi = mid;
+      }
+      return lo; // 最大可承受广告占比
+    }
+
+    // Paired KPI renderer
+    function renderPairedKPI({ actual, be, unit = '', goodWhen = 'gte' }) {
+      // actual: 当前值, be: 保本阈值, unit: 单位, goodWhen: 'gte' or 'lte'
+      if (!isFinite(actual) || !isFinite(be)) {
+        return `<div class="paired"><span class="actual">—</span><span class="be">/ —</span></div>`;
+      }
+      const delta = actual - be;
+      let deltaText = '';
+      let isGood = false;
+      if (unit === '%') {
+        deltaText = (delta >= 0 ? '+' : '') + (delta*100).toFixed(2) + '%';
+      } else if (unit === '倍') {
+        deltaText = (delta >= 0 ? '+' : '') + delta.toFixed(2) + '倍';
+      } else {
+        deltaText = (delta >= 0 ? '+' : '') + delta.toFixed(2) + (unit||'');
+      }
+      if (goodWhen === 'gte') {
+        isGood = delta >= 0;
+      } else {
+        isGood = delta <= 0;
+      }
+      const deltaClass = isGood ? 'delta good' : 'delta bad';
+      return `<div class="paired">
+        <span class="actual">${typeof actual === 'number' ? actual.toFixed(2) : actual}${unit}</span>
+        <span class="be">/ ${typeof be === 'number' ? be.toFixed(2) : be}${unit}</span>
+        <span class="${deltaClass}">${deltaText}</span>
+      </div>`;
+    }
+
     function render(){
+      // 数据来源徽标设置函数
+      const setSrc=(id,txt)=>{ const el=$(id); if(el) el.innerHTML = '<span class="dot"></span>'+txt; };
       updateAdModeUI();
       const p = params();
       const base = computeBase(p);
@@ -1731,6 +1839,159 @@
       }).join('');
 
       // 迷你推演→不同广告占比下的利润率变化：不同广告占比下的利润率
+      // —— 投放决策tab核心指标/即时对照/目标达成分析区渲染 —— //
+      // 1. 核心指标：BE-CPA, BE-ROAS, Max CPC, Max CPM, CPC安全边际
+      // (已保留原有id decBeCPA, decBeROAS, decMaxCPC, decMaxCPM, decCPCSafetyMargin)
+      // 2. 即时对照：合并CPA/ROAS为paired卡片
+      //    - decPairedCPA, decPairedROAS
+      //    - 投1元净利 decProfitPerAdYuan
+      //    - 建议 decisionSuggestion
+      // 3. 目标达成分析：合并退货阈值+敏感度，保本对齐概览为进度条
+
+      // —— 投放决策tab即时对照合并卡片渲染 —— //
+      // ==== 数据来源徽标动态设置 ====
+      // A) 核心指标来源
+      const decBasisSel = $('decBasis')?.value||'effective';
+      const decBuyMode  = $('decBuyMode')?.value||'cpc';
+      const aovInput = num($('decAOV')?.value);
+      const bundleRate = to01($('decBundleRate')?.value);
+      const aovNote = (aovInput>0? `AOV:${aovInput.toFixed(2)}×(1+连带${(bundleRate*100).toFixed(0)}%)` : `售价${fmt(p.sellingPrice,2)}×r`);
+      const basisNote = decBasisSel==='gmv' ? '口径:GMV' : '口径:有效';
+      setSrc('decBeCPASrc', `参数输入｜${aovNote}`);
+      setSrc('decBeROASSrc', `参数输入｜${basisNote}`);
+      setSrc('decMaxCPCSrc', `参数输入｜${aovNote}`);
+      setSrc('decMaxCPMSrc', decBuyMode==='cpm' ? `参数输入｜${aovNote}｜需CTR:${num($('decCTR')?.value).toFixed(2)}%` : `参数输入｜${aovNote}｜CTR参与`);
+      setSrc('decCPCSafetySrc', `参数输入＋CPC/CVR模拟`);
+
+      // B) 即时对照来源
+      setSrc('decPairedCPASrc', `CPC/CVR模拟（CPC:${fmt(cpcV,2)}｜CVR:${(cvrV*100).toFixed(2)}%）＋保本阈值`);
+      setSrc('decPairedROASSrc', `CPC/CVR模拟（口径:${(cpcAdv.basis==='gmv'?'GMV':'有效')}）＋保本阈值`);
+      setSrc('decProfitPerAdSrc', `CPC/CVR模拟（由 CPA 推导）`);
+      setSrc('decisionSuggestionSrc', `规则：基于上方对比与安全边际`);
+
+      // C) 目标达成分析来源
+      const targetMarginPct = (to01($('decTargetMargin')?.value)*100).toFixed(2)+'%';
+      setSrc('decReturnAndSensitivitySrc', `目标利润率:${targetMarginPct}＋参数输入`);
+      setSrc('goalAlignSrc', `CPC/CVR模拟＋保本阈值`);
+      // 获取BE-CPA/ROAS, 当前CPA/ROAS
+      const beCPA = num(document.getElementById('decBeCPA')?.textContent);
+      const beROAS = num(document.getElementById('decBeROAS')?.textContent);
+      
+      // BE-CPA, BE-ROAS
+      let beCPAVal = base.adCostBreakEven;
+      let beROASVal = base.ROI_BE_effective;
+      if ((document.getElementById('decBasis')?.value||'effective') === 'gmv') {
+        beROASVal = base.ROI_BE_gmv;
+      }
+      
+      // 当前CPA, 当前ROAS
+      let curCPAVal = adCostGiven;
+      let curROASVal = NaN;
+      if (adCostGiven > 0) {
+        curROASVal = (adv.basis === 'gmv')
+          ? (p.sellingPrice / adCostGiven)
+          : ((p.sellingPrice * base.r) / adCostGiven);
+      }
+      
+      // 注意：decCPA和decROAS已经被合并到decPairedCPA和decPairedROAS中
+      // 这里直接从变量获取值，而不是从DOM元素
+      const curCPA = curCPAVal;
+      const curROAS = curROASVal;
+      // Paired KPI渲染
+      const pairedCPA = renderPairedKPI({
+        actual: curCPAVal, be: beCPAVal, unit: '元', goodWhen: 'lte'
+      });
+      const pairedROAS = renderPairedKPI({
+        actual: curROASVal, be: beROASVal, unit: '倍', goodWhen: 'gte'
+      });
+      // 注入到合并卡片
+      const decPairedCPA = document.getElementById('decPairedCPA');
+      if (decPairedCPA) decPairedCPA.innerHTML = pairedCPA;
+      const decPairedROAS = document.getElementById('decPairedROAS');
+      if (decPairedROAS) decPairedROAS.innerHTML = pairedROAS;
+      // 投1元净利
+      const profitPerAd = profitPerAdYuan(p, adCostGiven);
+      const decProfitPerAdYuan = document.getElementById('decProfitPerAdYuan');
+      if (decProfitPerAdYuan)
+        decProfitPerAdYuan.innerHTML = isFinite(profitPerAd)
+          ? `<span style="color:${profitPerAd>=0?'var(--ok)':'var(--bad)'}">${fmt(profitPerAd,2)} 元</span>`
+          : '—';
+
+      // —— 可达退货率阈值 & 付费占比敏感度 ——
+      // 依赖：solveAllowedReturnRateForTargetMargin / solveAllowedAdRateForTargetMargin
+      (function(){
+        const box = document.getElementById('decReturnAndSensitivity');
+        if (!box) return;
+
+        const targetMargin = to01(document.getElementById('decTargetMargin')?.value || '');
+        const chosenBasis  = (adv && adv.basis) || 'effective';
+        // 当前等价占比（按所选口径）
+        const curRateChosen = chosenBasis === 'gmv' ? gmvRate : effectiveRate;
+
+        // 允许的退货率（在"当前广告费/其它参数不变"的前提下，使 Margin >= 目标）
+        const allowedRR = solveAllowedReturnRateForTargetMargin(p, targetMargin, adCostGiven);
+
+        // 允许的广告占比（按所选口径；其它参数不变，使 Margin >= 目标）
+        const allowedAdRate = solveAllowedAdRateForTargetMargin(p, targetMargin, chosenBasis);
+
+        const rrDelta = isFinite(allowedRR) ? ((p.returnRate - allowedRR) * 100) : NaN;      // pp
+        const adDelta = (isFinite(allowedAdRate) && isFinite(curRateChosen))
+          ? ((curRateChosen - allowedAdRate) * 100) : NaN;                                    // pp
+
+        // 获取保本广告占比作为对比参考
+        const breakevenAdRate = chosenBasis === 'gmv' ? base.adRateBE_gmv : base.adRateBE_effective;
+
+        // 动态更新卡片标题，显示实际的目标利润率
+        const labelEl = document.getElementById('decReturnAndSensitivityLabel');
+        if (labelEl) {
+          labelEl.textContent = `可承受广告占比（${chosenBasis==='gmv'?'GMV':'有效'}，目标:${(targetMargin*100).toFixed(1)}%利润率）`;
+        }
+
+        box.innerHTML = `
+          <div>
+            退货率：${pct(p.returnRate)} / ${isFinite(allowedRR) ? pct(allowedRR) : '—'}
+            <span class="delta ${isFinite(rrDelta) ? (rrDelta<=0 ? 'good' : 'bad') : ''}">
+              ${isFinite(rrDelta) ? ((rrDelta>=0?'+':'') + rrDelta.toFixed(2) + 'pp') : ''}
+            </span>
+          </div>
+          <div>
+            可承受广告占比（${chosenBasis==='gmv'?'GMV':'有效'}，目标${(targetMargin*100).toFixed(1)}%利润率）：
+            ${isFinite(curRateChosen) ? pct(curRateChosen) : '—'} / 
+            <span title="当目标=0%时，与保本广告占比（${chosenBasis==='gmv'?'GMV':'有效'}）一致">
+              ${isFinite(allowedAdRate) ? pct(allowedAdRate) : '—'}
+            </span>
+            <span class="delta ${isFinite(adDelta) ? (adDelta<=0 ? 'good' : 'bad') : ''}">
+              ${isFinite(adDelta) ? ((adDelta>=0?'+':'') + adDelta.toFixed(2) + 'pp') : ''}
+            </span>
+          </div>
+        `;
+      })();
+
+      // —— 保本对齐概览区（进度条） —— //
+      // —— 保本对齐概览：CPC / CVR / ROAS ——
+      // 正确对齐：CPC ↔ MaxCPC (= BE-CPA × CVR)；CVR ↔ CPC/BE-CPA；ROAS ↔ BE-ROAS
+      (function(){
+        const el = document.getElementById('goalAlignmentBars');
+        if (!el) return;
+        const curCPC = num($('cpc').value);
+        const curCVR = to01($('cvr').value);
+        const beCPAValLocal = beCPAVal;
+
+        const maxCPCVal = (isFinite(curCVR) && curCVR>0 && isFinite(beCPAValLocal))
+          ? computeMaxCPC(beCPAValLocal, curCVR) : NaN;              // 修正：别再用 BE-CPA 直接对比
+        const needCVRVal = (isFinite(curCPC) && isFinite(beCPAValLocal) && beCPAValLocal>0)
+          ? (curCPC / beCPAValLocal) : NaN;                          // 边界 CVR_min = CPC / BE-CPA
+
+        const cpcHtml  = renderPairedKPI({ actual: curCPC,    be: maxCPCVal, unit:'元', goodWhen:'lte' });
+        const cvrHtml  = renderPairedKPI({ actual: curCVR,    be: needCVRVal, unit:'',   goodWhen:'gte' });
+        const roasHtml = renderPairedKPI({ actual: curROASVal,be: beROASVal,  unit:'倍', goodWhen:'gte' });
+
+        el.innerHTML = `
+          <div class="metric-line">CPC：${cpcHtml}</div>
+          <div class="metric-line">CVR：${cvrHtml}</div>
+          <div class="metric-line">ROAS：${roasHtml}</div>
+        `;
+      })();
       const mini = $('mini');
       const basis = document.querySelector('input[name="simBasis"]:checked')?.value || 'effective';
       const list = parseListPercents($('simRates').value).map(v => (v>1? v/100: v));
@@ -2090,39 +2351,11 @@
           '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
       }
 
-      // 显示实际投放指标
-      const cpaEl = document.getElementById('decCPA');
-      if (!isSellingPriceValid) {
-        // 售价无效时显示"—"并添加提示
-        cpaEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
-        cpaEl.style.color = 'var(--muted)';
-        cpaEl.title = '售价无效，无法计算';
-      } else if (isFinite(cpa) && cpa > 0) {
-        cpaEl.textContent = showYuan(cpa);
-        cpaEl.style.color = 'var(--bad)'; // CPA越低越好
-        cpaEl.title = `当前每单广告成本：${showYuan(cpa)}`;
-      } else {
-        cpaEl.textContent = '—';
-        cpaEl.style.color = '';
-        cpaEl.title = '';
-      }
+      // 注意：decCPA已经被合并到decPairedCPA中，这里不再需要单独处理
+      // CPA的显示逻辑已经在render()函数中的paired KPI渲染部分处理
       
-      const roasEl = document.getElementById('decROAS');
-      if (!isSellingPriceValid) {
-        // 售价无效时显示"—"并添加提示
-        roasEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
-        roasEl.style.color = 'var(--muted)';
-        roasEl.title = '售价无效，无法计算';
-      } else if (isFinite(roas) && roas > 0) {
-        roasEl.innerHTML = showNum(roas)+' 倍' + 
-          '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
-        roasEl.style.color = roas >= 1 ? 'var(--ok)' : 'var(--bad)'; // ROAS≥1为盈利
-        roasEl.title = `当前ROAS：${showNum(roas)}倍（${roas >= 1 ? '盈利' : '亏损'}）`;
-      } else {
-        roasEl.innerHTML = '—';
-        roasEl.style.color = '';
-        roasEl.title = '';
-      }
+      // 注意：decROAS已经被合并到decPairedROAS中，这里不再需要单独处理
+      // ROAS的显示逻辑已经在render()函数中的paired KPI渲染部分处理
       
       // 显示投1元广告带来的净利润（根据盈亏显示不同提示）
       const profitPerAdYuanEl = document.getElementById('decProfitPerAdYuan');
@@ -2176,53 +2409,11 @@
         cpcSafetyEl.title = '';
       }
 
-      // 防御式更新：已删元素的更新逻辑加if判断
-      const cvrImprovementEl = document.getElementById('decCVRImprovement');
-      if (cvrImprovementEl) {
-        if (isFinite(cvrGapPct)) {
-          cvrImprovementEl.textContent = cvrGapPct > 0 ? ('需提升 ' + cvrGapPct.toFixed(1) + '%') : '已达标（≥保本所需CVR）';
-          cvrImprovementEl.style.color = cvrGapPct <= 0 ? 'var(--ok)' : 'var(--bad)';
-          cvrImprovementEl.title = cvrGapPct > 0 ? '未达标：需提升至保本CVR' : '已达标：不低于保本CVR';
-        } else {
-          cvrImprovementEl.textContent = '—';
-          cvrImprovementEl.style.color = '';
-          cvrImprovementEl.title = '';
-        }
-      }
+      // 注意：decCVRImprovement和decROASImprovement元素已经被删除
+      // 这些指标现在通过其他方式显示，这里不再需要单独处理
 
-      const roasImprovementEl = document.getElementById('decROASImprovement');
-      if (roasImprovementEl) {
-        if (isFinite(roasGapPct)) {
-          roasImprovementEl.textContent = roasGapPct > 0 ? ('需提升 ' + roasGapPct.toFixed(1) + '%') : '已达标（≥BE-ROAS）';
-          roasImprovementEl.style.color = roasGapPct <= 0 ? 'var(--ok)' : 'var(--bad)';
-          roasImprovementEl.title = roasGapPct > 0 ? '未达标：需提升至BE-ROAS' : '已达标：不低于BE-ROAS';
-        } else {
-          roasImprovementEl.textContent = '—';
-          roasImprovementEl.style.color = '';
-          roasImprovementEl.title = '';
-        }
-      }
-
-      const efficiencyScoreEl = document.getElementById('decEfficiencyScore');
-      if (efficiencyScoreEl) {
-        if (isFinite(efficiencyScore)) {
-          efficiencyScoreEl.textContent = efficiencyScore + '分';
-          if (efficiencyScore >= 80) {
-            efficiencyScoreEl.style.color = 'var(--ok)';
-            efficiencyScoreEl.title = '投放效率优秀';
-          } else if (efficiencyScore >= 60) {
-            efficiencyScoreEl.style.color = '#ff9500';
-            efficiencyScoreEl.title = '投放效率良好';
-          } else {
-            efficiencyScoreEl.style.color = 'var(--bad)';
-            efficiencyScoreEl.title = '投放效率需要提升';
-          }
-        } else {
-          efficiencyScoreEl.textContent = '—';
-          efficiencyScoreEl.style.color = '';
-          efficiencyScoreEl.title = '';
-        }
-      }
+      // 注意：decEfficiencyScore元素已经被删除
+      // 投放效率评分现在通过其他方式显示，这里不再需要单独处理
 
       // —— 绘制二维安全地图 ——
       drawSafetyMap({ beCPA, cpc, cvr });
@@ -2418,9 +2609,9 @@
         el.innerHTML = headerHtml + (parts.length ? `<div style="font-size:12px;color:var(--muted)">每降低 <b>1pp</b> 付费占比 → ${parts.join(' ｜ ')}</div>` : '—');
       })();
 
-      // —— 绑定 returnThresholdText 到 DOM ——
-      const retEl = document.getElementById('decReturnThreshold');
-      if(retEl) retEl.innerHTML = returnThresholdText;
+      // 注意：decReturnThreshold已经被合并到decReturnAndSensitivity中
+      // returnThresholdText的显示逻辑已经在render()函数中处理
+      // 这里不再需要单独绑定到DOM
 
       // —— 附加：退货率每降低 1pp 的敏感度（保持其它参数和广告设定不变） ——
       (function(){
@@ -2490,58 +2681,12 @@
         }
       })();
 
-      // 输出保本对齐概览（紧凑表：当前 vs 保本阈值｜差距）
-      // —— 保本对齐概览（紧凑表：当前｜保本阈值｜差距） ——
-      (function(){
-        const el = document.getElementById('goalAlignment');
-        if(!el) return;
-        const rows = [];
+      // 注意：goalAlignment已经被改为goalAlignmentBars，显示逻辑已经在render()函数中处理
+      // 这里不再需要单独输出保本对齐概览
 
-        // helper to color gap text
-        const gapChip = (txt, good)=> `<span class="tiny-hint" style="background:${good?'#e6f9ef':'#fff2f0'};color:${good?'#1e7e34':'#c0392b'};border-left:2px solid ${good?'#34c759':'#ff3b30'}">${txt}</span>`;
-        const valChip = (v)=> `<span class="tiny-hint" style="background:#f0f9ff;color:#0366d6;border-left:2px solid #007aff">${v}</span>`;
-
-        // CPC（越低越好，对比最大可承受CPC）
-        if(isFinite(cpc) && cpc>0 && isFinite(maxCPC) && maxCPC>0){
-          const gap = cpc - maxCPC; // 正=偏高
-          const good = gap<=0;
-          rows.push(`<div><b>CPC</b>：${valChip(showYuan(cpc))} ｜ 保本阈值 ${valChip(showYuan(maxCPC))} ｜ ${gapChip(good?`已达标`:`需降 ${showYuan(gap)}`, good)}</div>`);
-        }
-
-        // CVR（越高越好，对比保本所需CVR）
-        if(isFinite(cvr) && isFinite(cvrRequired) && cvrRequired>0){
-          const gap = (cvrRequired - cvr)*100; // 正=不足
-          const good = gap<=0;
-          rows.push(`<div><b>CVR</b>：${valChip((cvr*100).toFixed(2)+ '%')} ｜ 保本阈值 ${valChip((cvrRequired*100).toFixed(2)+'%')} ｜ ${gapChip(good?`已达标`:`需提升 ${gap.toFixed(1)}pp`, good)}</div>`);
-        }
-
-        // ROAS（越高越好，对比BE-ROAS）
-        if(isFinite(roas) && roas>0 && isFinite(beROAS) && beROAS>0){
-          const gap = beROAS - roas; // 正=不足
-          const good = gap<=0;
-          rows.push(`<div><b>ROAS</b>：${valChip(showNum(roas)+' 倍')} ｜ 保本阈值 ${valChip(showNum(beROAS)+' 倍')} ｜ ${gapChip(good?`已达标`:`需提升 ${showNum(gap)} 倍`, good)}</div>`);
-        }
-
-        // 利润率（越高越好）
-        if(isFinite(currentMarginFrac) && isFinite(targetMargin) && targetMargin>0){
-          const gap = (targetMargin - currentMarginFrac)*100; // 正=不足
-          const good = gap<=0;
-          rows.push(`<div><b>利润率</b>：${valChip((currentMarginFrac*100).toFixed(2)+'%')} ｜ 目标 ${valChip((targetMargin*100).toFixed(2)+'%')} ｜ ${gapChip(good?`已达标`:`需提升 ${gap.toFixed(1)}pp`, good)}</div>`);
-        }
-
-        el.innerHTML = rows.length ? rows.join('') : '<div style="font-size:12px;color:var(--muted)">请填写CPC和CVR参数</div>';
-      })();
-
-      // 输出可达退货率阈值
-      document.getElementById('decReturnThreshold').innerHTML = returnThresholdText;
-      // 可选：添加tooltip
-      const thWrap = document.getElementById('decReturnThreshold')?.parentElement;
-      if(thWrap){
-        const tipHtml = `<div class='tt-title'>计算说明</div>`+
-          `<div>保持其它参数与当前广告设定不变，搜索满足目标利润率 m≥目标利润率 的最高允许退货率 r*。</div>`+
-          `<div>若 r=0 时仍小于目标利润率，则显示"无解"。</div>`;
-        thWrap.setAttribute('data-tip', tipHtml.replace(/"/g,'&quot;'));
-      }
+      // 注意：decReturnThreshold已经被合并到decReturnAndSensitivity中
+      // 可达退货率阈值的显示逻辑已经在render()函数中处理
+      // 这里不再需要单独输出
 
       // 投放优化建议已删除（简化界面）
     }
