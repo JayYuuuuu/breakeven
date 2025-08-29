@@ -1423,6 +1423,17 @@
       if(label) lab.textContent = label;
       if(!show) sel.innerHTML='';
     }
+
+    // 统一：在参数（尤其示例商品/档位）变化后，预计算所有右侧Tab
+    function recomputeAllTabs(){
+      try{ render(); }catch(_){}
+      try{ updateDecisionDisplay(); }catch(_){}
+      try{ simulate(); }catch(_){}
+      try{ renderPriceSim(); }catch(_){}
+      try{ renderTaxSim(); }catch(_){}
+      try{ renderCostSim(); }catch(_){}
+      try{ lpEnsureInit(); lpRecalcAll(); }catch(_){}
+    }
     function applyExampleSelection(sku, initial=false){
       const p = EXAMPLES.find(x=>x.sku===sku);
       saveToStorage(STORAGE_KEYS.exampleSku, sku||'');
@@ -1451,7 +1462,7 @@
           const i = parseInt(tierSel.value)||0;
           saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
           setInputs({ price: tierPrices[i], cost: tierCosts[i], rr: p.returnRate });
-          render();
+          recomputeAllTabs();
         };
       }
       // 2) 单售价 × 多进货价：选择进货价档位
@@ -1466,7 +1477,7 @@
           const i = parseInt(tierSel.value)||0;
           saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
           setInputs({ price: p.singlePrice, cost: tierCosts[i], rr: p.returnRate });
-          render();
+          recomputeAllTabs();
         };
       }
       // 3) 多售价 × 单进货价：选择售价档位
@@ -1481,7 +1492,7 @@
           const i = parseInt(tierSel.value)||0;
           saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
           setInputs({ price: tierPrices[i], cost: p.singleCost, rr: p.returnRate });
-          render();
+          recomputeAllTabs();
         };
       }
       // 4) 单售价 × 单进货价：直接填充
@@ -1496,21 +1507,8 @@
         const cost  = hasSingleCost  ? p.singleCost  : (hasMultiCost  ? tierCosts[0]  : NaN);
         setInputs({ price, cost, rr: p.returnRate });
       }
-      // 刷新左侧与右侧（无论是否初始还原，都刷新，避免决策面板未更新）
-      render();
-      const activeTabBtn = document.querySelector('.tab-btn.active');
-      const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'visualization';
-      if (activeTab === 'decision') {
-        updateDecisionDisplay();
-      } else if (activeTab === 'analysis') {
-        simulate();
-      } else if (activeTab === 'price') {
-        renderPriceSim();
-      } else if (activeTab === 'tax') {
-        renderTaxSim();
-      } else if (activeTab === 'cost') {
-        renderCostSim();
-      }
+      // 预计算所有右侧Tab，确保后续切换即可见最新数值
+      recomputeAllTabs();
     }
 
     // 保存参数到本地存储
@@ -2098,8 +2096,10 @@
           // 更新标题
           updateTabTitle(tabName);
           
-          // 根据tab类型更新相应的显示
-          if (tabName === 'decision') {
+          // 根据tab类型更新相应的显示（切换时触发一次计算）
+          if (tabName === 'visualization') {
+            render();
+          } else if (tabName === 'decision') {
             // 直接更新决策显示，CPC/CVR 来自左侧投放参数
             updateDecisionDisplay();
           } else if (tabName === 'analysis') {
@@ -2888,43 +2888,8 @@
           showTierUI(false);
           populateExampleSelector();
           
-          // 刷新当前激活Tab的右侧视图
-          const activeTabBtn = document.querySelector('.tab-btn.active');
-          const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'visualization';
-          if (activeTab === 'decision') {
-            updateDecisionDisplay();
-          } else if (activeTab === 'analysis') {
-            simulate();
-          } else if (activeTab === 'price') {
-            renderPriceSim();
-          } else if (activeTab === 'tax') {
-            renderTaxSim();
-          } else if (activeTab === 'cost') {
-            renderCostSim();
-          } else if (activeTab === 'listprice') {
-            // 重新构建标价计算默认视图
-            // 清空容器
-            const lpBody = document.getElementById('lpRows');
-            const lpTiers = document.getElementById('lpTierRows');
-            if (lpBody) lpBody.innerHTML = '';
-            if (lpTiers) lpTiers.innerHTML = '';
-            const discEl = document.getElementById('lpDiscountPct');
-            if (discEl) discEl.value = '10';
-            lpAddTierRow();
-            // 从左侧参数区的售价获取默认值
-            const leftSellingPrice = document.getElementById('sellingPrice')?.value || '79.80';
-            lpAddTargetRow(leftSellingPrice);
-            lpRecalcAll();
-            const bD = document.getElementById('mcBaseDisc');
-            const bG = document.getElementById('mcBaseGM');
-            const tD = document.getElementById('mcTargetDisc');
-            const eF = document.getElementById('mcExtraFold');
-            if (bD) bD.value = '10';
-            if (bG) bG.value = '30';
-            if (tD) tD.value = '20';
-            if (eF) eF.value = '9.0';
-            lpRenderMarginCard();
-          }
+          // 统一：重置后对右侧所有Tab进行一次计算
+          recomputeAllTabs();
         });
       }
       
