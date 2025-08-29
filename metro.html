@@ -1481,6 +1481,9 @@
         return byPlat && byQuery;
       });
     }
+    const exampleKey = (p)=> `${p.sku||''}||${p.platform||''}`;
+    const parseExampleKey = (key)=>{ const i = String(key).lastIndexOf('||'); if(i<0) return { sku: key, platform: '' }; return { sku: key.slice(0,i), platform: key.slice(i+2) }; };
+    const tierIndexKeyFor = (key)=> `${STORAGE_KEYS.exampleTierIndex}::${key}`;
     function populateExampleSelector(){
       if(EXAMPLES.length===0){ try{ EXAMPLES = mergeProductData(); }catch(e){ EXAMPLES = []; } }
       populateExampleFilters();
@@ -1489,11 +1492,11 @@
       const list = filteredExamples();
       const prev = sel.value;
       sel.innerHTML = '<option value="">— 选择示例商品 —</option>' +
-        list.map(p=>`<option value="${p.sku}">${buildExampleLabel(p)}</option>`).join('');
+        list.map(p=>`<option value="${exampleKey(p)}">${buildExampleLabel(p)}</option>`).join('');
       // 优先保留当前或存储中的选择（若仍在过滤结果中）
-      const savedSku = loadFromStorage(STORAGE_KEYS.exampleSku, '');
-      const target = prev || savedSku;
-      const exists = list.some(p=>p.sku===target);
+      const savedKey = loadFromStorage(STORAGE_KEYS.exampleSku, '');
+      const target = prev || savedKey;
+      const exists = list.some(p=> exampleKey(p) === target);
       if(exists){ sel.value = target; applyExampleSelection(target, /*initial*/true); }
       else { sel.value = ''; showTierUI(false); }
     }
@@ -1523,9 +1526,10 @@
       try{ renderCostSim(); }catch(_){}
       try{ lpEnsureInit(); lpRecalcAll(); }catch(_){}
     }
-    function applyExampleSelection(sku, initial=false){
-      const p = EXAMPLES.find(x=>x.sku===sku);
-      saveToStorage(STORAGE_KEYS.exampleSku, sku||'');
+    function applyExampleSelection(key, initial=false){
+      const { sku, platform } = parseExampleKey(key||'');
+      const p = EXAMPLES.find(x=>x.sku===sku && x.platform===platform);
+      saveToStorage(STORAGE_KEYS.exampleSku, key||'');
       if(!p){ showTierUI(false); return; }
       const tierPrices = Array.isArray(p.tierPrices) ? p.tierPrices.filter(v=>Number(v)>0) : [];
       const tierCosts  = Array.isArray(p.tierCosts)  ? p.tierCosts.filter(v=>Number(v)>0)  : [];
@@ -1542,14 +1546,14 @@
           const cp = tierCosts[i];
           return `<option value="${i}">档${i+1}｜售价 ${Number(sp).toFixed(2)} / 进货 ${Number(cp).toFixed(2)}</option>`;
         }).join('');
-        const savedIdx = parseInt(loadFromStorage(STORAGE_KEYS.exampleTierIndex, '0'))||0;
+        const savedIdx = parseInt(loadFromStorage(tierIndexKeyFor(key), '0'))||0;
         const idx = Math.min(Math.max(savedIdx,0), tierPrices.length-1);
         tierSel.value = String(idx);
         const sp = tierPrices[idx]; const cp = tierCosts[idx];
         setInputs({ price: sp, cost: cp, rr: p.returnRate });
         tierSel.onchange = ()=>{
           const i = parseInt(tierSel.value)||0;
-          saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
+          saveToStorage(tierIndexKeyFor(key), String(i));
           setInputs({ price: tierPrices[i], cost: tierCosts[i], rr: p.returnRate });
           recomputeAllTabs();
         };
@@ -1558,13 +1562,13 @@
       else if(hasSinglePrice && hasMultiCost){
         showTierUI(true, '选择进货价档位');
         tierSel.innerHTML = tierCosts.map((cp,i)=>`<option value="${i}">档${i+1}｜进货 ${Number(cp).toFixed(2)}</option>`).join('');
-        const savedIdx = parseInt(loadFromStorage(STORAGE_KEYS.exampleTierIndex, '0'))||0;
+        const savedIdx = parseInt(loadFromStorage(tierIndexKeyFor(key), '0'))||0;
         const idx = Math.min(Math.max(savedIdx,0), tierCosts.length-1);
         tierSel.value = String(idx);
         setInputs({ price: p.singlePrice, cost: tierCosts[idx], rr: p.returnRate });
         tierSel.onchange = ()=>{
           const i = parseInt(tierSel.value)||0;
-          saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
+          saveToStorage(tierIndexKeyFor(key), String(i));
           setInputs({ price: p.singlePrice, cost: tierCosts[i], rr: p.returnRate });
           recomputeAllTabs();
         };
@@ -1573,13 +1577,13 @@
       else if(hasMultiPrice && hasSingleCost){
         showTierUI(true, '选择售价档位');
         tierSel.innerHTML = tierPrices.map((sp,i)=>`<option value="${i}">档${i+1}｜售价 ${Number(sp).toFixed(2)}</option>`).join('');
-        const savedIdx = parseInt(loadFromStorage(STORAGE_KEYS.exampleTierIndex, '0'))||0;
+        const savedIdx = parseInt(loadFromStorage(tierIndexKeyFor(key), '0'))||0;
         const idx = Math.min(Math.max(savedIdx,0), tierPrices.length-1);
         tierSel.value = String(idx);
         setInputs({ price: tierPrices[idx], cost: p.singleCost, rr: p.returnRate });
         tierSel.onchange = ()=>{
           const i = parseInt(tierSel.value)||0;
-          saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
+          saveToStorage(tierIndexKeyFor(key), String(i));
           setInputs({ price: tierPrices[i], cost: p.singleCost, rr: p.returnRate });
           recomputeAllTabs();
         };
@@ -2956,6 +2960,19 @@
               localStorage.removeItem(key);
             }
           });
+
+          // 额外清理：按“货号+平台”记忆的档位索引（前缀：exampleTierIndex::）
+          try {
+            const prefix = STORAGE_KEYS.exampleTierIndex + '::';
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const k = localStorage.key(i);
+              if (k && k.startsWith(prefix)) {
+                localStorage.removeItem(k);
+              }
+            }
+          } catch (e) {
+            console.warn('清理分平台档位索引失败:', e);
+          }
           
           // 如果之前没有保存过tab，则保存当前选中的tab
           if (!savedTab) {
@@ -2973,7 +2990,7 @@
           const exampleSel = document.getElementById('exampleProductSelect');
           if (platformSel) { platformSel.value = ''; saveToStorage(STORAGE_KEYS.examplePlatform, ''); }
           if (queryEl) { queryEl.value = ''; saveToStorage(STORAGE_KEYS.exampleQuery, ''); }
-          if (exampleSel) { exampleSel.value = ''; saveToStorage(STORAGE_KEYS.exampleSku, ''); saveToStorage(STORAGE_KEYS.exampleTierIndex, '0'); }
+          if (exampleSel) { exampleSel.value = ''; saveToStorage(STORAGE_KEYS.exampleSku, ''); }
           showTierUI(false);
           populateExampleSelector();
           
