@@ -261,6 +261,99 @@ export function taxBurdenGiven(p, a, r, basis) {
   return { netTax, shareGMV };
 }
 
+// ===== 标价计算（到手价 ↔ 标价）辅助 =====
+// 更精确的金额处理：字符串/数字 → 整数分；避免浮点误差
+export function yuanToCents(y){
+  const s = String(y ?? '').trim();
+  if (!s) return 0;
+  const m = s.match(/^(-?)(\d+)(?:\.(\d{0,}))?$/);
+  if (!m) return Math.round(Number(s) * 100);
+  const sign = m[1] === '-' ? -1 : 1;
+  const int = m[2];
+  const dec = (m[3] || '').padEnd(2, '0').slice(0, 2);
+  return sign * (parseInt(int, 10) * 100 + parseInt(dec || '0', 10));
+}
+export function centsToYuan(c){ return (Number(c) / 100); }
+export function yuanToWu(y){ // 元→万分（1 元 = 10000 wu）
+  const s = String(y ?? '').trim();
+  if (!s) return 0;
+  const m = s.match(/^(-?)(\d+)(?:\.(\d{0,}))?$/);
+  if (!m) return Math.round(Number(s) * 10000);
+  const sign = m[1] === '-' ? -1 : 1;
+  const int = m[2];
+  const dec = (m[3] || '').padEnd(4, '0').slice(0, 4);
+  return sign * (parseInt(int, 10) * 10000 + parseInt(dec || '0', 10));
+}
+
+/**
+ * 折扣+满减后的到手价（按元后四位精度）→ 返回“分”(cents)
+ * @param {number} listPriceCents - 标价（分）
+ * @param {number} discountPct - 立减百分比（小数，0.10 表示 10%）
+ * @param {{threshold:any,off:any}[]} tiers - 满减档位（门槛/减免，输入可为字符串或数字，单位元）
+ * @returns {number} 到手价（分）
+ */
+export function listPriceForwardNetCents(listPriceCents, discountPct, tiers){
+  const priceWu = Math.floor(Number(listPriceCents) * 100); // 1 分 = 100 wu
+  const factor = Math.round((1 - Number(discountPct || 0)) * 10000);
+  let afterWu = Math.floor(priceWu * factor / 10000); // 折扣后，保留到 wu，向下取整
+  let offWu = 0;
+  if (Array.isArray(tiers)){
+    for (const t of tiers){
+      const thrWu = yuanToWu(t?.threshold ?? '0');
+      const offTWu = yuanToWu(t?.off ?? '0');
+      if (afterWu >= thrWu) offWu = Math.max(offWu, offTWu);
+    }
+  }
+  const netWu = Math.max(0, afterWu - offWu);
+  return Math.floor(netWu / 100); // 回到“分”
+}
+
+// 四位小数精度：返回 net 的 wu（1 元 = 10000 wu），用于超额校验
+export function listPriceForwardNetWu(listPriceCents, discountPct, tiers){
+  const priceWu = Math.floor(Number(listPriceCents) * 100); // 1 分 = 100 wu
+  const factor = Math.round((1 - Number(discountPct || 0)) * 10000);
+  let afterWu = Math.floor(priceWu * factor / 10000);
+  let offWu = 0;
+  if (Array.isArray(tiers)){
+    for (const t of tiers){
+      const thrWu = yuanToWu(t?.threshold ?? '0');
+      const offTWu = yuanToWu(t?.off ?? '0');
+      if (afterWu >= thrWu) offWu = Math.max(offWu, offTWu);
+    }
+  }
+  return Math.max(0, afterWu - offWu);
+}
+
+/**
+ * 反解标价（给定 target，到手价，单位分）——四位小数精度，并做“超额校正”
+ * @param {number} targetCents - 目标到手价（分）
+ * @param {number} discountPct - 立减百分比（小数）
+ * @param {{threshold:any,off:any}[]} tiers - 满减档位（元）
+ * @returns {number} 标价（分）
+ */
+export function solveListPriceCents(targetCents, discountPct, tiers){
+  if (!(targetCents > 0)) return 0;
+  let lo = targetCents; // 至少不小于目标
+  let hi = Math.max(targetCents + 1, targetCents * 2 + 1000);
+  while (listPriceForwardNetCents(hi, discountPct, tiers) < targetCents){
+    hi = Math.floor(hi * 1.5) + 1000;
+    if (hi > 1e9) break;
+  }
+  while (lo < hi){
+    const mid = Math.floor((lo + hi) >> 1);
+    const net = listPriceForwardNetCents(mid, discountPct, tiers);
+    if (net >= targetCents) hi = mid; else lo = mid + 1;
+  }
+  let price = lo;
+  const targetWu = targetCents * 100; // 目标到手价按 wu 精度
+  let netAfterWu = listPriceForwardNetWu(price, discountPct, tiers);
+  while (price > 0 && netAfterWu > targetWu){
+    price -= 1; // 每次减 1 分
+    netAfterWu = listPriceForwardNetWu(price, discountPct, tiers);
+  }
+  return price;
+}
+
 /**
  * 根据两项求第三项临界值（CPC ↔ CVR ↔ 客单价）
  * @param {Params} p - 输入参数
