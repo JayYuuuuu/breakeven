@@ -1781,9 +1781,14 @@
         isGood = delta <= 0;
       }
       const deltaClass = isGood ? 'delta good' : 'delta bad';
+      const formatMain = (v) => {
+        if (unit === '%') return (v*100).toFixed(2) + '%';
+        if (unit === '倍') return v.toFixed(2) + '倍';
+        return v.toFixed(2) + (unit||'');
+      };
       return `<div class="paired">
-        <span class="actual">${typeof actual === 'number' ? actual.toFixed(2) : actual}${unit}</span>
-        <span class="be">/ ${typeof be === 'number' ? be.toFixed(2) : be}${unit}</span>
+        <span class="actual">${formatMain(actual)}</span>
+        <span class="be">/ ${formatMain(be)}</span>
         <span class="${deltaClass}">${deltaText}</span>
       </div>`;
     }
@@ -2105,12 +2110,13 @@
 
         const maxCPCVal = (isFinite(curCVR) && curCVR>0 && isFinite(beCPAValLocal))
           ? computeMaxCPC(beCPAValLocal, curCVR) : NaN;              // 修正：别再用 BE-CPA 直接对比
-        // 统一使用 computeCPAMetrics 计算链路（避免手动计算边界CVR）
-        const needCVRPack = computeCPAMetrics(p, { cpc: curCPC, cvr: 0.01 }); // 用最小CVR值计算
-        const needCVRVal = needCVRPack.cpa > 0 ? (curCPC / needCVRPack.cpa) : NaN;  // 边界 CVR_min = CPC / BE-CPA
+        // 最低可接受 CVR（在当前CPC下达到保本）：CVR_min = CPC / BE-CPA
+        const needCVRVal = (isFinite(beCPAValLocal) && beCPAValLocal>0 && isFinite(curCPC) && curCPC>=0)
+          ? (curCPC / beCPAValLocal)
+          : NaN;
 
         const cpcHtml  = renderPairedKPI({ actual: curCPC,    be: maxCPCVal, unit:'元', goodWhen:'lte' });
-        const cvrHtml  = renderPairedKPI({ actual: curCVR,    be: needCVRVal, unit:'',   goodWhen:'gte' });
+        const cvrHtml  = renderPairedKPI({ actual: curCVR,    be: needCVRVal, unit:'%',  goodWhen:'gte' });
         const roasHtml = renderPairedKPI({ actual: curROASVal,be: beROASVal,  unit:'倍', goodWhen:'gte' });
 
         el.innerHTML = `
@@ -2391,9 +2397,8 @@
 
       // —— 缺口（CVR/ROAS）—— 统一对保本基准 ——
       // 保本所需CVR：在当前CPC下达到保本的最低CVR
-      // 统一使用 computeCPAMetrics 计算链路（避免手动计算边界CVR）
-      const cvrPack = computeCPAMetrics(p, { cpc, cvr: 0.01 }); // 用最小CVR值计算
-      const cvrRequired = cvrPack.cpa > 0 ? (cpc / cvrPack.cpa) : NaN;
+      // 公式：CVR_min = CPC / BE-CPA
+      const cvrRequired = (isFinite(beCPA) && beCPA>0 && isFinite(cpc)) ? (cpc / beCPA) : NaN;
 
       // CVR缺口：需要提升多少比例才能达到保本（≤0表示已达标）
       const cvrGapPct = (isFinite(cvrRequired) && cvr>=0)
