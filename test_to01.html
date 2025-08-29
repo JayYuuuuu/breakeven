@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>to01函数测试</title>
+</head>
+<body>
+  <h1>to01函数测试</h1>
+  <div id="results"></div>
+
+  <script type="module">
+    import { to01 } from './engine.js';
+    
+    const results = document.getElementById('results');
+    
+    function test(input, expected, description) {
+      const actual = to01(input);
+      const passed = Math.abs(actual - expected) < 0.0001;
+      const status = passed ? '✅' : '❌';
+      
+      const div = document.createElement('div');
+      div.style.margin = '10px 0';
+      div.style.padding = '10px';
+      div.style.border = '1px solid ' + (passed ? 'green' : 'red');
+      div.style.borderRadius = '5px';
+      
+      div.innerHTML = `
+        <strong>${status} ${description}</strong><br>
+        输入: <code>"${input}"</code><br>
+        期望: <code>${expected}</code><br>
+        实际: <code>${actual}</code><br>
+        状态: ${passed ? '通过' : '失败'}
+      `;
+      
+      results.appendChild(div);
+    }
+    
+    // 测试用例 - 新逻辑：所有输入都当作百分比
+    test("1", 0.01, "整数1应该转换为1% = 0.01");
+    test("15", 0.15, "整数15应该转换为15% = 0.15");
+    test("0.5", 0.005, "小数0.5应该转换为0.5% = 0.005");
+    test("0.06", 0.0006, "小数0.06应该转换为0.06% = 0.0006");
+    test("0.12", 0.0012, "小数0.12应该转换为0.12% = 0.0012");
+    test("100", 1.0, "整数100应该转换为100% = 1.0");
+    test("0", 0, "整数0应该转换为0% = 0");
+    test("", 0, "空字符串应该返回0");
+    test("abc", 0, "非数字字符串应该返回0");
+    
+    // 添加说明
+    const note = document.createElement('div');
+    note.style.margin = '20px 0';
+    note.style.padding = '15px';
+    note.style.backgroundColor = '#f0f9ff';
+    note.style.border = '1px solid #007aff';
+    note.style.borderRadius = '5px';
+    note.innerHTML = `
+      <strong>📝 新逻辑说明：</strong><br>
+      所有输入都被当作百分比数值处理，自动除以100转换为小数。<br>
+      例如：输入 "1" → 1% → 0.01，输入 "0.5" → 0.5% → 0.005<br>
+      这样确保了所有百分比字段的一致性，避免了混淆。
+    `;
+    results.appendChild(note);
+  </script>
+</body>
+</html>
