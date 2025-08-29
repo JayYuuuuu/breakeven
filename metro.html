@@ -462,6 +462,27 @@
     .reset-btn:hover {
       color: var(--ink);
     }
+
+    /* 低存在感图标按钮（刷新等） */
+    .ghost-btn {
+      background: transparent;
+      border: 1px solid #e0e0e0;
+      color: #999;
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1;
+      height: auto;
+      opacity: 0.75;
+    }
+    .ghost-btn:hover {
+      background: #f8f8f8;
+      border-color: #d0d0d0;
+      color: #666;
+      opacity: 1;
+    }
     
     /* 推演控制区域样式 */
     .derivation-controls {
@@ -670,12 +691,15 @@
       <section class="card">
         <h2>
           <span>参数输入</span>
-          <button id="resetBtn" class="reset-btn">重置</button>
+          <div class="header-actions" style="display:flex; align-items:center; gap:8px;">
+            <button id="refreshDataBtn" type="button" class="ghost-btn" title="刷新商品数据（从localStorage重新加载）">🔄</button>
+            <button id="resetBtn" class="reset-btn">重置</button>
+          </div>
         </h2>
         <div class="content" id="paramForm">
           <!-- 示例商品引用 -->
           <div class="block">
-            <div class="pill">示例商品</div>
+            <div class="pill">店铺商品数据选择</div>
             <div class="grid-4">
               <div>
                 <label>平台筛选</label>
@@ -685,7 +709,9 @@
               </div>
               <div>
                 <label>搜索（名称/货号）</label>
-                <input id="exampleSearch" type="text" placeholder="输入关键词过滤" />
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input id="exampleSearch" type="text" placeholder="输入关键词过滤" />
+                </div>
               </div>
               <div class="col-span-2">
                 <label>从示例数据选择（自动填充售价/进货价/退货率）</label>
@@ -1084,7 +1110,7 @@
                 <span class="unit">%</span>
               </div>
             </div>
-            <div class="note">此推演的“实际税费占比”= <strong>净应纳税额 ÷ 售价（GMV）</strong>，其中净应纳税额 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣。</div>
+            <div class="note">此推演的"实际税费占比"= <strong>净应纳税额 ÷ 售价（GMV）</strong>，其中净应纳税额 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣。</div>
             <div id="taxSimWrap"></div>
           </div>
         </div>
@@ -1347,6 +1373,69 @@
 
     // —— 示例商品引用：构建与应用 ——
     let EXAMPLES = [];
+    
+    // 合并localStorage和示例数据的函数
+    function mergeProductData() {
+      try {
+        // 获取示例数据
+        const exampleData = getProductExamples();
+        
+        // 尝试从localStorage获取用户数据
+        let userData = [];
+        try {
+          const savedData = localStorage.getItem('product_analysis_data');
+          if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed && parsed.products && Array.isArray(parsed.products)) {
+              userData = parsed.products;
+              console.log(`从localStorage加载了 ${userData.length} 个用户商品数据`);
+            }
+          }
+        } catch (e) {
+          console.warn('从localStorage加载数据失败:', e);
+        }
+        
+        // 如果没有用户数据，直接返回示例数据
+        if (userData.length === 0) {
+          console.log('没有找到用户数据，使用示例数据');
+          return exampleData;
+        }
+        
+        // 合并数据：以localStorage为准，去重逻辑为货号+平台完全匹配
+        const mergedData = [...exampleData]; // 先复制示例数据
+        
+        userData.forEach(userProduct => {
+          // 检查是否已存在相同的货号+平台组合
+          const existingIndex = mergedData.findIndex(existing => 
+            existing.sku === userProduct.sku && existing.platform === userProduct.platform
+          );
+          
+          if (existingIndex !== -1) {
+            // 如果存在，用用户数据替换示例数据
+            console.log(`替换重复商品: ${userProduct.sku} (${userProduct.platform})`);
+            mergedData[existingIndex] = userProduct;
+          } else {
+            // 如果不存在，添加用户数据
+            console.log(`添加新商品: ${userProduct.sku} (${userProduct.platform})`);
+            mergedData.push(userProduct);
+          }
+        });
+        
+        console.log(`数据合并完成: 示例数据 ${exampleData.length} 个，用户数据 ${userData.length} 个，合并后 ${mergedData.length} 个`);
+        return mergedData;
+        
+      } catch (e) {
+        console.error('合并商品数据失败:', e);
+        // 如果合并失败，返回示例数据
+        try {
+          return getProductExamples();
+        } catch (e2) {
+          console.error('获取示例数据也失败:', e2);
+          return [];
+        }
+      }
+    }
+    
     function uniquePreserveOrder(arr){
       const s = new Set();
       const out = [];
@@ -1393,7 +1482,7 @@
       });
     }
     function populateExampleSelector(){
-      if(EXAMPLES.length===0){ try{ EXAMPLES = getProductExamples(); }catch(e){ EXAMPLES = []; } }
+      if(EXAMPLES.length===0){ try{ EXAMPLES = mergeProductData(); }catch(e){ EXAMPLES = []; } }
       populateExampleFilters();
       const sel = document.getElementById('exampleProductSelect');
       if(!sel) return;
@@ -2914,8 +3003,24 @@
           populateExampleSelector();
         });
       }
+      
+      // 刷新数据按钮事件
+      const refreshBtn = document.getElementById('refreshDataBtn');
+      if(refreshBtn){
+        refreshBtn.addEventListener('click', ()=>{
+          console.log('🔄 手动刷新商品数据...');
+          try{
+            EXAMPLES = mergeProductData();
+            populateExampleSelector();
+            console.log('✅ 商品数据刷新完成');
+          }catch(e){
+            console.error('❌ 刷新商品数据失败:', e);
+          }
+        });
+      }
+      
       // 首次填充
-      try{ EXAMPLES = getProductExamples(); }catch(e){ EXAMPLES = []; }
+      try{ EXAMPLES = mergeProductData(); }catch(e){ EXAMPLES = []; }
       populateExampleSelector();
 
       // 推演按钮事件
