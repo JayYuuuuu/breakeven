@@ -1792,7 +1792,11 @@
 
     // 即时 ROAS（按所选口径，使用有效AOV反映客单变动）& 投1元广告净利润
     let roas = 0, profitPerAdYuanValue = 0;
-    if(cpa>0){
+    
+    // 输入校验：检查售价是否有效
+    const isSellingPriceValid = p.sellingPrice > 0 && isFinite(p.sellingPrice);
+    
+    if(cpa>0 && isSellingPriceValid){
       // 使用engine.js中的函数计算ROAS和profitPerAdYuan
       roas = roasFromCPA({ basis, aov: effAOV, r: base.r, cpa });
       profitPerAdYuanValue = profitPerAdYuan(p, cpa);
@@ -1880,21 +1884,34 @@
       const showPercent = (x)=> isFinite(x) ? x.toFixed(1)+'%' : '—';
 
       // 显示保本指标（带连带购买率影响标识）
-      document.getElementById('decBeCPA').innerHTML = (isFinite(beCPA) && beCPA > 0) ? (showYuan(beCPA) + 
-        '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
-      
-      document.getElementById('decBeROAS').innerHTML = (isFinite(beROAS) && beROAS > 0) ? (beROAS.toFixed(2)+' 倍' + 
-        '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>') : '—';
-      
-      document.getElementById('decMaxCPC').innerHTML = (isFinite(maxCPC) && maxCPC > 0) ? (showYuan(maxCPC) + 
-        '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
-      
-      document.getElementById('decMaxCPM').innerHTML = (isFinite(maxCPM) && maxCPM > 0) ? (showYuan(maxCPM) + 
-        '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+      if (!isSellingPriceValid) {
+        // 售价无效时显示"—"并添加提示
+        document.getElementById('decBeCPA').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        document.getElementById('decBeROAS').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        document.getElementById('decMaxCPC').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        document.getElementById('decMaxCPM').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+      } else {
+        document.getElementById('decBeCPA').innerHTML = (isFinite(beCPA) && beCPA > 0) ? (showYuan(beCPA) + 
+          '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+        
+        document.getElementById('decBeROAS').innerHTML = (isFinite(beROAS) && beROAS > 0) ? (beROAS.toFixed(2)+' 倍' + 
+          '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>') : '—';
+        
+        document.getElementById('decMaxCPC').innerHTML = (isFinite(maxCPC) && maxCPC > 0) ? (showYuan(maxCPC) + 
+          '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+        
+        document.getElementById('decMaxCPM').innerHTML = (isFinite(maxCPM) && maxCPM > 0) ? (showYuan(maxCPM) + 
+          '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+      }
 
       // 显示实际投放指标
       const cpaEl = document.getElementById('decCPA');
-      if (isFinite(cpa) && cpa > 0) {
+      if (!isSellingPriceValid) {
+        // 售价无效时显示"—"并添加提示
+        cpaEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        cpaEl.style.color = 'var(--muted)';
+        cpaEl.title = '售价无效，无法计算';
+      } else if (isFinite(cpa) && cpa > 0) {
         cpaEl.textContent = showYuan(cpa);
         cpaEl.style.color = 'var(--bad)'; // CPA越低越好
         cpaEl.title = `当前每单广告成本：${showYuan(cpa)}`;
@@ -1905,7 +1922,12 @@
       }
       
       const roasEl = document.getElementById('decROAS');
-      if (isFinite(roas) && roas > 0) {
+      if (!isSellingPriceValid) {
+        // 售价无效时显示"—"并添加提示
+        roasEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        roasEl.style.color = 'var(--muted)';
+        roasEl.title = '售价无效，无法计算';
+      } else if (isFinite(roas) && roas > 0) {
         roasEl.innerHTML = showNum(roas)+' 倍' + 
           '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
         roasEl.style.color = roas >= 1 ? 'var(--ok)' : 'var(--bad)'; // ROAS≥1为盈利
@@ -1918,7 +1940,12 @@
       
       // 显示投1元广告带来的净利润（根据盈亏显示不同提示）
       const profitPerAdYuanEl = document.getElementById('decProfitPerAdYuan');
-      if (isFinite(profitPerAdYuanValue)) {
+      if (!isSellingPriceValid) {
+        // 售价无效时显示"—"并添加提示
+        profitPerAdYuanEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        profitPerAdYuanEl.style.color = 'var(--muted)';
+        profitPerAdYuanEl.title = '售价无效，无法计算';
+      } else if (isFinite(profitPerAdYuanValue)) {
         if (profitPerAdYuanValue > 0) {
           // 盈利：显示赚多少钱
           profitPerAdYuanEl.textContent = showYuan(profitPerAdYuanValue);
@@ -1948,7 +1975,12 @@
 
       // 输出新增决策分析指标（带颜色和提示）
       const cpcSafetyEl = document.getElementById('decCPCSafetyMargin');
-      if (isFinite(cpcSafetyMargin)) {
+      if (!isSellingPriceValid) {
+        // 售价无效时显示"—"并添加提示
+        cpcSafetyEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        cpcSafetyEl.style.color = 'var(--muted)';
+        cpcSafetyEl.title = '售价无效，无法计算';
+      } else if (isFinite(cpcSafetyMargin)) {
         cpcSafetyEl.textContent = showPercent(cpcSafetyMargin);
         cpcSafetyEl.style.color = cpcSafetyMargin >= 0 ? 'var(--ok)' : 'var(--bad)';
         cpcSafetyEl.title = cpcSafetyMargin >= 0 ? '低于最大可承受CPC，安全' : '高于最大可承受CPC，有风险';

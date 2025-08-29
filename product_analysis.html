@@ -86,16 +86,24 @@
     }
     .btn.small{
       padding: 4px 8px; font-size: 11px;
-      min-width: 40px;
+      min-width: 4%;
     }
 
-    /* 顶部低存在感的“系统参数”开关 */
-    .settings-toggle{
-      position:absolute; right:24px; top:24px;
-      opacity: .5;
+    /* 悬浮圆形“系统参数”按钮（FAB） */
+    .fab.settings-toggle{
+      position: fixed; right: 24px; bottom: 24px;
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid #e0e0e0; background: #fff; color: #666;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer; z-index: 1100;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+      opacity: 0.75; transition: all .2s ease;
     }
-    .settings-toggle:hover{ opacity: .9; }
-    .settings-toggle.active{ opacity: .95; border-color:#b3d9ff; color:#0066cc; background:#f0f8ff; }
+    .fab.settings-toggle:hover{ opacity: 1; transform: translateY(-1px); border-color:#d0d0d0; color: var(--accent); }
+    .fab.settings-toggle.active{ background:#f0f8ff; border-color:#b3d9ff; color:#0066cc; box-shadow: 0 8px 20px rgba(10,132,255,0.18); opacity: .95; }
+    @media (max-width: 768px){
+      .fab.settings-toggle{ right: 16px; bottom: 16px; width: 48px; height: 48px; font-size: 20px; }
+    }
     
     /* 清除筛选按钮高亮样式 */
     .btn#clearFilters.active {
@@ -1364,7 +1372,7 @@
   <header>
     <h1>商品分析</h1>
             <div class="sub">批量分析商品保本ROI和保本广告，支持单一价格和多档价格模式</div>
-            <button id="toggleSystemParams" class="btn-icon settings-toggle" title="系统参数开关">⚙️ 系统参数</button>
+            <button id="toggleSystemParams" class="fab settings-toggle" title="系统参数开关" aria-label="系统参数">⚙️</button>
   </header>
 
   <main>
