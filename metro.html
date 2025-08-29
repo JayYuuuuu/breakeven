@@ -279,6 +279,10 @@
         font-weight: 500;
         margin-bottom: 8px;
         line-height: 1.3;
+        display: flex;              /* 让标题与徽标组成可换行的弹性行 */
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;            /* 过窄时，徽标可自动换到下一行 */
       }
       
       .metric-value {
@@ -403,8 +407,31 @@
       }
 
       /* 数据来源徽标 */
-      .src-badge{ display:inline-flex; align-items:center; gap:4px; margin-left:6px; padding:2px 6px; border-radius:999px; font-size:10px; font-weight:600; color:#0f172a; background:#eef2f7; border:1px solid #cfd3da; white-space:nowrap }
+      .src-badge{
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        margin-left:6px;
+        padding:0.2em 0.6em;         /* 随字体缩放的内边距，跟随卡片尺寸 */
+        border-radius:999px;
+        font-size:0.9em;             /* 相对 metric-label 缩放，避免溢出 */
+        font-weight:600;
+        color:#0f172a;
+        background:#eef2f7;
+        border:1px solid #cfd3da;
+        white-space:nowrap;          /* 徽标整体保持一行，依赖父容器换行 */
+        line-height:1;               /* 避免大行高导致视觉溢出 */
+        flex: 0 0 auto;              /* 不挤压标题文字，必要时换行 */
+        max-width: 100%;
+      }
+      .metric-label .src-badge{ flex: 0 0 auto; }
       .src-badge .dot{ width:6px; height:6px; border-radius:50%; background:#64748b }
+
+      /* 容器较窄时进一步收紧徽标 */
+      @media (max-width: 768px){
+        .metric-label{ gap:6px }
+        .metric-label .src-badge{ font-size:0.85em; padding:0.18em 0.5em }
+      }
 
       /* 指标方向提示 */
       .dir{font-size:10px; color:#64748b; margin-left:6px; padding:1px 6px; border:1px solid #dfe3ea; border-radius:999px; background:#f8fafc; white-space:nowrap}
@@ -907,16 +934,16 @@
                 <div class="metric-value" id="decBeROAS">—</div>
               </div>
               <div class="metric-card core-card">
-                <div class="metric-label">最大可承受CPC <span class="dir up">越高越好</span><span class="src-badge" id="decMaxCPCSrc"><span class="dot"></span>来源</span></div>
+                <div class="metric-label">最大可承受CPC（受模拟CVR影响） <span class="dir up">越高越好</span><span class="src-badge" id="decMaxCPCSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decMaxCPC">—</div>
+              </div>
+              <div class="metric-card core-card">
+                <div class="metric-label">最大可承受广告占比（按所选口径） <span class="dir down">越低越好</span><span class="src-badge" id="decMaxAdRateSrc"><span class="dot"></span>来源</span></div>
+                <div class="metric-value" id="decMaxAdRate">—</div>
               </div>
               <div class="metric-card core-card">
                 <div class="metric-label">最大可承受CPM（需CTR） <span class="dir up">越高越好</span><span class="src-badge" id="decMaxCPMSrc"><span class="dot"></span>来源</span></div>
                 <div class="metric-value" id="decMaxCPM">—</div>
-              </div>
-              <div class="metric-card core-card">
-                <div class="metric-label">CPC安全边际 <span class="dir up">越高越安全</span><span class="src-badge" id="decCPCSafetySrc"><span class="dot"></span>来源</span></div>
-                <div class="metric-value" id="decCPCSafetyMargin">—</div>
               </div>
             </div>
 
@@ -1468,7 +1495,21 @@
         const cost  = hasSingleCost  ? p.singleCost  : (hasMultiCost  ? tierCosts[0]  : NaN);
         setInputs({ price, cost, rr: p.returnRate });
       }
-      if(!initial) render();
+      // 刷新左侧与右侧（无论是否初始还原，都刷新，避免决策面板未更新）
+      render();
+      const activeTabBtn = document.querySelector('.tab-btn.active');
+      const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'visualization';
+      if (activeTab === 'decision') {
+        updateDecisionDisplay();
+      } else if (activeTab === 'analysis') {
+        simulate();
+      } else if (activeTab === 'price') {
+        renderPriceSim();
+      } else if (activeTab === 'tax') {
+        renderTaxSim();
+      } else if (activeTab === 'cost') {
+        renderCostSim();
+      }
     }
 
     // 保存参数到本地存储
@@ -1840,8 +1881,7 @@
 
       // 迷你推演→不同广告占比下的利润率变化：不同广告占比下的利润率
       // —— 投放决策tab核心指标/即时对照/目标达成分析区渲染 —— //
-      // 1. 核心指标：BE-CPA, BE-ROAS, Max CPC, Max CPM, CPC安全边际
-      // (已保留原有id decBeCPA, decBeROAS, decMaxCPC, decMaxCPM, decCPCSafetyMargin)
+      // 1. 核心指标：BE-CPA, BE-ROAS, Max CPC, 最大可承受广告占比, Max CPM
       // 2. 即时对照：合并CPA/ROAS为paired卡片
       //    - decPairedCPA, decPairedROAS
       //    - 投1元净利 decProfitPerAdYuan
@@ -1860,14 +1900,14 @@
       setSrc('decBeCPASrc', `参数输入｜${aovNote}`);
       setSrc('decBeROASSrc', `参数输入｜${basisNote}`);
       setSrc('decMaxCPCSrc', `参数输入｜${aovNote}`);
-      setSrc('decMaxCPMSrc', decBuyMode==='cpm' ? `参数输入｜${aovNote}｜需CTR:${num($('decCTR')?.value).toFixed(2)}%` : `参数输入｜${aovNote}｜CTR参与`);
-      setSrc('decCPCSafetySrc', `参数输入＋CPC/CVR模拟`);
+      setSrc('decMaxCPMSrc', decBuyMode==='cpm' ? `参数输入｜${aovNote}｜需CTR:${num($('decCTR')?.value).toFixed(2)}%` :`参数输入｜${aovNote}`);
+      setSrc('decMaxAdRateSrc', `参数输入｜${basisNote}`);
 
       // B) 即时对照来源
-      setSrc('decPairedCPASrc', `CPC/CVR模拟（CPC:${fmt(cpcV,2)}｜CVR:${(cvrV*100).toFixed(2)}%）＋保本阈值`);
-      setSrc('decPairedROASSrc', `CPC/CVR模拟（口径:${(cpcAdv.basis==='gmv'?'GMV':'有效')}）＋保本阈值`);
+      setSrc('decPairedCPASrc', `CPC/CVR模拟（CPC:${fmt(cpcV,2)}｜CVR:${(cvrV*100).toFixed(2)}%）`);
+      setSrc('decPairedROASSrc', `CPC/CVR模拟（口径:${(cpcAdv.basis==='gmv'?'GMV':'有效')}）`);
       setSrc('decProfitPerAdSrc', `CPC/CVR模拟（由 CPA 推导）`);
-      setSrc('decisionSuggestionSrc', `规则：基于上方对比与安全边际`);
+      setSrc('decisionSuggestionSrc', `规则：基于上方对比与保本阈值`);
 
       // C) 目标达成分析来源
       const targetMarginPct = (to01($('decTargetMargin')?.value)*100).toFixed(2)+'%';
@@ -2257,10 +2297,7 @@
       // 读取利润率目标参数（用于可达退货率阈值计算）
       const targetMargin = to01(document.getElementById('decTargetMargin')?.value);
 
-      // —— 安全边际（CPC）/ 缺口（CVR/ROAS）—— 统一对保本基准 ——
-      // CPC安全边际：相对最大可承受CPC（越高越安全）
-      const cpcSafetyMargin = (cpc>0 && maxCPC>0) ? ((maxCPC - cpc) / maxCPC * 100) : NaN;
-
+      // —— 缺口（CVR/ROAS）—— 统一对保本基准 ——
       // 保本所需CVR：在当前CPC下达到保本的最低CVR
       const cvrRequired = (beCPA>0) ? (cpc / beCPA) : NaN;
 
@@ -2284,38 +2321,7 @@
 
       // 利润率目标分析卡片已删除（简化界面）
 
-      // —— 投放效率评分（更稳健的加权计算） —— 
-      let efficiencyScore = NaN;
-      if(cpa>0 && (isFinite(cpcSafetyMargin) || isFinite(cvrGapPct) || isFinite(roasGapPct))){
-        const parts = [];
-        let totalWeight = 0;
-        
-        // CPC安全边际：权重0.4（CPC是核心成本指标）
-        if (isFinite(cpcSafetyMargin)) {
-          const cpcScore = Math.max(0, 100 - Math.max(0, -cpcSafetyMargin)); // 低于目标更高分
-          parts.push(cpcScore * 0.4);
-          totalWeight += 0.4;
-        }
-        
-        // CVR缺口：权重0.3（转化率影响ROAS）
-        if (isFinite(cvrGapPct)) {
-          const cvrScore = Math.max(0, 100 - Math.max(0, cvrGapPct)); // 需要提升越少越高分
-          parts.push(cvrScore * 0.3);
-          totalWeight += 0.3;
-        }
-        
-        // ROAS缺口：权重0.3（ROAS是最终效果指标）
-        if (isFinite(roasGapPct)) {
-          const roasScore = Math.max(0, 100 - Math.max(0, roasGapPct));
-          parts.push(roasScore * 0.3);
-          totalWeight += 0.3;
-        }
-        
-        // 加权平均
-        if (totalWeight > 0) {
-          efficiencyScore = Math.round(parts.reduce((a, b) => a + b, 0) / totalWeight);
-        }
-      }
+      // （简化：移除CPC安全边际与效率评分）
 
       // —— 保本达成度 —— 
       const cpcAchievement   = (cpc>0 && maxCPC>0) ? Math.min(100, (maxCPC/cpc)*100) : NaN; // CPC越低越好
@@ -2337,6 +2343,8 @@
         document.getElementById('decBeROAS').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
         document.getElementById('decMaxCPC').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
         document.getElementById('decMaxCPM').innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
+        const maxAdRateEl = document.getElementById('decMaxAdRate');
+        if (maxAdRateEl) maxAdRateEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
       } else {
         document.getElementById('decBeCPA').innerHTML = (isFinite(beCPA) && beCPA > 0) ? (showYuan(beCPA) + 
           '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
@@ -2349,6 +2357,9 @@
         
         document.getElementById('decMaxCPM').innerHTML = (isFinite(maxCPM) && maxCPM > 0) ? (showYuan(maxCPM) + 
           '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>') : '—';
+        const maxAdRate = (document.getElementById('decBasis')?.value||'effective')==='gmv' ? base.adRateBE_gmv : base.adRateBE_effective;
+        const maxAdRateEl = document.getElementById('decMaxAdRate');
+        if (maxAdRateEl) maxAdRateEl.textContent = isFinite(maxAdRate) ? (maxAdRate*100).toFixed(2) + '%' : '—';
       }
 
       // 注意：decCPA已经被合并到decPairedCPA中，这里不再需要单独处理
@@ -2392,22 +2403,7 @@
       sugEl.textContent = suggestion;
       sugEl.style.color = isSafe? 'var(--ok)':'var(--bad)';
 
-      // 输出新增决策分析指标（带颜色和提示）
-      const cpcSafetyEl = document.getElementById('decCPCSafetyMargin');
-      if (!isSellingPriceValid) {
-        // 售价无效时显示"—"并添加提示
-        cpcSafetyEl.innerHTML = '— <span style="color: #ff6b6b; font-size: 10px; margin-left: 4px;">⚠️ 请先填写有效售价</span>';
-        cpcSafetyEl.style.color = 'var(--muted)';
-        cpcSafetyEl.title = '售价无效，无法计算';
-      } else if (isFinite(cpcSafetyMargin)) {
-        cpcSafetyEl.textContent = showPercent(cpcSafetyMargin);
-        cpcSafetyEl.style.color = cpcSafetyMargin >= 0 ? 'var(--ok)' : 'var(--bad)';
-        cpcSafetyEl.title = cpcSafetyMargin >= 0 ? '低于最大可承受CPC，安全' : '高于最大可承受CPC，有风险';
-      } else {
-        cpcSafetyEl.textContent = '—';
-        cpcSafetyEl.style.color = '';
-        cpcSafetyEl.title = '';
-      }
+      // （简化：移除CPC安全边际输出）
 
       // 注意：decCVRImprovement和decROASImprovement元素已经被删除
       // 这些指标现在通过其他方式显示，这里不再需要单独处理
