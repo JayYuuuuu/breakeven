@@ -593,6 +593,33 @@
           <button id="resetBtn" class="reset-btn">重置</button>
         </h2>
         <div class="content" id="paramForm">
+          <!-- 示例商品引用 -->
+          <div class="block">
+            <div class="pill">示例商品</div>
+            <div class="grid-4">
+              <div>
+                <label>平台筛选</label>
+                <select id="examplePlatformFilter">
+                  <option value="">全部平台</option>
+                </select>
+              </div>
+              <div>
+                <label>搜索（名称/货号）</label>
+                <input id="exampleSearch" type="text" placeholder="输入关键词过滤" />
+              </div>
+              <div class="col-span-2">
+                <label>从示例数据选择（自动填充售价/进货价/退货率）</label>
+                <select id="exampleProductSelect">
+                  <option value="">— 选择示例商品 —</option>
+                </select>
+              </div>
+              <div id="exampleTierWrap" class="col-span-2" style="display:none">
+                <label id="exampleTierLabel">选择档位</label>
+                <select id="exampleTierSelect"></select>
+              </div>
+            </div>
+          </div>
+
           <!-- 重要参数 -->
           <div class="block">
             <div class="pill">重要参数</div>
@@ -1097,7 +1124,7 @@
   // list price helpers
   yuanToCents, centsToYuan, solveListPriceCents, convertMarginPercent
  } from './engine.js';
-    import { SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
+    import { SYSTEM_PARAMS_EXAMPLE, getProductExamples } from './product_examples.js';
 
     // —— 工具 ——
     const $ = (id)=>document.getElementById(id);
@@ -1234,8 +1261,167 @@
       // 标价计算（到手价 ↔ 标价）
       lpData: 'metro_lpData',
       // 当前选中的tab
-      currentTab: 'metro_currentTab'
+      currentTab: 'metro_currentTab',
+      // 示例商品选择记忆
+      exampleSku: 'metro_exampleSku',
+      exampleTierIndex: 'metro_exampleTierIndex',
+      examplePlatform: 'metro_examplePlatform',
+      exampleQuery: 'metro_exampleQuery'
     };
+
+    // —— 示例商品引用：构建与应用 ——
+    let EXAMPLES = [];
+    function uniquePreserveOrder(arr){
+      const s = new Set();
+      const out = [];
+      arr.forEach(v=>{ if(v!=null && !s.has(v)){ s.add(v); out.push(v); } });
+      return out;
+    }
+    function buildExampleLabel(p){
+      const pricePart = (Array.isArray(p.tierPrices) && p.tierPrices.length)
+        ? `售价[${p.tierPrices.map(v=>Number(v).toFixed(2)).join(' / ')}]`
+        : (p.singlePrice>0? `售价${Number(p.singlePrice).toFixed(2)}` : '售价—');
+      const costPart = (Array.isArray(p.tierCosts) && p.tierCosts.length)
+        ? `进货[${p.tierCosts.map(v=>Number(v).toFixed(2)).join(' / ')}]`
+        : (p.singleCost>0? `进货${Number(p.singleCost).toFixed(2)}` : '进货—');
+      const rr = (p.returnRate!=null && isFinite(p.returnRate)) ? `${(p.returnRate*100).toFixed(2)}%` : '—';
+      return `${p.platform || ''} · ${p.name} (${p.sku})｜${pricePart}｜${costPart}｜退货率 ${rr}`;
+    }
+    function populateExampleFilters(){
+      const pf = document.getElementById('examplePlatformFilter');
+      if(!pf) return;
+      // 生成平台选项
+      const plats = uniquePreserveOrder(EXAMPLES.map(p=>p.platform).filter(Boolean));
+      const savedPlatform = loadFromStorage(STORAGE_KEYS.examplePlatform, '');
+      const current = pf.value || savedPlatform || '';
+      pf.innerHTML = '<option value="">全部平台</option>' + plats.map(pl=>`<option value="${pl}">${pl}</option>`).join('');
+      pf.value = plats.includes(current) ? current : '';
+      // 恢复搜索框
+      const qEl = document.getElementById('exampleSearch');
+      if(qEl){ qEl.value = loadFromStorage(STORAGE_KEYS.exampleQuery, ''); }
+    }
+    function getFilters(){
+      const pf = document.getElementById('examplePlatformFilter');
+      const qEl = document.getElementById('exampleSearch');
+      const platform = (pf && pf.value) || '';
+      const query = (qEl && qEl.value || '').trim().toLowerCase();
+      return { platform, query };
+    }
+    function filteredExamples(){
+      const { platform, query } = getFilters();
+      return EXAMPLES.filter(p=>{
+        const byPlat = !platform || (p.platform===platform);
+        const text = `${p.name||''} ${p.sku||''} ${p.platform||''}`.toLowerCase();
+        const byQuery = !query || text.includes(query);
+        return byPlat && byQuery;
+      });
+    }
+    function populateExampleSelector(){
+      if(EXAMPLES.length===0){ try{ EXAMPLES = getProductExamples(); }catch(e){ EXAMPLES = []; } }
+      populateExampleFilters();
+      const sel = document.getElementById('exampleProductSelect');
+      if(!sel) return;
+      const list = filteredExamples();
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">— 选择示例商品 —</option>' +
+        list.map(p=>`<option value="${p.sku}">${buildExampleLabel(p)}</option>`).join('');
+      // 优先保留当前或存储中的选择（若仍在过滤结果中）
+      const savedSku = loadFromStorage(STORAGE_KEYS.exampleSku, '');
+      const target = prev || savedSku;
+      const exists = list.some(p=>p.sku===target);
+      if(exists){ sel.value = target; applyExampleSelection(target, /*initial*/true); }
+      else { sel.value = ''; showTierUI(false); }
+    }
+    function setInputs({ price, cost, rr }){
+      const set = (id, val, storageKey)=>{ const el = document.getElementById(id); if(el){ el.value = val; if(storageKey) saveToStorage(storageKey, val); } };
+      if(isFinite(price)) set('sellingPrice', Number(price).toFixed(2), STORAGE_KEYS.sellingPrice);
+      if(isFinite(cost))  set('costPrice', Number(cost).toFixed(2), STORAGE_KEYS.costPrice);
+      if(isFinite(rr))    set('returnRate', (Number(rr)*100).toFixed(2), STORAGE_KEYS.returnRate);
+    }
+    function showTierUI(show, label){
+      const wrap = document.getElementById('exampleTierWrap');
+      const lab  = document.getElementById('exampleTierLabel');
+      const sel  = document.getElementById('exampleTierSelect');
+      if(!wrap||!sel||!lab) return;
+      wrap.style.display = show? '' : 'none';
+      if(label) lab.textContent = label;
+      if(!show) sel.innerHTML='';
+    }
+    function applyExampleSelection(sku, initial=false){
+      const p = EXAMPLES.find(x=>x.sku===sku);
+      saveToStorage(STORAGE_KEYS.exampleSku, sku||'');
+      if(!p){ showTierUI(false); return; }
+      const tierPrices = Array.isArray(p.tierPrices) ? p.tierPrices.filter(v=>Number(v)>0) : [];
+      const tierCosts  = Array.isArray(p.tierCosts)  ? p.tierCosts.filter(v=>Number(v)>0)  : [];
+      const hasMultiPrice = tierPrices.length>0;
+      const hasMultiCost  = tierCosts.length>0;
+      const hasSinglePrice = Number(p.singlePrice)>0;
+      const hasSingleCost  = Number(p.singleCost)>0;
+
+      const tierSel = document.getElementById('exampleTierSelect');
+      // 1) 多售价 × 多进货价：档位一一对应
+      if(hasMultiPrice && hasMultiCost && tierPrices.length===tierCosts.length){
+        showTierUI(true, '选择对应档位（售价/进货价）');
+        tierSel.innerHTML = tierPrices.map((sp,i)=>{
+          const cp = tierCosts[i];
+          return `<option value="${i}">档${i+1}｜售价 ${Number(sp).toFixed(2)} / 进货 ${Number(cp).toFixed(2)}</option>`;
+        }).join('');
+        const savedIdx = parseInt(loadFromStorage(STORAGE_KEYS.exampleTierIndex, '0'))||0;
+        const idx = Math.min(Math.max(savedIdx,0), tierPrices.length-1);
+        tierSel.value = String(idx);
+        const sp = tierPrices[idx]; const cp = tierCosts[idx];
+        setInputs({ price: sp, cost: cp, rr: p.returnRate });
+        tierSel.onchange = ()=>{
+          const i = parseInt(tierSel.value)||0;
+          saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
+          setInputs({ price: tierPrices[i], cost: tierCosts[i], rr: p.returnRate });
+          render();
+        };
+      }
+      // 2) 单售价 × 多进货价：选择进货价档位
+      else if(hasSinglePrice && hasMultiCost){
+        showTierUI(true, '选择进货价档位');
+        tierSel.innerHTML = tierCosts.map((cp,i)=>`<option value="${i}">档${i+1}｜进货 ${Number(cp).toFixed(2)}</option>`).join('');
+        const savedIdx = parseInt(loadFromStorage(STORAGE_KEYS.exampleTierIndex, '0'))||0;
+        const idx = Math.min(Math.max(savedIdx,0), tierCosts.length-1);
+        tierSel.value = String(idx);
+        setInputs({ price: p.singlePrice, cost: tierCosts[idx], rr: p.returnRate });
+        tierSel.onchange = ()=>{
+          const i = parseInt(tierSel.value)||0;
+          saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
+          setInputs({ price: p.singlePrice, cost: tierCosts[i], rr: p.returnRate });
+          render();
+        };
+      }
+      // 3) 多售价 × 单进货价：选择售价档位
+      else if(hasMultiPrice && hasSingleCost){
+        showTierUI(true, '选择售价档位');
+        tierSel.innerHTML = tierPrices.map((sp,i)=>`<option value="${i}">档${i+1}｜售价 ${Number(sp).toFixed(2)}</option>`).join('');
+        const savedIdx = parseInt(loadFromStorage(STORAGE_KEYS.exampleTierIndex, '0'))||0;
+        const idx = Math.min(Math.max(savedIdx,0), tierPrices.length-1);
+        tierSel.value = String(idx);
+        setInputs({ price: tierPrices[idx], cost: p.singleCost, rr: p.returnRate });
+        tierSel.onchange = ()=>{
+          const i = parseInt(tierSel.value)||0;
+          saveToStorage(STORAGE_KEYS.exampleTierIndex, String(i));
+          setInputs({ price: tierPrices[i], cost: p.singleCost, rr: p.returnRate });
+          render();
+        };
+      }
+      // 4) 单售价 × 单进货价：直接填充
+      else if(hasSinglePrice && hasSingleCost){
+        showTierUI(false);
+        setInputs({ price: p.singlePrice, cost: p.singleCost, rr: p.returnRate });
+      }
+      // 5) 其他情况：根据可用字段尽量填充
+      else{
+        showTierUI(false);
+        const price = hasSinglePrice ? p.singlePrice : (hasMultiPrice ? tierPrices[0] : NaN);
+        const cost  = hasSingleCost  ? p.singleCost  : (hasMultiCost  ? tierCosts[0]  : NaN);
+        setInputs({ price, cost, rr: p.returnRate });
+      }
+      if(!initial) render();
+    }
 
     // 保存参数到本地存储
     function saveToStorage(key, value) {
@@ -2543,6 +2729,16 @@
           fillDefaults();
           updateAdModeUI();
           render();
+
+          // 同步复位示例筛选与选择
+          const platformSel = document.getElementById('examplePlatformFilter');
+          const queryEl = document.getElementById('exampleSearch');
+          const exampleSel = document.getElementById('exampleProductSelect');
+          if (platformSel) { platformSel.value = ''; saveToStorage(STORAGE_KEYS.examplePlatform, ''); }
+          if (queryEl) { queryEl.value = ''; saveToStorage(STORAGE_KEYS.exampleQuery, ''); }
+          if (exampleSel) { exampleSel.value = ''; saveToStorage(STORAGE_KEYS.exampleSku, ''); saveToStorage(STORAGE_KEYS.exampleTierIndex, '0'); }
+          showTierUI(false);
+          populateExampleSelector();
           
           // 刷新当前激活Tab的右侧视图
           const activeTabBtn = document.querySelector('.tab-btn.active');
@@ -2584,6 +2780,31 @@
         });
       }
       
+      // 示例商品：事件绑定与初始化（平台筛选 + 搜索 + 选择）
+      const exampleSel = document.getElementById('exampleProductSelect');
+      if(exampleSel){
+        exampleSel.addEventListener('change', ()=>{
+          applyExampleSelection(exampleSel.value);
+        });
+      }
+      const platformSel = document.getElementById('examplePlatformFilter');
+      if(platformSel){
+        platformSel.addEventListener('change', ()=>{
+          saveToStorage(STORAGE_KEYS.examplePlatform, platformSel.value||'');
+          populateExampleSelector();
+        });
+      }
+      const queryEl = document.getElementById('exampleSearch');
+      if(queryEl){
+        queryEl.addEventListener('input', ()=>{
+          saveToStorage(STORAGE_KEYS.exampleQuery, queryEl.value||'');
+          populateExampleSelector();
+        });
+      }
+      // 首次填充
+      try{ EXAMPLES = getProductExamples(); }catch(e){ EXAMPLES = []; }
+      populateExampleSelector();
+
       // 推演按钮事件
       const simBtn = document.getElementById('simBtn');
       if (simBtn) simBtn.addEventListener('click', simulate);
