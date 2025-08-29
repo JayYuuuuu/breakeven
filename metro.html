@@ -130,6 +130,24 @@
     input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:22px; font-weight:600; outline:none}
     input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
     .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+    /* ===== iPad Pro 11" (1210×834) 专项优化 ===== */
+    body.ipad-pro-11 .wrap{ grid-template-columns: 40% 58%; gap:12px }
+    body.ipad-pro-11 header{ padding:16px 16px 0 }
+    body.ipad-pro-11 main{ padding:16px; gap:12px }
+    body.ipad-pro-11 .card h2{ padding:12px 12px; font-size:18px; min-height:48px }
+    body.ipad-pro-11 .content{ padding:12px }
+    body.ipad-pro-11 label{ font-size:11px }
+    body.ipad-pro-11 input, body.ipad-pro-11 select{ padding:10px 9px; font-size:20px; border-radius:10px }
+    body.ipad-pro-11 .switch{ padding:4px }
+    body.ipad-pro-11 .kpi .val{ font-size:18px }
+    body.ipad-pro-11 .mini-grid{ gap:6px }
+    body.ipad-pro-11 .tab-buttons .tab-btn{ padding:6px 10px; font-size:12px }
+    body.ipad-pro-11 .derivation-controls{ gap:12px; padding:12px }
+    body.ipad-pro-11 .derivation-controls input[type="number"]{ width:56px; padding:5px 6px; font-size:12px }
+    body.ipad-pro-11 .big-input{ font-size:42px; padding:16px 14px; border-radius:12px }
+    body.ipad-pro-11 .big-output{ font-size:42px; padding:16px 14px; border-radius:12px }
+    body.ipad-pro-11 .lp-compare{ padding:8px 10px; margin:6px 0 8px }
     .pill{
       display:inline-flex;
       align-items:center;
@@ -2888,8 +2906,18 @@
     fillDefaults();
     bind();
     render();
+    // 设备识别：iPad Pro 11"（1210×834 或 834×1210）
+    function setDeviceClass(){
+      const w = window.innerWidth, h = window.innerHeight;
+      const matchLandscape = Math.abs(w - 1210) <= 40 && Math.abs(h - 834) <= 40;
+      const matchPortrait  = Math.abs(w - 834)  <= 40 && Math.abs(h - 1210) <= 40;
+      if (matchLandscape || matchPortrait){ document.body.classList.add('ipad-pro-11'); }
+      else { document.body.classList.remove('ipad-pro-11'); }
+    }
+
     adjustLayoutForHeader();
-    window.addEventListener('resize', adjustLayoutForHeader);
+    setDeviceClass();
+    window.addEventListener('resize', ()=>{ adjustLayoutForHeader(); setDeviceClass(); });
     
     // 初始化tab功能（包括状态记忆）
     initTabs();
