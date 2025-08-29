@@ -1979,18 +1979,18 @@
         // 动态更新卡片标题，显示实际的目标利润率
         const labelEl = document.getElementById('decReturnAndSensitivityLabel');
         if (labelEl) {
-          labelEl.textContent = `可承受广告占比（${chosenBasis==='gmv'?'GMV':'有效'}，目标:${(targetMargin*100).toFixed(1)}%利润率）`;
+          labelEl.textContent = `退货率和广告占比阈值（${chosenBasis==='gmv'?'GMV':'有效'}，目标:${(targetMargin*100).toFixed(1)}%利润率）`;
         }
 
         box.innerHTML = `
           <div>
-            退货率：${pct(p.returnRate)} / ${isFinite(allowedRR) ? pct(allowedRR) : '—'}
+            退货率（目标｜可承受）：${pct(p.returnRate)} / ${isFinite(allowedRR) ? pct(allowedRR) : '—'}
             <span class="delta ${isFinite(rrDelta) ? (rrDelta<=0 ? 'good' : 'bad') : ''}">
               ${isFinite(rrDelta) ? ((rrDelta>=0?'+':'') + rrDelta.toFixed(2) + 'pp') : ''}
             </span>
           </div>
           <div>
-            可承受广告占比（${chosenBasis==='gmv'?'GMV':'有效'}，目标${(targetMargin*100).toFixed(1)}%利润率）：
+            可承受广告占比（目标｜可承受）：
             ${isFinite(curRateChosen) ? pct(curRateChosen) : '—'} / 
             <span title="当目标=0%时，与保本广告占比（${chosenBasis==='gmv'?'GMV':'有效'}）一致">
               ${isFinite(allowedAdRate) ? pct(allowedAdRate) : '—'}
@@ -2014,8 +2014,9 @@
 
         const maxCPCVal = (isFinite(curCVR) && curCVR>0 && isFinite(beCPAValLocal))
           ? computeMaxCPC(beCPAValLocal, curCVR) : NaN;              // 修正：别再用 BE-CPA 直接对比
-        const needCVRVal = (isFinite(curCPC) && isFinite(beCPAValLocal) && beCPAValLocal>0)
-          ? (curCPC / beCPAValLocal) : NaN;                          // 边界 CVR_min = CPC / BE-CPA
+        // 统一使用 computeCPAMetrics 计算链路（避免手动计算边界CVR）
+        const needCVRPack = computeCPAMetrics(p, { cpc: curCPC, cvr: 0.01 }); // 用最小CVR值计算
+        const needCVRVal = needCVRPack.cpa > 0 ? (curCPC / needCVRPack.cpa) : NaN;  // 边界 CVR_min = CPC / BE-CPA
 
         const cpcHtml  = renderPairedKPI({ actual: curCPC,    be: maxCPCVal, unit:'元', goodWhen:'lte' });
         const cvrHtml  = renderPairedKPI({ actual: curCVR,    be: needCVRVal, unit:'',   goodWhen:'gte' });
@@ -2246,7 +2247,9 @@
         const ctr = to01(document.getElementById('decCTR')?.value);
         cpc = cpcFromCpmCtr(cpm, ctr);
       }
-      const cpa = (cvr>0 && cpc>0)? cpc / cvr : 0;
+      // 统一使用 computeCPAMetrics 计算链路（避免手动计算CPA）
+      const cpaPack = computeCPAMetrics(p, { cpc, cvr });
+      const cpa = cpaPack.cpa;
       
       // 关键参数读取完成
 
@@ -2281,8 +2284,8 @@
     if(cpa>0 && isSellingPriceValid){
       // 统一使用 computeCPAMetrics 计算链路（避免事件驱动的中间变量）
       roas = roasFromCPA({ basis, aov: effAOV, r: base.r, cpa });
-      const pack = computeCPAMetrics(p, { cpc, cvr });
-      profitPerAdYuanValue = pack.roiPerAdYuan;
+      const profitPack = computeCPAMetrics(p, { cpc, cvr });
+      profitPerAdYuanValue = profitPack.roiPerAdYuan;
     }
 
       // 安全性&建议
@@ -2295,7 +2298,9 @@
 
       // —— 缺口（CVR/ROAS）—— 统一对保本基准 ——
       // 保本所需CVR：在当前CPC下达到保本的最低CVR
-      const cvrRequired = (beCPA>0) ? (cpc / beCPA) : NaN;
+      // 统一使用 computeCPAMetrics 计算链路（避免手动计算边界CVR）
+      const cvrPack = computeCPAMetrics(p, { cpc, cvr: 0.01 }); // 用最小CVR值计算
+      const cvrRequired = cvrPack.cpa > 0 ? (cpc / cvrPack.cpa) : NaN;
 
       // CVR缺口：需要提升多少比例才能达到保本（≤0表示已达标）
       const cvrGapPct = (isFinite(cvrRequired) && cvr>=0)
@@ -2431,7 +2436,9 @@
         }else{ // none -> 使用当前CPA（与即时诊断一致）
           const cpc = num($('cpc').value);
           const cvr = to01($('cvr').value);
-          adCostGiven = (cpc>0 && cvr>0) ? cpc/cvr : 0;
+          // 统一使用 computeCPAMetrics 计算链路（避免手动计算CPA）
+          const adCostPack = computeCPAMetrics(p, { cpc, cvr });
+          adCostGiven = adCostPack.cpa;
         }
         
         // 调试信息：验证修复效果
@@ -2531,7 +2538,9 @@
           rp0 = (basisForSens==='gmv')? rates.gmv : rates.effective;
         } else { // none -> 由当前CPA折算
           const cpc0 = num($('cpc').value); const cvr0 = to01($('cvr').value);
-          const cpa0 = (cpc0>0 && cvr0>0)? cpc0/cvr0 : 0;
+          // 统一使用 computeCPAMetrics 计算链路（避免手动计算CPA）
+          const cpa0Pack = computeCPAMetrics(p, { cpc: cpc0, cvr: cvr0 });
+          const cpa0 = cpa0Pack.cpa;
           const rates = adAmountToRates(p, cpa0);
           rp0 = (basisForSens==='gmv')? rates.gmv : rates.effective;
         }
@@ -2623,7 +2632,9 @@
           adCostForSens = Math.max(0, adv.adCost);
         }else{
           const cpc0 = num($('cpc').value); const cvr0 = to01($('cvr').value);
-          adCostForSens = (cpc0>0 && cvr0>0) ? cpc0/cvr0 : 0;
+          // 统一使用 computeCPAMetrics 计算链路（避免手动计算CPA）
+          const adCostForSensPack = computeCPAMetrics(p, { cpc: cpc0, cvr: cvr0 });
+          adCostForSens = adCostForSensPack.cpa;
         }
 
 
