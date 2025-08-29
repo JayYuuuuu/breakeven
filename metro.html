@@ -2075,13 +2075,13 @@
 
         box.innerHTML = `
           <div>
-            退货率（目标｜可承受）：${pct(p.returnRate)} / ${isFinite(allowedRR) ? pct(allowedRR) : '—'}
+            退货率（设定｜可承受）：${pct(p.returnRate)} / ${isFinite(allowedRR) ? pct(allowedRR) : '—'}
             <span class="delta ${isFinite(rrDelta) ? (rrDelta<=0 ? 'good' : 'bad') : ''}">
               ${isFinite(rrDelta) ? ((rrDelta>=0?'+':'') + rrDelta.toFixed(2) + 'pp') : ''}
             </span>
           </div>
           <div>
-            可承受广告占比（目标｜可承受）：
+            可承受广告占比（设定｜可承受）：
             ${isFinite(curRateChosen) ? pct(curRateChosen) : '—'} / 
             <span title="当目标=0%时，与保本广告占比（${chosenBasis==='gmv'?'GMV':'有效'}）一致">
               ${isFinite(allowedAdRate) ? pct(allowedAdRate) : '—'}
