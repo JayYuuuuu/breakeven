@@ -979,20 +979,41 @@
         emitUpdate();
       }
 
+      function saveNoCommissionState(isActive, prevValue){
+        // 保存免佣状态到localStorage
+        saveKV('strategy_noCommission_active', isActive ? '1' : '0');
+        if (prevValue !== undefined) {
+          saveKV('strategy_noCommission_prev', prevValue);
+        }
+      }
+
       function updateToggleUI(){
         const v = (input.value||'').trim();
         const n = parseFloat(v.replace(/[^\d.\-]/g,''));
-        if (isFinite(n) && Math.abs(n) < 1e-9) btn.classList.add('on');
-        else btn.classList.remove('on');
+        if (isFinite(n) && Math.abs(n) < 1e-9) {
+          btn.classList.add('on');
+          // 同步保存状态
+          if (!btn.classList.contains('on')) {
+            saveNoCommissionState(true);
+          }
+        } else {
+          btn.classList.remove('on');
+          // 同步保存状态
+          if (btn.classList.contains('on')) {
+            saveNoCommissionState(false);
+          }
+        }
       }
 
       btn.addEventListener('click', ()=>{
         const active = btn.classList.contains('on');
         if (!active){
           // 记住当前作为“默认”，置0并高亮
-          btn.dataset.prev = input.value || loadKV(SK.platformRate||'strategy_platformRate','');
+          const prevValue = input.value || loadKV(SK.platformRate||'strategy_platformRate','');
+          btn.dataset.prev = prevValue;
           savePlatformRate('0');
           btn.classList.add('on');
+          saveNoCommissionState(true, prevValue);
         } else {
           // 恢复记忆值，若无则回系统默认
           let prev = btn.dataset.prev;
@@ -1000,14 +1021,37 @@
           savePlatformRate(prev);
           btn.classList.remove('on');
           delete btn.dataset.prev;
+          saveNoCommissionState(false);
         }
       });
 
       // 输入变更时，同步按钮状态
       input.addEventListener('input', updateToggleUI);
       input.addEventListener('change', updateToggleUI);
-      // 初始同步
+      
+      // 页面加载时恢复免佣状态
+      function restoreNoCommissionState(){
+        const isActive = loadKV('strategy_noCommission_active', '0') === '1';
+        const prevValue = loadKV('strategy_noCommission_prev', '');
+        
+        if (isActive) {
+          // 恢复免佣状态
+          btn.classList.add('on');
+          btn.dataset.prev = prevValue || (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1);
+          // 如果当前值不是0，则设置为0
+          const currentValue = (input.value||'').trim();
+          const currentNum = parseFloat(currentValue.replace(/[^\d.\-]/g,''));
+          if (!isFinite(currentNum) || Math.abs(currentNum) >= 1e-9) {
+            savePlatformRate('0');
+          }
+        } else {
+          btn.classList.remove('on');
+        }
+      }
+      
+      // 初始同步和恢复状态
       updateToggleUI();
+      restoreNoCommissionState();
     })();
 
     // 分段控制绑定：点击切换“跟随/有效/GMV”，不遮挡标题
