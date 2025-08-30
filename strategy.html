@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>投放策略（重构版）</title>
+  <style>
+    :root{
+      --bg:#F5F5F7; --card:#FFFFFF; --ink:#111111; --muted:#6e6e73; --accent:#007aff;
+      --ok:#34c759; --bad:#ff3b30; --warn:#ff9f0a; --grid:12px; --radius:14px;
+      --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Segoe UI,Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans)}
+    header{padding:16px 20px 0}
+    h1{margin:0; font-size:22px}
+    .sub{color:var(--muted); font-size:13px; margin-top:4px}
+    main{padding:16px 20px}
+    .wrap{display:grid; grid-template-columns: 36% 64%; gap:16px; align-items:start}
+    @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
+
+    .card{background:var(--card); border:1px solid #d2d2d7; border-radius:var(--radius); box-shadow:0 1px 2px rgba(0,0,0,.06)}
+    .card h2{margin:0; font-size:18px; padding:12px 14px; border-bottom:1px solid #e5e5ea; color:#111; background:linear-gradient(180deg,#fafafa,#fff); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius); display:flex; align-items:center; justify-content:space-between}
+    .content{padding:14px}
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+    .grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+    .col-span-2{grid-column: span 2}
+    label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
+    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:10px 10px; font-size:18px; font-weight:600; outline:none}
+    input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+    .hint{font-size:12px; color:var(--muted); margin-top:6px}
+
+    /* 左栏 sticky */
+    .wrap > section:first-child{ position:sticky; top:16px; height: calc(100dvh - 32px); overflow:auto }
+
+    /* 右栏三栏容器 */
+    .three-cols{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
+    @media (max-width: 1100px){ .three-cols{ grid-template-columns: 1fr } }
+
+    /* MetricCard */
+    .metric-card{border:1px solid #e5e5ea; border-radius:12px; padding:12px; background:#fff}
+    .metric-head{padding:0}
+    .head-grid{display:grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap:6px 8px; align-items:center}
+    .metric-title{font-size:13px; font-weight:700; line-height:1.3}
+    .metric-sub{font-size:11px; color:var(--muted)}
+    .metric-ctrl{display:flex; align-items:center; gap:6px; justify-self:end}
+    .metric-ctrl .seg{white-space:nowrap}
+    .badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:11px; background:#eef2f7; border:1px solid #cfd3da; color:#0f172a}
+    .i-btn{background:none; border:none; color:#64748b; cursor:pointer; font-size:14px}
+    .metric-body{margin-top:8px; display:grid; gap:6px}
+    .metric-row{display:flex; align-items:center; justify-content:space-between; font-size:14px}
+    .val{font-family:var(--mono); font-weight:700}
+    .ok{color:var(--ok)} .bad{color:var(--bad)}
+    .muted{color:var(--muted)}
+    .tiny{font-size:11px}
+    .chip{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; border:1px solid #e5e5ea; font-size:11px; background:#fafafa}
+    .chip.good{border-color:#b7eb8f; background:#f6ffed; color:#237804}
+    .chip.bad{border-color:#ffa39e; background:#fff1f0; color:#a8071a}
+
+    /* Modal */
+    dialog{border:none; border-radius:12px; max-width:640px; width:calc(100% - 32px);}
+    dialog::backdrop{background:rgba(0,0,0,.25)}
+    .trail{font-size:13px; line-height:1.6}
+    .trail .code{font-family:var(--mono); background:#f3f4f6; padding:0 4px; border-radius:4px}
+    /* 低存在感重置按钮 */
+    .reset-btn{ background:none; border:none; color:var(--muted); font-size:11px; cursor:pointer; text-decoration:underline; padding:0 6px }
+    .reset-btn:hover{ color:var(--ink) }
+    /* 微型分段选择（不遮挡文字） */
+    .seg{ display:inline-flex; align-items:center; border:1px solid #d2d2d7; border-radius:999px; overflow:hidden; background:#fff }
+    .seg button{ border:0; background:transparent; padding:4px 8px; font-size:11px; color:#111; cursor:pointer }
+    .seg button.on{ background:#f2f2f7; font-weight:700 }
+    .seg.seg-tiny button{ padding:2px 6px; font-size:11px }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>投放策略（重构版）</h1>
+    <div class="sub">输入参数 → 三栏卡片化展示：当前值 / 极限阈值 / 是否达标 / 口径徽章 / 逐项演算</div>
+  </header>
+  <main>
+    <div class="wrap">
+      <!-- 左：参数输入 / 全局假设 -->
+      <section class="card">
+        <h2>
+          <span>参数与假设</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="hint">口径仅影响展示与计算，不改变引擎口径</span>
+            <button id="resetBtn" class="reset-btn" type="button" title="恢复为默认参数">重置</button>
+          </span>
+        </h2>
+        <div class="content">
+          <!-- 示例商品选择（简版） -->
+          <div class="pill">示例商品选择</div>
+          <div class="grid-4" style="margin-bottom:10px">
+            <div>
+              <label>平台筛选</label>
+              <select id="exPlatform"></select>
+            </div>
+            <div>
+              <label>搜索（名称/货号）</label>
+              <input id="exQuery" type="text" placeholder="输入关键词过滤" />
+            </div>
+            <div class="col-span-2">
+              <label>从示例数据选择（自动填充售价/进货价/退货率）</label>
+              <select id="exSelect"><option value="">— 选择示例商品 —</option></select>
+            </div>
+            <div id="exTierWrap" class="col-span-2" style="display:none">
+              <label id="exTierLabel">选择档位</label>
+              <select id="exTier"></select>
+            </div>
+          </div>
+
+          <div class="grid-4">
+            <div>
+              <label>口径</label>
+              <select id="basis">
+                <option value="effective">有效营收</option>
+                <option value="gmv">GMV</option>
+              </select>
+            </div>
+            <div>
+              <label>售价/结算口径 AOV（¥）</label>
+              <input id="aov" type="text" inputmode="decimal" placeholder="使用售价" />
+            </div>
+            <div>
+              <label>连带购买率（%）</label>
+              <input id="bundleRate" type="text" inputmode="decimal" placeholder="0" />
+            </div>
+            <div>
+              <label>退货率（%）</label>
+              <input id="rr" type="text" inputmode="decimal" placeholder="0" />
+            </div>
+            <div>
+              <label>买量方式</label>
+              <select id="buyMode">
+                <option value="cpc">CPC</option>
+                <option value="cpm">CPM</option>
+              </select>
+            </div>
+            <div id="cpcRow">
+              <label>CPC（¥/点击）</label>
+              <div id="cpcWrap"><input id="cpc" type="text" inputmode="decimal" placeholder="2.50" /></div>
+            </div>
+            <div>
+              <label>CVR（%）</label>
+              <input id="cvr" type="text" inputmode="decimal" placeholder="15" />
+            </div>
+            <div id="cpmRow">
+              <label>CPM（¥/千次）</label>
+              <div id="cpmWrap"><input id="cpm" type="text" inputmode="decimal" placeholder="" /></div>
+            </div>
+            <div id="ctrRow">
+              <label>CTR（%）</label>
+              <div id="ctrWrap"><input id="ctr" type="text" inputmode="decimal" placeholder="" /></div>
+            </div>
+          </div>
+          <div class="hint">说明：AOV为空时使用商品售价；有效AOV = AOV × (1 + 连带率)。GMV口径：ROAS = (CVR × AOV_eff) / CPC；有效口径：ROAS = (CVR × AOV_eff × (1-RR)) / CPC。</div>
+
+          <!-- 售价/进货：一行2列 -->
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label>售价（¥）</label>
+              <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
+            </div>
+            <div>
+              <label>进货价（¥，不含税）</label>
+              <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
+            </div>
+          </div>
+          <!-- 其他参数：一行4列 -->
+          <div class="grid-4" style="margin-top:6px">
+            <div>
+              <label>佣金率（%）</label>
+              <input id="platformRate" type="text" inputmode="decimal" placeholder="5.5" />
+            </div>
+            <div>
+              <label>销项税率（%）</label>
+              <input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13" />
+            </div>
+            <div>
+              <label>商品进项税率（%）</label>
+              <input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13" />
+            </div>
+            <div>
+              <label>开票成本比例（%）</label>
+              <input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6" />
+            </div>
+            <div>
+              <label>服务费税率（%）</label>
+              <input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6" />
+            </div>
+            <div>
+              <label>物流费（¥）</label>
+              <input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8" />
+            </div>
+            <div>
+              <label>运费险（¥）</label>
+              <input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5" />
+            </div>
+            <div>
+              <label>其他成本（¥）</label>
+              <input id="otherCost" type="text" inputmode="decimal" placeholder="2.5" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右：三大栏卡片化展示 -->
+      <section class="card">
+        <h2>
+          <span>三栏结果（实时）</span>
+          <span class="hint">统一 calc:update 总线：任一参数变化即重算</span>
+        </h2>
+        <div class="content">
+          <div class="three-cols">
+            <!-- CPC 一栏 -->
+            <div>
+              <div class="metric-card">
+                <div class="metric-head head-grid">
+                  <div class="metric-title">当前 CPC（模拟）</div>
+                  <div class="metric-ctrl">
+                    <div class="seg seg-tiny" id="basis-cpc-now" role="group" aria-label="CPC口径">
+                      <button type="button" class="on" data-v="follow">跟随</button>
+                      <button type="button" data-v="effective">有效</button>
+                      <button type="button" data-v="gmv">GMV</button>
+                    </div>
+                    <button class="i-btn" data-modal="trail-cpc">i</button>
+                  </div>
+                  <div class="metric-sub"><span class="badge" id="badgeCPC"><span id="badgeBasis1">有效</span></span></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-row"><span class="muted">当前 CPC</span><span class="val" id="cpcNow">—</span></div>
+                  <div class="metric-row"><span class="muted">实际 ROAS</span><span class="val" id="roasNow">—</span></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-head head-grid">
+                  <div class="metric-title">最大可承受 CPC</div>
+                  <div class="metric-ctrl">
+                    <div class="seg seg-tiny" id="basis-cpc-max" role="group" aria-label="CPCmax口径">
+                      <button type="button" class="on" data-v="follow">跟随</button>
+                      <button type="button" data-v="effective">有效</button>
+                      <button type="button" data-v="gmv">GMV</button>
+                    </div>
+                    <button class="i-btn" data-modal="trail-cpcmax">i</button>
+                  </div>
+                  <div class="metric-sub"><span class="badge" id="badgeCPCmax"><span id="badgeBasis2">有效</span></span></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-row"><span class="muted tiny">在当前 CVR 与假设不变的情况下</span><span></span></div>
+                  <div class="metric-row"><span>极限阈值</span><span class="val" id="cpcMax">—</span></div>
+                  <div class="metric-row"><span>是否达标</span><span class="val" id="cpcPass">—</span></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-head"><div class="metric-title">CPC → 利润空间影响</div></div>
+                <div class="metric-body" id="cpcSens"></div>
+              </div>
+              <div class="metric-card" id="cpmCard">
+                <div class="metric-head"><div class="metric-title">CPM → CPC 换算</div></div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>换算 CPC</span><span class="val" id="cpcFromCpm">—</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CVR 一栏 -->
+            <div>
+              <div class="metric-card">
+                <div class="metric-head head-grid">
+                  <div class="metric-title">当前 CVR（模拟/回填）</div>
+                  <div class="metric-ctrl"><button class="i-btn" data-modal="trail-cvr">i</button></div>
+                  <div class="metric-sub"><span class="badge"><span id="badgeBasis3">有效</span></span></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-row"><span class="muted">当前 CVR</span><span class="val" id="cvrNow">—</span></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-head head-grid">
+                  <div class="metric-title">保本所需最低 CVR</div>
+                  <div class="metric-ctrl">
+                    <div class="seg seg-tiny" id="basis-cvr-min" role="group" aria-label="CVRmin口径">
+                      <button type="button" class="on" data-v="follow">跟随</button>
+                      <button type="button" data-v="effective">有效</button>
+                      <button type="button" data-v="gmv">GMV</button>
+                    </div>
+                    <button class="i-btn" data-modal="trail-cvrmin">i</button>
+                  </div>
+                  <div class="metric-sub"><span class="badge"><span id="badgeBasis4">有效</span></span></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-row"><span class="tiny muted">在当前 CPC 与假设不变的情况下</span><span></span></div>
+                  <div class="metric-row"><span>极限阈值</span><span class="val" id="cvrMin">—</span></div>
+                  <div class="metric-row"><span>是否达标</span><span class="val" id="cvrPass">—</span></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-head"><div class="metric-title">CVR → 利润空间影响</div></div>
+                <div class="metric-body" id="cvrSens"></div>
+              </div>
+            </div>
+
+            <!-- 投放空间/预算 一栏 -->
+            <div>
+              <div class="metric-card">
+                <div class="metric-head head-grid">
+                  <div class="metric-title">最大可承受广告费（BE-CPA）</div>
+                  <div class="metric-ctrl">
+                    <div class="seg seg-tiny" id="basis-becpa" role="group" aria-label="BE-CPA口径">
+                      <button type="button" class="on" data-v="follow">跟随</button>
+                      <button type="button" data-v="effective">有效</button>
+                      <button type="button" data-v="gmv">GMV</button>
+                    </div>
+                    <button class="i-btn" data-modal="trail-becpa">i</button>
+                  </div>
+                  <div class="metric-sub"><span class="badge"><span id="badgeBasis5">有效</span></span></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>BE-ROAS</span><span class="val" id="beROAS">—</span></div>
+                  <div class="metric-row"><span>BE-CPA</span><span class="val" id="beCPA">—</span></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-head"><div class="metric-title">保本广告占比与是否达标</div></div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>有效口径</span><span class="val" id="adRateEff">—</span></div>
+                  <div class="metric-row"><span>GMV口径</span><span class="val" id="adRateGMV">—</span></div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-head"><div class="metric-title">投 1 元净利</div></div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>在当前 CPC/CVR 下</span><span class="val" id="profitPerAdYuan">—</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 演算面板 -->
+  <dialog id="trail-cpc"><div class="content trail"></div></dialog>
+  <dialog id="trail-cpcmax"><div class="content trail"></div></dialog>
+  <dialog id="trail-cvr"><div class="content trail"></div></dialog>
+  <dialog id="trail-cvrmin"><div class="content trail"></div></dialog>
+  <dialog id="trail-becpa"><div class="content trail"></div></dialog>
+
+  <script type="module">
+    import {
+      computeBase,
+      calcEffectiveAOV,
+      computeBeCPAFromROAS,
+      computeMaxCPC,
+      cpcFromCpmCtr,
+      computeCPAMetrics,
+      profitPerAdYuan
+    } from './engine.js';
+    import { getProductExamples, SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
+
+    // 简易格式化
+    const fmt = (n, p=2) => (isFinite(n) ? Number(n).toFixed(p) : '—');
+    const fmtY = n => (isFinite(n) ? '¥' + Number(n).toFixed(2) : '—');
+    const fmtP = (n, p=2) => (isFinite(n) ? (n*100).toFixed(p)+'%' : '—');
+    const basisName = b => b==='gmv' ? 'GMV' : '有效';
+
+    // 事件总线（页面内 + BroadcastChannel，便于未来多页面联动）
+    const chan = ('BroadcastChannel' in window) ? new BroadcastChannel('calc-bus') : null;
+    function collectPayload(){
+      return {
+        basis: document.getElementById('basis')?.value,
+        aov: num('aov'),
+        bundleRate: pct('bundleRate'),
+        rr: pct('rr'),
+        buyMode: document.getElementById('buyMode')?.value,
+        cpc: num('cpc'),
+        cvr: pct('cvr'),
+        cpm: num('cpm'),
+        ctr: pct('ctr'),
+        sellingPrice: num('sellingPrice'),
+        costPrice: num('costPrice'),
+        platformRate: pct('platformRate'),
+        salesTaxRate: pct('salesTaxRate'),
+        outputTaxRate: pct('outputTaxRate'),
+        inputTaxRate: pct('inputTaxRate'),
+        serviceVATRate: pct('serviceVATRate'),
+        shippingCost: num('shippingCost'),
+        shippingInsurance: num('shippingInsurance'),
+        otherCost: num('otherCost')
+      };
+    }
+    function emitUpdate(){
+      const ev = new CustomEvent('calc:update');
+      window.dispatchEvent(ev);
+      chan && chan.postMessage({ type:'calc:update', source:'strategy', payload: collectPayload() });
+    }
+    function setIfPresent(id, val){
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (val === undefined || val === null || Number.isNaN(val)) return;
+      if (el.tagName === 'SELECT') el.value = String(val);
+      else el.value = String(val);
+    }
+    chan && chan.addEventListener('message', (e)=>{
+      const msg = e.data;
+      if(!msg || msg.type!=='calc:update' || msg.source==='strategy') return;
+      const p = msg.payload||{};
+      setIfPresent('basis', p.basis);
+      setIfPresent('buyMode', p.buyMode);
+      setIfPresent('aov', isFinite(p.aov)? p.aov: '');
+      setIfPresent('bundleRate', isFinite(p.bundleRate)? (p.bundleRate*100): '');
+      setIfPresent('rr', isFinite(p.rr)? (p.rr*100): '');
+      setIfPresent('cpc', p.cpc);
+      setIfPresent('cvr', isFinite(p.cvr)? (p.cvr*100): '');
+      setIfPresent('cpm', p.cpm);
+      setIfPresent('ctr', isFinite(p.ctr)? (p.ctr*100): '');
+      setIfPresent('sellingPrice', p.sellingPrice);
+      setIfPresent('costPrice', p.costPrice);
+      setIfPresent('platformRate', isFinite(p.platformRate)? (p.platformRate*100): '');
+      setIfPresent('salesTaxRate', isFinite(p.salesTaxRate)? (p.salesTaxRate*100): '');
+      setIfPresent('outputTaxRate', isFinite(p.outputTaxRate)? (p.outputTaxRate*100): '');
+      setIfPresent('inputTaxRate', isFinite(p.inputTaxRate)? (p.inputTaxRate*100): '');
+      setIfPresent('serviceVATRate', isFinite(p.serviceVATRate)? (p.serviceVATRate*100): '');
+      setIfPresent('shippingCost', p.shippingCost);
+      setIfPresent('shippingInsurance', p.shippingInsurance);
+      setIfPresent('otherCost', p.otherCost);
+      try{ updateBuyModeUI(); }catch(_){ }
+      recompute();
+    });
+
+    // 获取/清洗输入
+    function num(id){
+      const v = document.getElementById(id).value.trim();
+      if(v==='') return NaN;
+      const t = v.replace(/[^\d.\-]/g,'');
+      const n = parseFloat(t);
+      return isFinite(n) ? n : NaN;
+    }
+    function pct(id){
+      const n = num(id);
+      if(!isFinite(n)) return NaN;
+      return n>1 ? n/100 : n; // 允许“15”与“0.15”
+    }
+    function clamp01(x){ return Math.max(0, Math.min(1, Number(x)||0)); }
+
+    // —— 本地存储工具 ——
+    const SK = {
+      basis: 'strategy_basis', aov: 'strategy_aov', bundleRate: 'strategy_bundleRate', rr: 'strategy_rr', buyMode: 'strategy_buyMode',
+      cpc: 'strategy_cpc', cvr: 'strategy_cvr', cpm: 'strategy_cpm', ctr: 'strategy_ctr',
+      sellingPrice: 'strategy_sellingPrice', costPrice: 'strategy_costPrice', platformRate: 'strategy_platformRate',
+      salesTaxRate: 'strategy_salesTaxRate', outputTaxRate: 'strategy_outputTaxRate', inputTaxRate: 'strategy_inputTaxRate', serviceVATRate: 'strategy_serviceVATRate',
+      shippingCost: 'strategy_shippingCost', shippingInsurance: 'strategy_shippingInsurance', otherCost: 'strategy_otherCost',
+      exPlatform: 'strategy_exPlatform', exQuery: 'strategy_exQuery', exKey: 'strategy_exKey', exTierIndex: 'strategy_exTierIndex'
+    };
+    function saveKV(k,v){ try{ localStorage.setItem(k, v ?? ''); }catch(_){} }
+    function loadKV(k, def=''){ try{ const v = localStorage.getItem(k); return v!==null? v: def; }catch(_){ return def; } }
+
+    // 将输入映射为引擎参数 p
+    function makeParams(){
+      const r = clamp01(pct('rr'));
+      return {
+        sellingPrice: Number.isFinite(num('sellingPrice')) ? num('sellingPrice') : 0,
+        returnRate: r,
+        costPrice: num('costPrice') || 0,
+        inputTaxRate: clamp01(pct('inputTaxRate')),
+        outputTaxRate: clamp01(pct('outputTaxRate')),
+        platformRate: clamp01(pct('platformRate')),
+        shippingCost: num('shippingCost') || 0,
+        shippingInsurance: num('shippingInsurance') || 0,
+        otherCost: num('otherCost') || 0,
+        salesTaxRate: clamp01(pct('salesTaxRate')),
+        serviceVATRate: clamp01(pct('serviceVATRate')),
+        goodsMode: 'canReturn'
+      };
+    }
+
+    // 根据买量方式切换输入显示
+    function updateBuyModeUI(){
+      const mode = document.getElementById('buyMode')?.value || 'cpc';
+      const showCpc = mode === 'cpc';
+      const cpcWrap = document.getElementById('cpcWrap');
+      const cpmWrap = document.getElementById('cpmWrap');
+      const ctrWrap = document.getElementById('ctrWrap');
+      const cpcRow = document.getElementById('cpcRow');
+      const cpmRow = document.getElementById('cpmRow');
+      const ctrRow = document.getElementById('ctrRow');
+      const cpmCard = document.getElementById('cpmCard');
+      // 完整隐藏行（包含label与输入）
+      if (cpcRow) cpcRow.style.display = showCpc ? '' : 'none';
+      if (cpmRow) cpmRow.style.display = showCpc ? 'none' : '';
+      if (ctrRow) ctrRow.style.display = showCpc ? 'none' : '';
+      // 兜底：同时控制内层wrap（应对样式或布局变动）
+      if (cpcWrap) cpcWrap.style.display = showCpc ? '' : 'none';
+      if (cpmWrap) cpmWrap.style.display = showCpc ? 'none' : '';
+      if (ctrWrap) ctrWrap.style.display = showCpc ? 'none' : '';
+      if (cpmCard) cpmCard.style.display = showCpc ? 'none' : '';
+    }
+
+    function recompute(){
+      const globalBasis = document.getElementById('basis').value; // 'effective' | 'gmv'
+      const p = makeParams();
+      const aovBase = Number.isFinite(num('aov')) ? num('aov') : p.sellingPrice;
+      const bundle = clamp01(pct('bundleRate'));
+      const aovEff = calcEffectiveAOV(aovBase, bundle);
+      const r = Math.max(0, 1 - (p.returnRate||0));
+      const buyMode = document.getElementById('buyMode')?.value || 'cpc';
+      updateBuyModeUI();
+      const cpcInput = num('cpc');
+      const cvr = clamp01(pct('cvr'));
+      const cpm = num('cpm');
+      const ctr = clamp01(pct('ctr'));
+      const cpcFrom = (isFinite(cpm) && isFinite(ctr) && cpm>0 && ctr>0) ? cpcFromCpmCtr(cpm, ctr) : NaN;
+      const cpc = (buyMode==='cpm') ? cpcFrom : cpcInput;
+
+      // BE-ROAS & BE-CPA
+      const base = computeBase(p);
+      const readSeg = (id)=>{
+        const el = document.getElementById(id);
+        const on = el ? el.querySelector('button.on') : null;
+        const v = on?.dataset?.v || 'follow';
+        return v === 'follow' ? globalBasis : v;
+      };
+      const bCpcNow = readSeg('basis-cpc-now');
+      const bCpcMax = readSeg('basis-cpc-max');
+      const bCvrMin = readSeg('basis-cvr-min');
+      const bBecpa  = readSeg('basis-becpa');
+
+      const numBy = (b)=> b==='gmv' ? aovEff : (aovEff * r);
+      const beBy = (b)=> b==='gmv' ? base.ROI_BE_gmv : base.ROI_BE_effective;
+
+      const beROAS_becpa = beBy(bBecpa);
+      const beCPA_becpa = computeBeCPAFromROAS(beROAS_becpa, numBy(bBecpa));
+
+      const beROAS_cpcmax = beBy(bCpcMax);
+      const beCPA_cpcmax = computeBeCPAFromROAS(beROAS_cpcmax, numBy(bCpcMax));
+      const cpcMax = computeMaxCPC(beCPA_cpcmax, cvr);
+      const cpcPass = (isFinite(cpc) && isFinite(cpcMax)) ? (cpc <= cpcMax) : null;
+
+      const beROAS_cvrmin = beBy(bCvrMin);
+      const numerator_cvrmin = numBy(bCvrMin);
+      const cvrMin = (isFinite(beROAS_cvrmin) && isFinite(cpc) && numerator_cvrmin>0) ? (beROAS_cvrmin * cpc) / numerator_cvrmin : NaN;
+      const cvrPass = (isFinite(cvr) && isFinite(cvrMin)) ? (cvr >= cvrMin) : null;
+
+      const roasNow = (isFinite(cpc) && cpc>0 && isFinite(cvr)) ? ((cvr * numBy(bCpcNow)) / cpc) : NaN;
+
+      // CPM→CPC（仅在 CPM 模式显示卡片）
+
+      // 投1元净利（用 CPA = CPC/CVR）
+      let profitPer1 = NaN;
+      if (isFinite(cpc) && isFinite(cvr) && cvr>0){
+        const cpa = cpc / cvr;
+        const res = computeCPAMetrics(p, { cpc, cvr });
+        profitPer1 = res.roiPerAdYuan; // 与即时诊断一致
+      }
+
+      // 渲染基础显示
+      const followTag = (id)=>{
+        const el = document.getElementById(id);
+        const raw = el?.querySelector('button.on')?.dataset?.v || 'follow';
+        return raw==='follow' ? ('跟随全局：' + basisName(globalBasis)) : basisName(raw);
+      };
+      document.getElementById('badgeBasis1').textContent = followTag('basis-cpc-now');
+      document.getElementById('badgeBasis2').textContent = followTag('basis-cpc-max');
+      document.getElementById('badgeBasis3').textContent = basisName(globalBasis);
+      document.getElementById('badgeBasis4').textContent = followTag('basis-cvr-min');
+      document.getElementById('badgeBasis5').textContent = followTag('basis-becpa');
+
+      document.getElementById('cpcNow').textContent = fmtY(cpc);
+      document.getElementById('roasNow').textContent = isFinite(roasNow)? (roasNow.toFixed(2)+'倍') : '—';
+      document.getElementById('cpcMax').textContent = fmtY(cpcMax);
+      document.getElementById('cpcPass').innerHTML = (cpcPass==null? '—' : (cpcPass? '<span class="ok">已达标</span>' : '<span class="bad">未达标</span>'));
+
+      document.getElementById('cvrNow').textContent = fmtP(cvr);
+      document.getElementById('cvrMin').textContent = fmtP(cvrMin);
+      document.getElementById('cvrPass').innerHTML = (cvrPass==null? '—' : (cvrPass? '<span class="ok">已达标</span>' : '<span class="bad">未达标</span>'));
+
+      document.getElementById('beROAS').textContent = isFinite(beROAS_becpa)? (beROAS_becpa.toFixed(2)+'倍') : '—';
+      document.getElementById('beCPA').textContent = fmtY(beCPA_becpa);
+
+      document.getElementById('adRateEff').textContent = fmtP(base.adRateBE_effective);
+      document.getElementById('adRateGMV').textContent = fmtP(base.adRateBE_gmv);
+      document.getElementById('profitPerAdYuan').textContent = isFinite(profitPer1)? ( (profitPer1>=0? '+':'') + fmt(profitPer1,2) + ' 元') : '—';
+
+      document.getElementById('cpcFromCpm').textContent = fmtY(cpcFrom);
+
+      // 敏感度：±5%、±10%
+      function sensListForCPC(){
+        const list = [-0.1,-0.05,0.05,0.1];
+        const el = document.getElementById('cpcSens');
+        el.innerHTML='';
+        if(!isFinite(cpc) || !isFinite(cvr) || cvr<=0) return;
+        list.forEach(d=>{
+          const cpc2 = cpc * (1 + d);
+          const roas2 = (cpc2>0) ? ((cvr * numBy(bCpcNow)) / cpc2) : NaN;
+          const cpam = computeCPAMetrics(p, { cpc: cpc2, cvr });
+          const chip = document.createElement('div');
+          const good = (isFinite(roas2) && isFinite(roasNow)) ? (roas2>=roasNow) : false;
+          chip.className = 'chip ' + (good? 'good':'bad');
+          chip.textContent = `${d>0?'+':''}${(d*100).toFixed(0)}% CPC → ROAS ${isFinite(roas2)?roas2.toFixed(2)+'倍':'—'}｜投1元净利 ${isFinite(cpam.roiPerAdYuan)?(cpam.roiPerAdYuan>=0?'+':'')+cpam.roiPerAdYuan.toFixed(2):'—'}`;
+          el.appendChild(chip);
+        });
+      }
+      function sensListForCVR(){
+        const list = [-0.1,-0.05,0.05,0.1];
+        const el = document.getElementById('cvrSens');
+        el.innerHTML='';
+        if(!isFinite(cpc) || !isFinite(cvr) || cpc<=0) return;
+        list.forEach(d=>{
+          const cvr2 = clamp01(cvr * (1 + d));
+          const roas2 = (cvr2>0) ? ((cvr2 * numBy(bCpcNow)) / cpc) : NaN;
+          const cpam = computeCPAMetrics(p, { cpc, cvr: cvr2 });
+          const chip = document.createElement('div');
+          const good = (isFinite(roas2) && isFinite(roasNow)) ? (roas2>=roasNow) : false;
+          chip.className = 'chip ' + (good? 'good':'bad');
+          chip.textContent = `${d>0?'+':''}${(d*100).toFixed(0)}% CVR → ROAS ${isFinite(roas2)?roas2.toFixed(2)+'倍':'—'}｜投1元净利 ${isFinite(cpam.roiPerAdYuan)?(cpam.roiPerAdYuan>=0?'+':'')+cpam.roiPerAdYuan.toFixed(2):'—'}`;
+          el.appendChild(chip);
+        });
+      }
+      sensListForCPC();
+      sensListForCVR();
+
+      // 演算面板
+      const aovShow = `AOV_eff = AOV × (1+bundle) = ${fmt(aovBase,2)} × (1+${fmt(bundle,2)}) = ${fmt(aovEff,2)}`;
+      const basStr = (b)=> b==='gmv' ? 'GMV' : '有效';
+      document.querySelector('#trail-cpc .trail').innerHTML = `
+        <div><b>实际ROAS</b>（${basStr(bCpcNow)}）：<span class="code">ROAS = (CVR × AOV_eff${bCpcNow==='gmv'?'': ' × (1-RR)'} ) / CPC</span></div>
+        <div>${aovShow}${bCpcNow==='gmv'? '' : `；(1-RR) = ${fmt(r,2)}`}</div>
+        <div>代入当前：ROAS = (${fmt(cvr,4)} × ${fmt(aovEff,2)}${bCpcNow==='gmv'?'':` × ${fmt(r,4)}`} ) / ${fmt(cpc,2)} = <b>${isFinite(roasNow)?roasNow.toFixed(3):'—'}</b></div>
+      `;
+      document.querySelector('#trail-cpcmax .trail').innerHTML = `
+        <div><b>保本临界 CPC</b>：<span class="code">CPC_max = (CVR × AOV_eff${bCpcMax==='gmv'?'': ' × (1-RR)'} ) / BE_ROAS</span></div>
+        <div>${aovShow}；BE_ROAS（${basStr(bCpcMax)}） = ${isFinite(beROAS_cpcmax)?beROAS_cpcmax.toFixed(3):'—'}</div>
+        <div>代入当前：CPC_max = (${fmt(cvr,4)} × ${fmt(aovEff,2)}${bCpcMax==='gmv'?'':` × ${fmt(r,4)}`} ) / ${isFinite(beROAS_cpcmax)?beROAS_cpcmax.toFixed(3):'—'} = <b>${fmt(cpcMax,2)}</b></div>
+      `;
+      document.querySelector('#trail-cvr .trail').innerHTML = `
+        <div><b>当前 CVR</b>：<span class="code">${fmtP(cvr,2)}</span></div>
+      `;
+      document.querySelector('#trail-cvrmin .trail').innerHTML = `
+        <div><b>保本所需最低 CVR</b>：<span class="code">CVR_min = (BE_ROAS × CPC) / (AOV_eff${bCvrMin==='gmv'?'': ' × (1-RR)'} )</span></div>
+        <div>${aovShow}；BE_ROAS = ${isFinite(beROAS_cvrmin)?beROAS_cvrmin.toFixed(3):'—'}</div>
+        <div>代入当前：CVR_min = (${isFinite(beROAS_cvrmin)?beROAS_cvrmin.toFixed(3):'—'} × ${fmt(cpc,2)}) / (${fmt(aovEff,2)}${bCvrMin==='gmv'?'':` × ${fmt(r,4)}`} ) = <b>${fmtP(cvrMin,2)}</b></div>
+      `;
+      document.querySelector('#trail-becpa .trail').innerHTML = `
+        <div><b>BE-ROAS</b>（${basStr(bBecpa)}）：${isFinite(beROAS_becpa)?beROAS_becpa.toFixed(3):'—'}</div>
+        <div><b>BE-CPA</b>：<span class="code">= AOV_eff${bBecpa==='gmv'?'': ' × (1-RR)'} ÷ BE_ROAS</span> = ${fmt(aovEff,2)}${bBecpa==='gmv'?'':` × ${fmt(r,4)}`} ÷ ${isFinite(beROAS_becpa)?beROAS_becpa.toFixed(3):'—'} = <b>${fmt(beCPA_becpa,2)}</b></div>
+      `;
+    }
+
+    // —— 输入事件绑定（广播 + 本地记忆 + 自动选中）——
+    const inputs = Array.from(document.querySelectorAll('input,select'));
+    inputs.forEach(el=>{
+      const id = el.id;
+      // 选中即全选
+      if (el.tagName==='INPUT'){
+        el.addEventListener('focus', (e)=>{ e.target.select(); });
+        el.addEventListener('mouseup', (e)=>{ e.preventDefault(); });
+      }
+      // 本地记忆
+      const save = ()=>{ if(!id) return; saveKV(SK[id]||('strategy_'+id), el.value); };
+      el.addEventListener('input', ()=>{ save(); if(id==='buyMode') updateBuyModeUI(); emitUpdate(); });
+      el.addEventListener('change', ()=>{ save(); if(id==='buyMode') updateBuyModeUI(); emitUpdate(); });
+    });
+    window.addEventListener('calc:update', recompute);
+
+    // 分段控制绑定：点击切换“跟随/有效/GMV”，不遮挡标题
+    function bindSeg(id){
+      const el = document.getElementById(id); if(!el) return;
+      el.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        el.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+        btn.classList.add('on');
+        emitUpdate();
+      });
+    }
+    ['basis-cpc-now','basis-cpc-max','basis-cvr-min','basis-becpa'].forEach(bindSeg);
+
+    // i 按钮弹出
+    document.querySelectorAll('.i-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-modal');
+        const dlg = document.getElementById(id);
+        if(dlg) dlg.showModal();
+      });
+    });
+    document.querySelectorAll('dialog').forEach(d=>{
+      d.addEventListener('click', (e)=>{ if(e.target===d) d.close(); });
+      d.addEventListener('keydown', (e)=>{ if(e.key==='Escape') d.close(); });
+    });
+
+    // 初始化一次
+    // —— 本地记忆回填 ——
+    (function restore(){
+      const all = [
+        'basis','aov','bundleRate','rr','buyMode','cpc','cvr','cpm','ctr','sellingPrice','costPrice','platformRate','salesTaxRate','outputTaxRate','inputTaxRate','serviceVATRate','shippingCost','shippingInsurance','otherCost',
+        'exPlatform','exQuery'
+      ];
+      all.forEach(id=>{
+        const el = document.getElementById(id); if(!el) return;
+        const v = loadKV(SK[id]||('strategy_'+id), '');
+        if (v!=='' && v!=null) el.value = v;
+      });
+      // 默认值（空则填充）
+      const setDefaultIfEmpty = (id, val)=>{ const el=document.getElementById(id); if(!el) return; if(el.value===''||el.value==null){ el.value=String(val); saveKV(SK[id]||('strategy_'+id), el.value); } };
+      setDefaultIfEmpty('basis','effective');
+      setDefaultIfEmpty('buyMode','cpc');
+      setDefaultIfEmpty('cpc','2.5');
+      setDefaultIfEmpty('cvr','15');
+      setDefaultIfEmpty('bundleRate','0');
+      setDefaultIfEmpty('rr','0');
+      setDefaultIfEmpty('salesTaxRate', (SYSTEM_PARAMS_EXAMPLE.salesTaxRate*100).toFixed(0));
+      setDefaultIfEmpty('outputTaxRate', (SYSTEM_PARAMS_EXAMPLE.outputTaxRate*100).toFixed(0));
+      setDefaultIfEmpty('inputTaxRate', (SYSTEM_PARAMS_EXAMPLE.inputTaxRate*100).toFixed(0));
+      setDefaultIfEmpty('serviceVATRate', (SYSTEM_PARAMS_EXAMPLE.serviceVATRate*100).toFixed(0));
+      setDefaultIfEmpty('platformRate', (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1));
+      setDefaultIfEmpty('shippingCost', SYSTEM_PARAMS_EXAMPLE.shippingCost);
+      setDefaultIfEmpty('shippingInsurance', SYSTEM_PARAMS_EXAMPLE.shippingInsurance);
+      setDefaultIfEmpty('otherCost', SYSTEM_PARAMS_EXAMPLE.otherCost);
+      // 售价/进货默认：若已有最近示例选择，则由示例填充；否则落回固定值
+      const hasEx = loadKV(SK.exKey,'') !== '';
+      if (!hasEx){
+        setDefaultIfEmpty('sellingPrice','79.8');
+        setDefaultIfEmpty('costPrice','38');
+      }
+      try{ updateBuyModeUI(); }catch(_){ }
+    })();
+
+    // —— 示例商品（简版，合并示例文件 + 本地存储）——
+    const EX_SK = { platform: SK.exPlatform, query: SK.exQuery, key: SK.exKey, tier: SK.exTierIndex };
+    function exMergeProductData(){
+      try{
+        const examples = getProductExamples();
+        let userData = [];
+        try{
+          const raw = localStorage.getItem('product_analysis_data');
+          if(raw){
+            const parsed = JSON.parse(raw);
+            if(parsed && Array.isArray(parsed.products)) userData = parsed.products;
+          }
+        }catch(e){ console.warn('读取本地商品数据失败', e); }
+        if(!userData.length) return examples;
+        const merged = [...examples];
+        userData.forEach(up => {
+          const i = merged.findIndex(m => m.sku===up.sku && m.platform===up.platform);
+          if(i>=0) merged[i] = up; else merged.push(up);
+        });
+        return merged;
+      }catch(e){ console.error('合并示例/本地商品失败', e); return []; }
+    }
+    function exExamples(){ return exMergeProductData(); }
+    const exPlatEl = document.getElementById('exPlatform');
+    const exQueryEl = document.getElementById('exQuery');
+    const exSelEl = document.getElementById('exSelect');
+    const exTierWrap = document.getElementById('exTierWrap');
+    const exTierLabel = document.getElementById('exTierLabel');
+    const exTierSel = document.getElementById('exTier');
+    function exKey(p){ return `${p.sku||''}||${p.platform||''}`; }
+    function exParseKey(k){ const [sku,platform] = String(k||'').split('||'); return { sku, platform }; }
+    function exBuildLabel(p){
+      const price = Number(p.singlePrice)>0? Number(p.singlePrice).toFixed(2): (Array.isArray(p.tierPrices)&&p.tierPrices.length? (Number(p.tierPrices[0]).toFixed(2)):'—');
+      const cost  = Number(p.singleCost)>0? Number(p.singleCost).toFixed(2): (Array.isArray(p.tierCosts)&&p.tierCosts.length? (Number(p.tierCosts[0]).toFixed(2)):'—');
+      return `${p.platform||''}｜${p.name||p.sku||''}｜售价${price} 进货${cost}`;
+    }
+    function exFiltered(){
+      const list = exExamples();
+      const pf = exPlatEl.value || '';
+      const q = (exQueryEl.value||'').trim();
+      const qLower = q.toLowerCase();
+      return list.filter(p=>{
+        if (pf && p.platform !== pf) return false;
+        if (!q) return true;
+        const s = `${p.name||''} ${p.sku||''} ${p.platform||''}`.toLowerCase();
+        return s.includes(qLower);
+      });
+    }
+    function exPopulatePlatform(){
+      const list = exExamples();
+      const plats = Array.from(new Set(list.map(p=>p.platform).filter(Boolean)));
+      exPlatEl.innerHTML = '<option value="">全部平台</option>' + plats.map(p=>`<option value="${p}">${p}</option>`).join('');
+      const saved = loadKV(EX_SK.platform, '');
+      if (saved) exPlatEl.value = saved;
+    }
+    function exPopulate(){
+      exPopulatePlatform();
+      const list = exFiltered();
+      const prev = exSelEl.value;
+      exSelEl.innerHTML = '<option value="">— 选择示例商品 —</option>' + list.map(p=>`<option value="${exKey(p)}">${exBuildLabel(p)}</option>`).join('');
+      const savedKey = loadKV(EX_SK.key, '');
+      const target = prev || savedKey;
+      const exists = list.some(p=> exKey(p) === target);
+      if (exists) { exSelEl.value = target; exApply(target, true); }
+      else { exSelEl.value = ''; exShowTier(false); }
+    }
+    function exShowTier(show, label){
+      exTierWrap.style.display = show? '' : 'none';
+      if (label) exTierLabel.textContent = label;
+      if (!show) exTierSel.innerHTML='';
+    }
+    function setAndSave(id, val){ const el=document.getElementById(id); if(!el) return; el.value = String(val); saveKV(SK[id]||('strategy_'+id), el.value); }
+    function exSetInputs({ price, cost, rr }){
+      if (isFinite(price)) setAndSave('sellingPrice', Number(price).toFixed(2));
+      if (isFinite(cost))  setAndSave('costPrice', Number(cost).toFixed(2));
+      if (isFinite(rr))    setAndSave('rr', (Number(rr)*100).toFixed(2));
+      emitUpdate();
+    }
+    function exApply(key, initial=false){
+      saveKV(EX_SK.key, key||'');
+      const list = exExamples();
+      const { sku, platform } = exParseKey(key);
+      const p = list.find(x=>x.sku===sku && x.platform===platform);
+      if (!p){ exShowTier(false); return; }
+      const tierPrices = Array.isArray(p.tierPrices) ? p.tierPrices.filter(v=>Number(v)>0) : [];
+      const tierCosts  = Array.isArray(p.tierCosts)  ? p.tierCosts.filter(v=>Number(v)>0)  : [];
+      const hasMultiPrice = tierPrices.length>0;
+      const hasMultiCost  = tierCosts.length>0;
+      const hasSinglePrice = Number(p.singlePrice)>0;
+      const hasSingleCost  = Number(p.singleCost)>0;
+
+      if (hasMultiPrice && hasMultiCost && tierPrices.length===tierCosts.length){
+        exShowTier(true, '选择对应档位（售价/进货价）');
+        exTierSel.innerHTML = tierPrices.map((sp,i)=>{
+          const cp = tierCosts[i];
+          return `<option value="${i}">档${i+1}｜售价 ${Number(sp).toFixed(2)} / 进货 ${Number(cp).toFixed(2)}</option>`;
+        }).join('');
+        const savedIdx = parseInt(loadKV(EX_SK.tier, '0'))||0;
+        const idx = Math.min(Math.max(savedIdx,0), tierPrices.length-1);
+        exTierSel.value = String(idx);
+        exSetInputs({ price: tierPrices[idx], cost: tierCosts[idx], rr: p.returnRate });
+        exTierSel.onchange = ()=>{
+          const i = parseInt(exTierSel.value)||0;
+          saveKV(EX_SK.tier, String(i));
+          exSetInputs({ price: tierPrices[i], cost: tierCosts[i], rr: p.returnRate });
+        };
+      } else if (hasSinglePrice && hasMultiCost){
+        exShowTier(true, '选择进货价档位');
+        exTierSel.innerHTML = tierCosts.map((cp,i)=>`<option value="${i}">档${i+1}｜进货 ${Number(cp).toFixed(2)}</option>`).join('');
+        const savedIdx = parseInt(loadKV(EX_SK.tier, '0'))||0;
+        const idx = Math.min(Math.max(savedIdx,0), tierCosts.length-1);
+        exTierSel.value = String(idx);
+        exSetInputs({ price: p.singlePrice, cost: tierCosts[idx], rr: p.returnRate });
+        exTierSel.onchange = ()=>{
+          const i = parseInt(exTierSel.value)||0;
+          saveKV(EX_SK.tier, String(i));
+          exSetInputs({ price: p.singlePrice, cost: tierCosts[i], rr: p.returnRate });
+        };
+      } else if (hasMultiPrice && hasSingleCost){
+        exShowTier(true, '选择售价档位');
+        exTierSel.innerHTML = tierPrices.map((sp,i)=>`<option value="${i}">档${i+1}｜售价 ${Number(sp).toFixed(2)}</option>`).join('');
+        const savedIdx = parseInt(loadKV(EX_SK.tier, '0'))||0;
+        const idx = Math.min(Math.max(savedIdx,0), tierPrices.length-1);
+        exTierSel.value = String(idx);
+        exSetInputs({ price: tierPrices[idx], cost: p.singleCost, rr: p.returnRate });
+        exTierSel.onchange = ()=>{
+          const i = parseInt(exTierSel.value)||0;
+          saveKV(EX_SK.tier, String(i));
+          exSetInputs({ price: tierPrices[i], cost: p.singleCost, rr: p.returnRate });
+        };
+      } else if (hasSinglePrice && hasSingleCost){
+        exShowTier(false);
+        exSetInputs({ price: p.singlePrice, cost: p.singleCost, rr: p.returnRate });
+      } else {
+        exShowTier(false);
+        const price = hasSinglePrice ? p.singlePrice : (hasMultiPrice ? tierPrices[0] : NaN);
+        const cost  = hasSingleCost  ? p.singleCost  : (hasMultiCost  ? tierCosts[0]  : NaN);
+        exSetInputs({ price, cost, rr: p.returnRate });
+      }
+    }
+
+    // 绑定示例商品事件（含 storage 监听）
+    if (exPlatEl && exQueryEl && exSelEl){
+      exPlatEl.addEventListener('change', ()=>{ saveKV(EX_SK.platform, exPlatEl.value||''); exPopulate(); });
+      exQueryEl.addEventListener('input', ()=>{ saveKV(EX_SK.query, exQueryEl.value||''); exPopulate(); });
+      exSelEl.addEventListener('change', ()=>{ exApply(exSelEl.value); });
+      // 初始填充
+      exPopulate();
+      // 监听其它页面写入的本地商品更新
+      window.addEventListener('storage', (e)=>{
+        if (e.key === 'product_analysis_data') {
+          try{ exPopulate(); }catch(_){ /* noop */ }
+        }
+      });
+    }
+
+    // 低存在感“重置为默认”按钮：不刷新页面
+    document.getElementById('resetBtn')?.addEventListener('click', ()=>{
+      const setVal = (id, v)=>{ const el=document.getElementById(id); if(!el) return; el.value=String(v); saveKV(SK[id]||('strategy_'+id), el.value); };
+      setVal('basis','effective');
+      setVal('buyMode','cpc');
+      setVal('cpc','2.5');
+      setVal('cvr','15');
+      setVal('bundleRate','0');
+      setVal('rr','0');
+      setVal('salesTaxRate', (SYSTEM_PARAMS_EXAMPLE.salesTaxRate*100).toFixed(0));
+      setVal('outputTaxRate', (SYSTEM_PARAMS_EXAMPLE.outputTaxRate*100).toFixed(0));
+      setVal('inputTaxRate', (SYSTEM_PARAMS_EXAMPLE.inputTaxRate*100).toFixed(0));
+      setVal('serviceVATRate', (SYSTEM_PARAMS_EXAMPLE.serviceVATRate*100).toFixed(0));
+      setVal('platformRate', (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1));
+      setVal('shippingCost', SYSTEM_PARAMS_EXAMPLE.shippingCost);
+      setVal('shippingInsurance', SYSTEM_PARAMS_EXAMPLE.shippingInsurance);
+      setVal('otherCost', SYSTEM_PARAMS_EXAMPLE.otherCost);
+      // 若有最近示例选择，按保存档位回填售价/进货；否则固定默认
+      const k = loadKV(SK.exKey,'');
+      if (k){ exApply(k, true); }
+      else { setVal('sellingPrice','79.8'); setVal('costPrice','38'); }
+      updateBuyModeUI();
+      emitUpdate();
+    });
+
+    // 首次重算
+    recompute();
+  </script>
+</body>
+</html>

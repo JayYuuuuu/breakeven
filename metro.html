@@ -1311,6 +1311,77 @@
     const pct = (x,p=2)=> isFinite(x) ? (x*100).toFixed(p)+'%' : '—';
     const fmt = (x,p=2)=> isFinite(x) ? Number(x).toLocaleString('zh-CN',{minimumFractionDigits:p, maximumFractionDigits:p}) : '—';
 
+    // —— 轻量跨页事件总线（BroadcastChannel）——
+    const calcBus = ('BroadcastChannel' in window) ? new BroadcastChannel('calc-bus') : null;
+    let __busLock = false; // 防循环回声
+    function collectPayloadForBus(){
+      const p = params();
+      const basisSel = $('decBasis');
+      return {
+        basis: basisSel ? basisSel.value : 'effective',
+        aov: (document.getElementById('decAOV') && isFinite(num($('decAOV').value))) ? num($('decAOV').value) : p.sellingPrice,
+        bundleRate: document.getElementById('decBundleRate') ? to01($('decBundleRate').value) : undefined,
+        rr: p.returnRate,
+        cpc: (document.getElementById('cpc') ? num($('cpc').value) : undefined),
+        cvr: (document.getElementById('cvr') ? to01($('cvr').value) : undefined),
+        cpm: (document.getElementById('decCPM') ? num($('decCPM').value) : undefined),
+        ctr: (document.getElementById('decCTR') ? to01($('decCTR').value) : undefined),
+        sellingPrice: p.sellingPrice,
+        costPrice: p.costPrice,
+        platformRate: p.platformRate,
+        salesTaxRate: p.salesTaxRate,
+        outputTaxRate: p.outputTaxRate,
+        inputTaxRate: p.inputTaxRate,
+        serviceVATRate: p.serviceVATRate,
+        shippingCost: p.shippingCost,
+        shippingInsurance: p.shippingInsurance,
+        otherCost: p.otherCost
+      };
+    }
+    function emitCalcBus(){
+      if (!calcBus || __busLock) return;
+      try {
+        const payload = collectPayloadForBus();
+        calcBus.postMessage({ type:'calc:update', source:'metro', payload });
+      } catch (_) {}
+    }
+    function setValueIf(id, val){
+      const el = document.getElementById(id);
+      if(!el) return;
+      if(val===undefined || val===null || Number.isNaN(val)) return;
+      el.value = String(val);
+    }
+    calcBus && calcBus.addEventListener('message', (e)=>{
+      const msg = e.data;
+      if(!msg || msg.type!=='calc:update' || msg.source==='metro') return;
+      const d = msg.payload || {};
+      __busLock = true;
+      try{
+        setValueIf('decBasis', d.basis);
+        setValueIf('decAOV', isFinite(d.aov)? d.aov : '');
+        setValueIf('decBundleRate', isFinite(d.bundleRate)? (d.bundleRate*100) : '');
+        setValueIf('returnRate', isFinite(d.rr)? (d.rr*100) : '');
+        setValueIf('cpc', d.cpc);
+        setValueIf('cvr', isFinite(d.cvr)? (d.cvr*100) : '');
+        setValueIf('decCPM', d.cpm);
+        setValueIf('decCTR', isFinite(d.ctr)? (d.ctr*100) : '');
+        setValueIf('sellingPrice', d.sellingPrice);
+        setValueIf('costPrice', d.costPrice);
+        setValueIf('platformRate', isFinite(d.platformRate)? (d.platformRate*100) : '');
+        setValueIf('salesTaxRate', isFinite(d.salesTaxRate)? (d.salesTaxRate*100) : '');
+        setValueIf('outputTaxRate', isFinite(d.outputTaxRate)? (d.outputTaxRate*100) : '');
+        setValueIf('inputTaxRate', isFinite(d.inputTaxRate)? (d.inputTaxRate*100) : '');
+        setValueIf('serviceVATRate', isFinite(d.serviceVATRate)? (d.serviceVATRate*100) : '');
+        setValueIf('shippingCost', d.shippingCost);
+        setValueIf('shippingInsurance', d.shippingInsurance);
+        setValueIf('otherCost', d.otherCost);
+        // 统一重算
+        try{ recomputeAllTabs(); }catch(_){ try{ render(); }catch(_){} }
+      } finally {
+        __busLock = false;
+      }
+    });
+
 
     // —— Tooltip (hover + long-press) ——
     const tipEl = document.createElement('div');
@@ -1664,6 +1735,7 @@
           saveToStorage(tierIndexKeyFor(key), String(i));
           setInputs({ price: tierPrices[i], cost: tierCosts[i], rr: p.returnRate });
           recomputeAllTabs();
+          emitCalcBus();
         };
       }
       // 2) 单售价 × 多进货价：选择进货价档位
@@ -1679,6 +1751,7 @@
           saveToStorage(tierIndexKeyFor(key), String(i));
           setInputs({ price: p.singlePrice, cost: tierCosts[i], rr: p.returnRate });
           recomputeAllTabs();
+          emitCalcBus();
         };
       }
       // 3) 多售价 × 单进货价：选择售价档位
@@ -1694,6 +1767,7 @@
           saveToStorage(tierIndexKeyFor(key), String(i));
           setInputs({ price: tierPrices[i], cost: p.singleCost, rr: p.returnRate });
           recomputeAllTabs();
+          emitCalcBus();
         };
       }
       // 4) 单售价 × 单进货价：直接填充
@@ -1708,8 +1782,9 @@
         const cost  = hasSingleCost  ? p.singleCost  : (hasMultiCost  ? tierCosts[0]  : NaN);
         setInputs({ price, cost, rr: p.returnRate });
       }
-      // 预计算所有右侧Tab，确保后续切换即可见最新数值
+      // 预计算所有右侧Tab，并广播到 calc-bus 以便其他页面同步
       recomputeAllTabs();
+      emitCalcBus();
     }
 
     // 保存参数到本地存储
@@ -3555,6 +3630,21 @@
 
     fillDefaults();
     bind();
+    // 绑定全局输入变化 -> 广播（轻量选择器，避免侵入原逻辑）
+    const busWatchIds = [
+      'sellingPrice','costPrice','returnRate','inputTaxRate','outputTaxRate','platformRate',
+      'shippingCost','shippingInsurance','otherCost','salesTaxRate','serviceVATRate',
+      'cpc','cvr','decBasis','decAOV','decBundleRate','decCPM','decCTR'
+    ];
+    document.addEventListener('input', (e)=>{
+      const id = e.target && e.target.id;
+      if (busWatchIds.includes(id)) emitCalcBus();
+    });
+    document.addEventListener('change', (e)=>{
+      const id = e.target && e.target.id;
+      if (busWatchIds.includes(id)) emitCalcBus();
+    });
+
     render();
     // 设备识别：iPad Pro 11"（1210×834 或 834×1210）
     function setDeviceClass(){
