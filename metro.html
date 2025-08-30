@@ -131,6 +131,14 @@
     input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
     .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 
+    /* 桌面/移动端可见性控制 */
+    .desktop-only{ display:block; }
+    .mobile-only{ display:none; }
+    @media (max-width: 1220px){
+      .desktop-only{ display:none; }
+      .mobile-only{ display:block; }
+    }
+
     /* ===== iPad Pro 11" (1210×834) 专项优化 ===== */
     body.ipad-pro-11 .wrap{ grid-template-columns: 40% 58%; gap:12px }
     body.ipad-pro-11 header{ padding:16px 16px 0 }
@@ -767,9 +775,15 @@
             </div>
               <div>
                 <label>进货模式</label>
-                <div class="switch">
+                <div class="switch desktop-only">
                   <label><input type="radio" name="goodsMode" value="canReturn" checked> 可退</label>
                   <label><input type="radio" name="goodsMode" value="cannotReturn"> 不可退</label>
+                </div>
+                <div class="mobile-only">
+                  <select id="goodsModeSelect">
+                    <option value="canReturn">可退</option>
+                    <option value="cannotReturn">不可退</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -800,17 +814,30 @@
             <div class="grid grid-4">
               <div class="col-span-2">
                 <label class="nowrap">广告输入模式</label>
-                <div class="switch">
+                <div class="switch desktop-only">
                   <label><input type="radio" name="adMode" value="none"> 不给定</label>
                   <label><input type="radio" name="adMode" value="rate" checked> 占比</label>
                   <label><input type="radio" name="adMode" value="amount"> 金额</label>
                 </div>
+                <div class="mobile-only">
+                  <select id="adModeSelect">
+                    <option value="none">不给定</option>
+                    <option value="rate">占比</option>
+                    <option value="amount">金额</option>
+                  </select>
+                </div>
               </div>
               <div class="col-span-2">
                 <label class="nowrap">占比口径</label>
-                <div class="switch">
+                <div class="switch desktop-only">
                   <label><input type="radio" name="adRateBasis" value="effective" checked> 有效营收</label>
                   <label><input type="radio" name="adRateBasis" value="gmv"> GMV</label>
+                </div>
+                <div class="mobile-only">
+                  <select id="adRateBasisSelect">
+                    <option value="effective">有效营收</option>
+                    <option value="gmv">GMV</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -844,9 +871,15 @@
               </div>
               <div>
                 <label>推演口径</label>
-                <div class="switch">
+                <div class="switch desktop-only">
                   <label><input type="radio" name="simBasis" value="effective" checked> 有效营收</label>
                   <label><input type="radio" name="simBasis" value="gmv"> GMV</label>
+                </div>
+                <div class="mobile-only">
+                  <select id="simBasisSelect">
+                    <option value="effective">有效营收</option>
+                    <option value="gmv">GMV</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1318,6 +1351,36 @@
       }else{ // none
         adRateEl.disabled = true; adCostEl.disabled = true;
       }
+    }
+
+    // —— 移动端下拉选择与桌面单选开关同步 ——
+    function initMobileSelects(){
+      const groups = [
+        { name:'goodsMode', selectId:'goodsModeSelect', storage: STORAGE_KEYS.goodsMode },
+        { name:'adMode', selectId:'adModeSelect', storage: STORAGE_KEYS.adMode },
+        { name:'adRateBasis', selectId:'adRateBasisSelect', storage: STORAGE_KEYS.adRateBasis },
+        { name:'simBasis', selectId:'simBasisSelect', storage: STORAGE_KEYS.simBasis },
+      ];
+      groups.forEach(g=>{
+        const sel = document.getElementById(g.selectId);
+        if(!sel) return;
+        // 初始化：跟随当前已选中的单选值
+        const current = document.querySelector(`input[name="${g.name}"]:checked`);
+        if(current){ sel.value = current.value; }
+        // 下拉变更 -> 同步单选 & 保存
+        sel.addEventListener('change', ()=>{
+          const v = sel.value;
+          const radio = document.querySelector(`input[name="${g.name}"][value="${v}"]`);
+          if(radio){ radio.checked = true; }
+          if(g.storage){ saveToStorage(g.storage, v); }
+          updateAdModeUI();
+          render();
+        });
+        // 单选变更 -> 同步下拉（桌面情况下仍保持一致）
+        document.querySelectorAll(`input[name="${g.name}"]`).forEach(r=>{
+          r.addEventListener('change', ()=>{ sel.value = r.value; });
+        });
+      });
     }
 
     // 本地存储键名
@@ -2882,6 +2945,8 @@
     function bind(){
       // 初始化Tab切换
       initTabs();
+      // 初始化移动端下拉选择与单选同步
+      initMobileSelects();
       
       // 为所有输入框添加事件监听
       document.querySelectorAll('input,select').forEach(el=>{
