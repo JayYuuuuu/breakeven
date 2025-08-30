@@ -1,6 +1,80 @@
 /**
  * 电商保本计算器 - 纯函数计算引擎
  * 包含所有核心计算逻辑，无DOM依赖，可复用
+ * 
+ * ===== 重要使用说明 =====
+ * 
+ * ⚠️ 常见错误提醒：
+ * 
+ * 1. 【比率转换错误】to01()函数期望接收实际值，不是DOM元素ID！
+ *    ❌ 错误：to01('cvr')        → 会得到0
+ *    ✅ 正确：to01('15')         → 得到0.15
+ *    ✅ 正确：to01('15%')        → 得到0.15
+ *    ✅ 正确：to01('1')          → 得到0.01 (注意：1% = 0.01，不是1.0)
+ * 
+ * 2. 【数值转换错误】num()函数同样期望接收实际值，不是DOM元素ID！
+ *    ❌ 错误：num('sellingPrice') → 会得到NaN
+ *    ✅ 正确：num('79.8')         → 得到79.8
+ * 
+ * 3. 【转换逻辑说明】：
+ *    - to01()：所有输入都当作百分比处理
+ *      * 输入"1" → 1% → 0.01
+ *      * 输入"15" → 15% → 0.15
+ *      * 输入"0.5" → 0.5% → 0.005
+ *    
+ *    - num()：直接转换为数值
+ *      * 输入"79.8" → 79.8
+ *      * 输入"123" → 123
+ * 
+ * ===== 在页面中的正确使用方式 =====
+ * 
+ * 推荐：创建包装函数处理DOM操作
+ * ```javascript
+ * // 百分比转换包装函数
+ * function pct(id) {
+ *   const element = document.getElementById(id);
+ *   return element ? to01(element.value) : 0;
+ * }
+ * 
+ * // 数值转换包装函数
+ * function getNumber(id) {
+ *   const element = document.getElementById(id);
+ *   return element ? num(element.value) : 0;
+ * }
+ * 
+ * // 使用示例
+ * const cvr = pct('cvr');           // 正确：获取元素值后转换
+ * const price = getNumber('price');  // 正确：获取元素值后转换
+ * ```
+ * 
+ * 不推荐：直接传递元素ID
+ * ```javascript
+ * const cvr = to01('cvr');          // 错误：传递ID而不是值
+ * const price = num('price');       // 错误：传递ID而不是值
+ * ```
+ * 
+ * ===== 为什么这样设计 =====
+ * 
+ * 1. 【纯函数原则】：engine.js作为纯函数库，不依赖DOM环境
+ * 2. 【可复用性】：可以在Node.js、Web Worker等环境中使用
+ * 3. 【可测试性】：可以独立进行单元测试
+ * 4. 【关注点分离】：页面负责UI操作，引擎负责计算逻辑
+ * 
+ * ===== 历史问题回顾 =====
+ * 
+ * 这个问题在多个页面中都出现过：
+ * - strategy.html：曾经出现CVR显示为0.00%的问题
+ * - 其他页面：比率转换不一致的问题
+ * 
+ * 根本原因：混淆了"元素ID"和"元素值"的概念
+ * 
+ * ===== 快速检查清单 =====
+ * 
+ * 在开发新页面时，请检查：
+ * □ 是否创建了包装函数处理DOM操作？
+ * □ 是否传递的是元素值而不是元素ID？
+ * □ 是否理解了to01()的百分比转换逻辑？
+ * □ 是否测试了边界情况（如输入"1"转换为0.01）？
  */
 
 // 类型定义（注释形式，便于理解）
@@ -1252,8 +1326,50 @@ export function clamp01(x) {
 
 /**
  * 将输入框字符串安全转换成小数（支持百分比格式）
+ * 
+ * ⚠️ 重要提醒：此函数期望接收实际的输入值，不是DOM元素ID！
+ * 
  * @param {string|number} input - 输入值，支持 "15%" 或 "15" 或 "0.15" 格式
  * @returns {number} 转换后的小数（0-1）
+ * 
+ * @example
+ * // ✅ 正确用法：传入实际值
+ * const cvrValue = document.getElementById('cvr').value;
+ * const cvr = to01(cvrValue); // 输入"15" → 0.15
+ * 
+ * // ❌ 错误用法：传入元素ID
+ * const cvr = to01('cvr'); // 错误！会得到0
+ * 
+ * @example
+ * // 转换示例：
+ * to01("15")     → 0.15    (15%)
+ * to01("15%")    → 0.15    (15%)
+ * to01("1")      → 0.01    (1%)
+ * to01("0.5")    → 0.005   (0.5%)
+ * to01("")       → 0       (空值)
+ * to01(null)     → 0       (空值)
+ * 
+ * @description
+ * 此函数采用"所有输入都当作百分比"的逻辑：
+ * - 输入"1"表示1%，转换为0.01
+ * - 输入"15"表示15%，转换为0.15
+ * - 输入"0.5"表示0.5%，转换为0.005
+ * 
+ * 常见错误：
+ * 1. 传入DOM元素ID而不是值：to01('cvr') ❌
+ * 2. 期望输入"1"转换为1.0：实际转换为0.01 ✅
+ * 
+ * 在页面中使用时，请先获取元素值再传入：
+ * ```javascript
+ * // 推荐：创建包装函数
+ * function pct(id) {
+ *   const element = document.getElementById(id);
+ *   return element ? to01(element.value) : 0;
+ * }
+ * 
+ * // 使用
+ * const cvr = pct('cvr'); // 正确
+ * ```
  */
 export function to01(input) {
   if (!input && input !== 0) return 0;
@@ -1274,8 +1390,50 @@ export function to01(input) {
 
 /**
  * 将输入框字符串安全转换成数值
+ * 
+ * ⚠️ 重要提醒：此函数期望接收实际的输入值，不是DOM元素ID！
+ * 
  * @param {string|number} input - 输入值
  * @returns {number} 转换后的数值
+ * 
+ * @example
+ * // ✅ 正确用法：传入实际值
+ * const priceValue = document.getElementById('sellingPrice').value;
+ * const price = num(priceValue); // 输入"79.8" → 79.8
+ * 
+ * // ❌ 错误用法：传入元素ID
+ * const price = num('sellingPrice'); // 错误！会得到NaN
+ * 
+ * @example
+ * // 转换示例：
+ * num("79.8")    → 79.8
+ * num("123")     → 123
+ * num("0")       → 0
+ * num("")        → 0
+ * num(null)      → 0
+ * num("abc")     → 0
+ * 
+ * @description
+ * 此函数用于转换非百分比数值（如价格、成本等）：
+ * - 移除所有非数字、小数点和负号字符
+ * - 转换为数值类型
+ * - 无效输入返回0
+ * 
+ * 常见错误：
+ * 1. 传入DOM元素ID而不是值：num('sellingPrice') ❌
+ * 2. 期望处理百分比：应该使用to01()函数
+ * 
+ * 在页面中使用时，请先获取元素值再传入：
+ * ```javascript
+ * // 推荐：创建包装函数
+ * function getNumber(id) {
+ *   const element = document.getElementById(id);
+ *   return element ? num(element.value) : 0;
+ * }
+ * 
+ * // 使用
+ * const price = getNumber('sellingPrice'); // 正确
+ * ```
  */
 export function num(input) {
   if (!input && input !== 0) return 0;

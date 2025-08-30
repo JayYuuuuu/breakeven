@@ -455,7 +455,8 @@
       computeMaxCPC,
       cpcFromCpmCtr,
       computeCPAMetrics,
-      profitPerAdYuan
+      profitPerAdYuan,
+      to01
     } from './engine.js';
     import { getProductExamples, SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
 
@@ -537,11 +538,13 @@
       const n = parseFloat(t);
       return isFinite(n) ? n : NaN;
     }
+
+    // 包装函数：保持原有的调用方式，先获取元素值再传给to01
     function pct(id){
-      const n = num(id);
-      if(!isFinite(n)) return NaN;
-      return n>1 ? n/100 : n; // 允许“15”与“0.15”
+      const v = document.getElementById(id).value.trim();
+      return to01(v);
     }
+
     function clamp01(x){ return Math.max(0, Math.min(1, Number(x)||0)); }
 
     // —— 本地存储工具 ——

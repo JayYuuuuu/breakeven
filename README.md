@@ -350,6 +350,29 @@ adCostBreakEven = (1 + serviceVATRate) × A
 - `cpcFromCpmCtr(cpm, ctr)` - CPM转CPC计算
 - `calcEffectiveAOV(aov, bundleRate)` - 有效AOV计算
 
+> ⚠️ **重要提醒**：`to01()` 和 `num()` 函数期望接收实际的输入值，不是DOM元素ID！
+> 
+> ```javascript
+> // ❌ 错误用法：传入元素ID
+> const cvr = to01('cvr');        // 会得到0
+> const price = num('price');     // 会得到NaN
+> 
+> // ✅ 正确用法：传入实际值
+> const cvrValue = document.getElementById('cvr').value;
+> const cvr = to01(cvrValue);     // 输入"15" → 0.15
+> 
+> // 🎯 推荐：创建包装函数
+> function pct(id) {
+>   const element = document.getElementById(id);
+>   return element ? to01(element.value) : 0;
+> }
+> const cvr = pct('cvr');         // 正确
+> ```
+> 
+> **转换逻辑说明**：
+> - `to01()`：所有输入都当作百分比处理（输入"1" → 0.01，输入"15" → 0.15）
+> - `num()`：直接转换为数值（输入"79.8" → 79.8）
+
 #### BE系列衍生函数
 - `computeBeCPAFromROAS(beROAS, aovBasisValue)` - 从BE-ROAS计算BE-CPA
 - `computeMaxCPC(beCPA, cvr)` - 计算最大可承受CPC
@@ -405,6 +428,50 @@ cd breakeven
 ## 📄 许可证
 
 本项目仅供学习和参考使用。使用仅作测算参考，实际以贵司财务/税务规则为准。
+
+## ❗ 常见问题与解决方案
+
+### 1. 比率转换错误（最常见问题）
+
+**问题描述**：输入框显示"15%"，但计算结果中CVR显示"0.00%"
+
+**错误原因**：
+```javascript
+// ❌ 错误：直接传递元素ID
+const cvr = to01('cvr');        // 会得到0
+```
+
+**正确解决方案**：
+```javascript
+// ✅ 方案1：先获取值再转换
+const cvrValue = document.getElementById('cvr').value;
+const cvr = to01(cvrValue);     // 输入"15" → 0.15
+
+// ✅ 方案2：创建包装函数（推荐）
+function pct(id) {
+  const element = document.getElementById(id);
+  return element ? to01(element.value) : 0;
+}
+const cvr = pct('cvr');         // 正确
+```
+
+### 2. 转换逻辑理解错误
+
+**问题**：期望输入"1"转换为1.0，实际转换为0.01
+
+**说明**：这是正确的行为！
+- `to01()`函数采用"所有输入都当作百分比"的逻辑
+- 输入"1"表示1%，转换为0.01
+- 输入"15"表示15%，转换为0.15
+- 输入"0.5"表示0.5%，转换为0.005
+
+### 3. 快速检查清单
+
+开发新页面时，请检查：
+- [ ] 是否创建了包装函数处理DOM操作？
+- [ ] 是否传递的是元素值而不是元素ID？
+- [ ] 是否理解了to01()的百分比转换逻辑？
+- [ ] 是否测试了边界情况（如输入"1"转换为0.01）？
 
 ## 📞 技术支持
 
