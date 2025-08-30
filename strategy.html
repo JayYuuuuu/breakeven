@@ -18,7 +18,7 @@
     h1{margin:0; font-size:22px}
     .sub{color:var(--muted); font-size:13px; margin-top:4px}
     main{padding:16px 20px}
-    .wrap{display:grid; grid-template-columns: 36% 64%; gap:16px; align-items:start}
+    .wrap{display:grid; grid-template-columns: 36% 63%; gap:16px; align-items:start}
     @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
 
     .card{background:var(--card); border:1px solid #d2d2d7; border-radius:var(--radius); box-shadow:0 1px 2px rgba(0,0,0,.06)}
@@ -28,17 +28,89 @@
     .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
     .grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
     .col-span-2{grid-column: span 2}
+    
+    /* 分组标题样式 */
+    .pill {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 20px 0 12px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e5ea;
+    }
+    
+    /* 第一个分组标题顶部间距 */
+    .pill:first-of-type {
+      margin-top: 0;
+    }
+    
     label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
     input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:10px 10px; font-size:18px; font-weight:600; outline:none}
     input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
     .hint{font-size:12px; color:var(--muted); margin-top:6px}
+    
+    /* 输入组之间的间距 */
+    .grid, .grid-3, .grid-4 {
+      margin-bottom: 16px;
+    }
+    
+    /* 说明文字的上边距 */
+    .hint {
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
 
-    /* 左栏 sticky */
-    .wrap > section:first-child{ position:sticky; top:16px; height: calc(100dvh - 32px); overflow:auto }
+    /* 左栏 sticky，并占两行：右侧可上下两个模块 */
+    .wrap > section:first-child{ 
+      position:sticky; 
+      top:16px; 
+      grid-row: span 2;
+      height: 100%; /* 占满整个grid行高度 */
+      overflow: auto;
+    }
+
+    /* 右栏容器，动态高度，与左侧保持等高 */
+    .wrap > section:nth-child(2) {
+      height: 100%; /* 占满分配的高度 */
+      overflow: visible;
+    }
+    
+    .wrap > section:nth-child(3) {
+      height: 100%; /* 占满分配的高度 */
+      overflow: visible;
+    }
+
+    /* 确保左右两侧等高 - 使用grid的stretch特性 */
+    .wrap {
+      align-items: stretch;
+      min-height: 0; /* 允许grid行收缩 */
+    }
+
+    /* 右侧两个模块的容器，确保它们能正确分配高度 */
+    .wrap > section:nth-child(2),
+    .wrap > section:nth-child(3) {
+      min-height: 0; /* 允许内容收缩 */
+    }
 
     /* 右栏三栏容器 */
     .three-cols{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px}
     @media (max-width: 1100px){ .three-cols{ grid-template-columns: 1fr } }
+
+    /* 三栏结果中每列的卡片间距 */
+    .three-cols > div {
+      display: flex;
+      flex-direction: column;
+      gap: 12px; /* 上下卡片之间的间隙 */
+    }
+
+    /* 确保第一个和最后一个卡片与容器边缘有适当间距 */
+    .three-cols > div > .metric-card:first-child {
+      margin-top: 0; /* 第一个卡片顶部不额外加边距 */
+    }
+
+    .three-cols > div > .metric-card:last-child {
+      margin-bottom: 0; /* 最后一个卡片底部不额外加边距 */
+    }
 
     /* MetricCard */
     .metric-card{border:1px solid #e5e5ea; border-radius:12px; padding:12px; background:#fff}
@@ -52,13 +124,17 @@
     .i-btn{background:none; border:none; color:#64748b; cursor:pointer; font-size:14px}
     .metric-body{margin-top:8px; display:grid; gap:6px}
     .metric-row{display:flex; align-items:center; justify-content:space-between; font-size:14px}
-    .val{font-family:var(--mono); font-weight:700}
+    .val{font-family:var(--mono); font-weight:700;font-size: 14px;}
     .ok{color:var(--ok)} .bad{color:var(--bad)}
     .muted{color:var(--muted)}
     .tiny{font-size:11px}
     .chip{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; border:1px solid #e5e5ea; font-size:11px; background:#fafafa}
     .chip.good{border-color:#b7eb8f; background:#f6ffed; color:#237804}
     .chip.bad{border-color:#ffa39e; background:#fff1f0; color:#a8071a}
+
+    /* KPI 概览栅格 */
+    .kpi-grid{display:grid; grid-template-columns: repeat(2, 1fr); gap:16px}
+    @media (min-width: 1200px){ .kpi-grid{ grid-template-columns: repeat(4, 1fr) } }
 
     /* Modal */
     dialog{border:none; border-radius:12px; max-width:640px; width:calc(100% - 32px);}
@@ -104,7 +180,7 @@
               <input id="exQuery" type="text" placeholder="输入关键词过滤" />
             </div>
             <div class="col-span-2">
-              <label>从示例数据选择（自动填充售价/进货价/退货率）</label>
+              <label>从示例数据选择</label>
               <select id="exSelect"><option value="">— 选择示例商品 —</option></select>
             </div>
             <div id="exTierWrap" class="col-span-2" style="display:none">
@@ -203,6 +279,26 @@
             <div>
               <label>其他成本（¥）</label>
               <input id="otherCost" type="text" inputmode="decimal" placeholder="2.5" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右：KPI 概览（基础） -->
+      <section class="card">
+        <h2>
+          <span>KPI 概览（基础）</span>
+          <span class="hint">基于售价/成本/税费/佣金/退货率</span>
+        </h2>
+        <div class="content">
+          <div class="metric-card">
+            <div class="metric-head"><div class="metric-title">KPI 概览（基础口径）</div></div>
+            <div class="metric-body kpi-grid">
+              <div class="metric-row"><span>毛利率（有效）</span><span class="val" id="kpiGrossMargin">—</span></div>
+              <div class="metric-row"><span>保本广告占比（有效）</span><span class="val" id="kpiAdRateEffTop">—</span></div>
+              <div class="metric-row"><span>保本ROAS（有效）</span><span class="val" id="kpiROASEffTop">—</span></div>
+              <div class="metric-row"><span>保本广告占比（GMV）</span><span class="val" id="kpiAdRateGMVTop">—</span></div>
+              <div class="metric-row"><span>保本ROAS（GMV）</span><span class="val" id="kpiROASGMVTop">—</span></div>
             </div>
           </div>
         </div>
@@ -308,7 +404,7 @@
             <div>
               <div class="metric-card">
                 <div class="metric-head head-grid">
-                  <div class="metric-title">最大可承受广告费（BE-CPA，保本获客成本）</div>
+                  <div class="metric-title">保本广告成本（BE-CPA）</div>
                   <div class="metric-ctrl">
                     <div class="seg seg-tiny" id="basis-becpa" role="group" aria-label="BE-CPA口径">
                       <button type="button" class="on" data-v="follow">跟随</button>
@@ -519,6 +615,13 @@
 
       // BE-ROAS & BE-CPA
       const base = computeBase(p);
+      // 顶部 KPI 概览（基于基础参数）
+      const setTxt = (id, text)=>{ const el=document.getElementById(id); if(el) el.textContent = text; };
+      setTxt('kpiGrossMargin', fmtP(base.grossMarginRate));
+      setTxt('kpiAdRateEffTop', fmtP(base.adRateBE_effective));
+      setTxt('kpiROASEffTop', isFinite(base.ROI_BE_effective)? (base.ROI_BE_effective.toFixed(2)+'倍') : '—');
+      setTxt('kpiAdRateGMVTop', fmtP(base.adRateBE_gmv));
+      setTxt('kpiROASGMVTop', isFinite(base.ROI_BE_gmv)? (base.ROI_BE_gmv.toFixed(2)+'倍') : '—');
       const readSeg = (id)=>{
         const el = document.getElementById(id);
         const on = el ? el.querySelector('button.on') : null;
@@ -550,12 +653,13 @@
 
       // CPM→CPC（仅在 CPM 模式显示卡片）
 
-      // 投1元净利（用 CPA = CPC/CVR）
-      let profitPer1 = NaN;
+      // 投1元净利与当前等价广告占比（用 CPA = CPC/CVR）
+      let profitPer1 = NaN, curEffRate = NaN, curGMVRate = NaN;
       if (isFinite(cpc) && isFinite(cvr) && cvr>0){
-        const cpa = cpc / cvr;
         const res = computeCPAMetrics(p, { cpc, cvr });
         profitPer1 = res.roiPerAdYuan; // 与即时诊断一致
+        curEffRate = res.effectiveRate;
+        curGMVRate = res.gmvRate;
       }
 
       // 渲染基础显示
@@ -582,9 +686,25 @@
       document.getElementById('beROAS').textContent = isFinite(beROAS_becpa)? (beROAS_becpa.toFixed(2)+'倍') : '—';
       document.getElementById('beCPA').textContent = fmtY(beCPA_becpa);
 
-      document.getElementById('adRateEff').textContent = fmtP(base.adRateBE_effective);
-      document.getElementById('adRateGMV').textContent = fmtP(base.adRateBE_gmv);
-      document.getElementById('profitPerAdYuan').textContent = isFinite(profitPer1)? ( (profitPer1>=0? '+':'') + fmt(profitPer1,2) + ' 元') : '—';
+      const passHtml = (pass)=> pass==null? '—' : (pass? '<span class="ok">已达标</span>' : '<span class="bad">未达标</span>');
+      const effPass = (isFinite(curEffRate) && isFinite(base.adRateBE_effective)) ? (curEffRate <= base.adRateBE_effective + 1e-12) : null;
+      const gmvPass = (isFinite(curGMVRate) && isFinite(base.adRateBE_gmv)) ? (curGMVRate <= base.adRateBE_gmv + 1e-12) : null;
+      // 显示“当前 / 阈值 + 是否达标”
+      const effCur = fmtP(curEffRate);
+      const effTh  = fmtP(base.adRateBE_effective);
+      const gmvCur = fmtP(curGMVRate);
+      const gmvTh  = fmtP(base.adRateBE_gmv);
+      document.getElementById('adRateEff').innerHTML = `${effCur} / ${effTh} ${passHtml(effPass)}`;
+      document.getElementById('adRateGMV').innerHTML = `${gmvCur} / ${gmvTh} ${passHtml(gmvPass)}`;
+      // 投1元净利显示，正数绿色，负数红色
+      const profitEl = document.getElementById('profitPerAdYuan');
+      if (isFinite(profitPer1)) {
+        const sign = profitPer1 >= 0 ? '+' : '';
+        const colorClass = profitPer1 >= 0 ? 'ok' : 'bad';
+        profitEl.innerHTML = `<span class="${colorClass}">${sign}${fmt(profitPer1,2)} 元</span>`;
+      } else {
+        profitEl.textContent = '—';
+      }
 
       document.getElementById('cpcFromCpm').textContent = fmtY(cpcFrom);
 
