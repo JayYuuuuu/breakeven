@@ -1628,8 +1628,22 @@
       const costPart = (Array.isArray(p.tierCosts) && p.tierCosts.length)
         ? `进货[${p.tierCosts.map(v=>Number(v).toFixed(2)).join(' / ')}]`
         : (p.singleCost>0? `进货${Number(p.singleCost).toFixed(2)}` : '进货—');
-      const rr = (p.returnRate!=null && isFinite(p.returnRate)) ? `${(p.returnRate*100).toFixed(2)}%` : '—';
-      return `${p.platform || ''} · ${p.name} (${p.sku})｜${pricePart}｜${costPart}｜退货率 ${rr}`;
+      // 修复退货率显示问题：智能判断是小数还是百分比
+      let rr = '';
+      if (p.returnRate !== undefined && p.returnRate !== null && p.returnRate !== '') {
+        const rrValue = Number(p.returnRate);
+        if (isFinite(rrValue)) {
+          if (rrValue < 1) {
+            // 小数形式，转换为百分比显示
+            rr = `${(rrValue * 100).toFixed(2)}%`;
+          } else {
+            // 已经是百分比形式，直接显示
+            rr = `${rrValue.toFixed(2)}%`;
+          }
+        }
+      }
+      const rrPart = rr ? `｜退货率 ${rr}` : '';
+      return `${p.platform || ''} · ${p.name} (${p.sku})｜${pricePart}｜${costPart}${rrPart}`;
     }
     function populateExampleFilters(){
       const pf = document.getElementById('examplePlatformFilter');
@@ -1683,7 +1697,19 @@
       const set = (id, val, storageKey)=>{ const el = document.getElementById(id); if(el){ el.value = val; if(storageKey) saveToStorage(storageKey, val); } };
       if(isFinite(price)) set('sellingPrice', Number(price).toFixed(2), STORAGE_KEYS.sellingPrice);
       if(isFinite(cost))  set('costPrice', Number(cost).toFixed(2), STORAGE_KEYS.costPrice);
-      if(isFinite(rr))    set('returnRate', (Number(rr)*100).toFixed(2), STORAGE_KEYS.returnRate);
+      if(isFinite(rr)) {
+        // 修复退货率放大100倍的问题
+        // 如果退货率已经是小数形式（<1），则乘以100转换为百分比
+        // 如果退货率已经是百分比形式（>=1），则直接使用
+        const rrValue = Number(rr);
+        if (rrValue < 1) {
+          // 小数形式，转换为百分比
+          set('returnRate', (rrValue * 100).toFixed(2), STORAGE_KEYS.returnRate);
+        } else {
+          // 已经是百分比形式，直接使用
+          set('returnRate', rrValue.toFixed(2), STORAGE_KEYS.returnRate);
+        }
+      }
     }
     function showTierUI(show, label){
       const wrap = document.getElementById('exampleTierWrap');
