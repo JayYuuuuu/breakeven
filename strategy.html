@@ -34,10 +34,9 @@
       font-size: 14px;
       font-weight: 600;
       color: var(--ink);
-      margin: 24px 0 16px 0;
-      padding: 10px 0;
+      margin: 20px 0 12px 0;
+      padding: 8px 0;
       border-bottom: 1px solid #e5e5ea;
-      position: relative;
     }
     
     /* 第一个分组标题顶部间距 */
@@ -45,31 +44,20 @@
       margin-top: 0;
     }
     
-    /* 最后一个分组标题底部间距 */
-    .pill:last-of-type {
-      margin-bottom: 8px;
-    }
-    
-    label{font-size:12px; color:var(--muted); margin:0 0 8px 2px; display:block}
-    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 12px; font-size:18px; font-weight:600; outline:none}
+    label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
+    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:10px 10px; font-size:18px; font-weight:600; outline:none}
     input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
-    .hint{font-size:12px; color:var(--muted); margin-top:8px; margin-bottom:12px}
+    .hint{font-size:12px; color:var(--muted); margin-top:6px}
     
-    /* 输入组之间的间距 - 动态调节 */
+    /* 输入组之间的间距 */
     .grid, .grid-3, .grid-4 {
-      margin-bottom: 20px;
-    }
-    
-    /* 最后一个输入组不需要底部间距 */
-    .grid:last-child, .grid-3:last-child, .grid-4:last-child {
-      margin-bottom: 0;
+      margin-bottom: 16px;
     }
     
     /* 说明文字的上边距 */
     .hint {
-      margin-top: 16px;
-      margin-bottom: 12px;
-      line-height: 1.5;
+      margin-top: 12px;
+      margin-bottom: 8px;
     }
 
     /* 左栏 sticky，并占两行：右侧可上下两个模块 */
@@ -79,17 +67,6 @@
       grid-row: span 2;
       height: 100%; /* 占满整个grid行高度 */
       overflow: auto;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* 左栏内容区域 - 动态填充高度 */
-    .wrap > section:first-child .content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 0;
     }
 
     /* 右栏容器，动态高度，与左侧保持等高 */
@@ -133,21 +110,6 @@
 
     .three-cols > div > .metric-card:last-child {
       margin-bottom: 0; /* 最后一个卡片底部不额外加边距 */
-    }
-    
-    /* 左栏内容分布优化 */
-    .wrap > section:first-child .content > *:last-child {
-      margin-bottom: 0; /* 最后一个元素不需要底部间距 */
-    }
-    
-    /* 示例商品选择区域优化 */
-    .wrap > section:first-child .grid-4:first-child {
-      margin-top: 0; /* 第一个grid不需要顶部间距 */
-    }
-    
-    /* 基础参数区域优化 */
-    .wrap > section:first-child details.base-params:last-child {
-      margin-bottom: 0; /* 最后一个折叠块不需要底部间距 */
     }
 
     /* MetricCard */
@@ -203,36 +165,20 @@
     .key label{ color:#0f172a; font-weight:600 }
 
     /* 基础参数折叠块 */
-    details.base-params{ 
-      margin-top: 16px;
-      border: 1px solid #f0f0f0;
-      border-radius: 8px;
-      background: #fafafa;
-    }
+    details.base-params{ margin-top: 8px }
     details.base-params > summary{
       list-style:none;
       cursor:pointer;
-      padding:12px 16px;
+      padding:8px 0;
       font-size:14px;
       font-weight:600;
       color:var(--muted);
+      border-top:1px dashed #e5e5ea;
       border-bottom:1px solid #e5e5ea;
       display:flex; align-items:center; gap:8px;
-      background: #f5f5f5;
-      border-radius: 8px 8px 0 0;
-      transition: background-color 0.2s ease;
-    }
-    details.base-params > summary:hover{
-      background: #f0f0f0;
     }
     details.base-params > summary::-webkit-details-marker{ display:none }
     details.base-params .muted-note{ font-size:12px; color:var(--muted); font-weight:500 }
-    
-    /* 基础参数内容区域 */
-    details.base-params > div {
-      padding: 16px;
-    }
-    
     /* 基础参数内控件弱化 */
     details.base-params input, details.base-params select{
       background:#fafafa;
@@ -245,6 +191,11 @@
       box-shadow:0 0 0 2px rgba(0,0,0,.04);
     }
     details.base-params label{ color:#9ca3af; font-weight:500 }
+
+    /* 标签行 + 迷你切换按钮 */
+    .label-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .mini-toggle{ border:1px solid #e5e5ea; background:#fff; color:var(--muted); border-radius:8px; padding:2px 8px; font-size:11px; cursor:pointer; }
+    .mini-toggle.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700 }
   </style>
 </head>
 <body>
@@ -272,7 +223,7 @@
             </div>
             <div>
               <label>搜索（名称/货号）</label>
-              <input id="exQuery" type="text" placeholder="输入关键词过滤" />
+              <input id="exQuery" type="text" placeholder="输入关键词" />
             </div>
             <div class="col-span-2">
               <label>从示例数据选择</label>
@@ -346,7 +297,10 @@
             <!-- 其他参数：一行4列 -->
             <div class="grid-4" style="margin-top:6px">
               <div>
-                <label>佣金率（%）</label>
+                <div class="label-row">
+                  <label>佣金率（%）</label>
+                  <button id="btnNoCommission" class="mini-toggle" type="button" title="免佣开关">免佣</button>
+                </div>
                 <input id="platformRate" type="text" inputmode="decimal" placeholder="5.5" />
               </div>
               <div>
@@ -522,8 +476,8 @@
                   <div class="metric-sub"><span class="badge"><span id="badgeCurrentCPA">有效</span></span></div>
                 </div>
                 <div class="metric-body">
-                  <div class="metric-row"><span>当前CPA（获客成本）</span><span class="val" id="currentCPA">—</span></div>
                   <div class="metric-row"><span>当前ROAS（投产比）</span><span class="val" id="currentROAS">—</span></div>
+                  <div class="metric-row"><span>当前CPA（获客成本）</span><span class="val" id="currentCPA">—</span></div>
                   <div class="metric-row"><span>是否盈利</span><span class="val" id="currentProfitStatus">—</span></div>
                 </div>
               </div>
@@ -1013,6 +967,48 @@
       el.addEventListener('change', ()=>{ save(); if(id==='buyMode') updateBuyModeUI(); emitUpdate(); });
     });
     window.addEventListener('calc:update', recompute);
+
+    // 免佣开关：点击置0，再点恢复默认
+    (function bindNoCommission(){
+      const btn = document.getElementById('btnNoCommission');
+      const input = document.getElementById('platformRate');
+      if(!btn || !input) return;
+
+      function savePlatformRate(v){
+        setAndSave('platformRate', v);
+        emitUpdate();
+      }
+
+      function updateToggleUI(){
+        const v = (input.value||'').trim();
+        const n = parseFloat(v.replace(/[^\d.\-]/g,''));
+        if (isFinite(n) && Math.abs(n) < 1e-9) btn.classList.add('on');
+        else btn.classList.remove('on');
+      }
+
+      btn.addEventListener('click', ()=>{
+        const active = btn.classList.contains('on');
+        if (!active){
+          // 记住当前作为“默认”，置0并高亮
+          btn.dataset.prev = input.value || loadKV(SK.platformRate||'strategy_platformRate','');
+          savePlatformRate('0');
+          btn.classList.add('on');
+        } else {
+          // 恢复记忆值，若无则回系统默认
+          let prev = btn.dataset.prev;
+          if (prev==null || prev==='') prev = (SYSTEM_PARAMS_EXAMPLE.platformRate*100).toFixed(1);
+          savePlatformRate(prev);
+          btn.classList.remove('on');
+          delete btn.dataset.prev;
+        }
+      });
+
+      // 输入变更时，同步按钮状态
+      input.addEventListener('input', updateToggleUI);
+      input.addEventListener('change', updateToggleUI);
+      // 初始同步
+      updateToggleUI();
+    })();
 
     // 分段控制绑定：点击切换“跟随/有效/GMV”，不遮挡标题
     function bindSeg(id){
