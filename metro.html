@@ -26,7 +26,9 @@
     .wrap > section:first-child {
       position: sticky;
       top: 20px;
+      /* 使用 dvh 以避免 iPad 浏览器地址栏导致的 100vh 误差产生额外滚动空间 */
       height: calc(100vh - 40px);
+      height: calc(100dvh - 40px);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -42,12 +44,14 @@
     /* 右侧内容区域自适应高度，可滚动 */
     .wrap > section:last-child {
       min-height: calc(100vh - 40px);
+      min-height: calc(100dvh - 40px);
       overflow: visible;
     }
     
     /* 右侧内容区域内部可滚动 */
     .wrap > section:last-child .content {
       max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
       overflow-y: auto;
       overflow-x: hidden;
     }
@@ -55,12 +59,15 @@
     /* 大屏（>1100px）时：将 header 高度计算在可视区域内 */
     body.large-screen .wrap > section:first-child{
       height: calc(100vh - var(--header-h) - 40px);
+      height: calc(100dvh - var(--header-h) - 40px);
     }
     body.large-screen .wrap > section:last-child{
       min-height: calc(100vh - var(--header-h) - 40px);
+      min-height: calc(100dvh - var(--header-h) - 40px);
     }
     body.large-screen .wrap > section:last-child .content{
       max-height: calc(100vh - var(--header-h) - 120px);
+      max-height: calc(100dvh - var(--header-h) - 120px);
     }
     
     /* 移动端适配：取消sticky效果 */
