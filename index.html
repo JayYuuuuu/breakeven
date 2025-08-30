@@ -304,11 +304,11 @@
               <input id="costPrice" class="input" type="number" step="0.01" value="38">
             </div>
             <div>
-              <label>开票成本比例（inputTaxRate）%</label>
+              <label>开票费率（inputTaxRate）%</label>
               <input id="inputTaxRate" class="input" type="number" step="0.01" value="6">
             </div>
             <div>
-              <label>商品进项税率（outputTaxRate）%</label>
+              <label>进项税率（outputTaxRate）%</label>
               <input id="outputTaxRate" class="input" type="number" step="0.01" value="13">
             </div>
             <div>
@@ -758,11 +758,11 @@ Profit = Rev
 
 其中：
 Rev = 售价 × (1 − 退货率)
- goodsCost = 进货价 × (1 + 开票成本比例) × {可退: ×r；不可退: ×1}
+ goodsCost = 进货价 × (1 + 开票费率) × {可退: ×r；不可退: ×1}
  othersCost = 物流费 + 运费险 + 其他成本  （发货即发生）
  commission = 售价 × 平台佣金率 × r
  VAT_out = Rev ÷ (1 + 销项税率) × 销项税率
- VAT_in_goods = 进货价 × 商品进项税率 × {可退: ×r；不可退: ×1}
+ VAT_in_goods = 进货价 × 进项税率 × {可退: ×r；不可退: ×1}
  VAT_in_comm  = commission ÷ (1 + 服务费税率) × 服务费税率
  VAT_in_ad    = X ÷ (1 + 服务费税率) × 服务费税率
 

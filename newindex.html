@@ -149,11 +149,11 @@
           <div class="group-title">税费</div>
           <div class="param-grid">
             <div>
-              <label>开票成本比例（进项服务）</label>
+              <label>开票费率（进项服务）</label>
               <input id="p_inputTaxRate" class="input percent2" type="number" step="0.01" placeholder="6.00" data-unit="%" data-scale="percent" />
             </div>
             <div>
-              <label>商品进项税率</label>
+              <label>进项税率</label>
               <input id="p_outputTaxRate" class="input percent2" type="number" step="0.01" placeholder="13.00" data-unit="%" data-scale="percent" />
             </div>
             <div>
@@ -559,7 +559,7 @@
       if (tipGoods){
         const baseGoodsNoRR = p.costPrice * (1 + p.inputTaxRate);
         tipGoods.innerHTML = [
-          `<div class=\"tline\"><code>进货价</code> × (1+<code>开票成本比例</code>)</div>`,
+          `<div class=\"tline\"><code>进货价</code> × (1+<code>开票费率</code>)</div>`,
           `<div class=\"tline\">= ${p.costPrice.toFixed(2)} × (1+${(p.inputTaxRate*100).toFixed(2)}%)</div>`,
           `<div class=\"tline\">→ <b>${baseGoodsNoRR.toFixed(2)}</b></div>`
         ].join('');

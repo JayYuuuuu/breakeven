@@ -34,9 +34,10 @@
       font-size: 14px;
       font-weight: 600;
       color: var(--ink);
-      margin: 20px 0 12px 0;
-      padding: 8px 0;
+      margin: 24px 0 16px 0;
+      padding: 10px 0;
       border-bottom: 1px solid #e5e5ea;
+      position: relative;
     }
     
     /* 第一个分组标题顶部间距 */
@@ -44,20 +45,31 @@
       margin-top: 0;
     }
     
-    label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
-    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:10px 10px; font-size:18px; font-weight:600; outline:none}
-    input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
-    .hint{font-size:12px; color:var(--muted); margin-top:6px}
+    /* 最后一个分组标题底部间距 */
+    .pill:last-of-type {
+      margin-bottom: 8px;
+    }
     
-    /* 输入组之间的间距 */
+    label{font-size:12px; color:var(--muted); margin:0 0 8px 2px; display:block}
+    input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 12px; font-size:18px; font-weight:600; outline:none}
+    input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+    .hint{font-size:12px; color:var(--muted); margin-top:8px; margin-bottom:12px}
+    
+    /* 输入组之间的间距 - 动态调节 */
     .grid, .grid-3, .grid-4 {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    
+    /* 最后一个输入组不需要底部间距 */
+    .grid:last-child, .grid-3:last-child, .grid-4:last-child {
+      margin-bottom: 0;
     }
     
     /* 说明文字的上边距 */
     .hint {
-      margin-top: 12px;
-      margin-bottom: 8px;
+      margin-top: 16px;
+      margin-bottom: 12px;
+      line-height: 1.5;
     }
 
     /* 左栏 sticky，并占两行：右侧可上下两个模块 */
@@ -67,6 +79,17 @@
       grid-row: span 2;
       height: 100%; /* 占满整个grid行高度 */
       overflow: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 左栏内容区域 - 动态填充高度 */
+    .wrap > section:first-child .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
     }
 
     /* 右栏容器，动态高度，与左侧保持等高 */
@@ -110,6 +133,21 @@
 
     .three-cols > div > .metric-card:last-child {
       margin-bottom: 0; /* 最后一个卡片底部不额外加边距 */
+    }
+    
+    /* 左栏内容分布优化 */
+    .wrap > section:first-child .content > *:last-child {
+      margin-bottom: 0; /* 最后一个元素不需要底部间距 */
+    }
+    
+    /* 示例商品选择区域优化 */
+    .wrap > section:first-child .grid-4:first-child {
+      margin-top: 0; /* 第一个grid不需要顶部间距 */
+    }
+    
+    /* 基础参数区域优化 */
+    .wrap > section:first-child details.base-params:last-child {
+      margin-bottom: 0; /* 最后一个折叠块不需要底部间距 */
     }
 
     /* MetricCard */
@@ -155,6 +193,58 @@
     .seg button{ border:0; background:transparent; padding:4px 8px; font-size:11px; color:#111; cursor:pointer }
     .seg button.on{ background:#f2f2f7; font-weight:700 }
     .seg.seg-tiny button{ padding:2px 6px; font-size:11px }
+
+    /* 强调关键可优化参数 */
+    .key input, .key select{
+      border-color: #b3d7ff;
+      box-shadow: 0 0 0 3px rgba(0,122,255,.12);
+      background:#f8fbff;
+    }
+    .key label{ color:#0f172a; font-weight:600 }
+
+    /* 基础参数折叠块 */
+    details.base-params{ 
+      margin-top: 16px;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    details.base-params > summary{
+      list-style:none;
+      cursor:pointer;
+      padding:12px 16px;
+      font-size:14px;
+      font-weight:600;
+      color:var(--muted);
+      border-bottom:1px solid #e5e5ea;
+      display:flex; align-items:center; gap:8px;
+      background: #f5f5f5;
+      border-radius: 8px 8px 0 0;
+      transition: background-color 0.2s ease;
+    }
+    details.base-params > summary:hover{
+      background: #f0f0f0;
+    }
+    details.base-params > summary::-webkit-details-marker{ display:none }
+    details.base-params .muted-note{ font-size:12px; color:var(--muted); font-weight:500 }
+    
+    /* 基础参数内容区域 */
+    details.base-params > div {
+      padding: 16px;
+    }
+    
+    /* 基础参数内控件弱化 */
+    details.base-params input, details.base-params select{
+      background:#fafafa;
+      border-color:#e5e5ea;
+      box-shadow:none;
+      font-weight:500;
+    }
+    details.base-params input:focus, details.base-params select:focus{
+      border-color:#d2d2d7;
+      box-shadow:0 0 0 2px rgba(0,0,0,.04);
+    }
+    details.base-params label{ color:#9ca3af; font-weight:500 }
   </style>
 </head>
 <body>
@@ -175,7 +265,6 @@
         </h2>
         <div class="content">
           <!-- 示例商品选择（简版） -->
-          <div class="pill">示例商品选择</div>
           <div class="grid-4" style="margin-bottom:10px">
             <div>
               <label>平台筛选</label>
@@ -195,7 +284,23 @@
             </div>
           </div>
 
+          <div class="pill">可优化参数（模拟）</div>
           <div class="grid-4">
+            <div class="key">
+              <label>买量方式</label>
+              <select id="buyMode">
+                <option value="cpc">CPC</option>
+                <option value="cpm">CPM</option>
+              </select>
+            </div>
+            <div id="cpcRow" class="key">
+              <label>CPC（¥/点击）</label>
+              <div id="cpcWrap"><input id="cpc" type="text" inputmode="decimal" placeholder="2.50" /></div>
+            </div>
+            <div class="key">
+              <label>CVR（%）</label>
+              <input id="cvr" type="text" inputmode="decimal" placeholder="15" />
+            </div>
             <div>
               <label>口径</label>
               <select id="basis">
@@ -215,21 +320,6 @@
               <label>退货率（%）</label>
               <input id="rr" type="text" inputmode="decimal" placeholder="0" />
             </div>
-            <div>
-              <label>买量方式</label>
-              <select id="buyMode">
-                <option value="cpc">CPC</option>
-                <option value="cpm">CPM</option>
-              </select>
-            </div>
-            <div id="cpcRow">
-              <label>CPC（¥/点击）</label>
-              <div id="cpcWrap"><input id="cpc" type="text" inputmode="decimal" placeholder="2.50" /></div>
-            </div>
-            <div>
-              <label>CVR（%）</label>
-              <input id="cvr" type="text" inputmode="decimal" placeholder="15" />
-            </div>
             <div id="cpmRow">
               <label>CPM（¥/千次）</label>
               <div id="cpmWrap"><input id="cpm" type="text" inputmode="decimal" placeholder="" /></div>
@@ -240,53 +330,55 @@
             </div>
           </div>
           <div class="hint">说明：AOV为空时使用商品售价；有效AOV = AOV × (1 + 连带率)。GMV口径：ROAS = (CVR × AOV_eff) / CPC；有效口径：ROAS = (CVR × AOV_eff × (1-RR)) / CPC。</div>
-
-          <!-- 售价/进货：一行2列 -->
-          <div class="grid" style="margin-top:10px">
-            <div>
-              <label>售价（¥）</label>
-              <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
+          <details class="base-params" open>
+            <summary>基础参数（很少变更）<span class="muted-note">售价/进货/佣金/税费/物流等</span></summary>
+            <!-- 售价/进货：一行2列 -->
+            <div class="grid" style="margin-top:10px">
+              <div>
+                <label>售价（¥）</label>
+                <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
+              </div>
+              <div>
+                <label>进货价（¥，不含税）</label>
+                <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
+              </div>
             </div>
-            <div>
-              <label>进货价（¥，不含税）</label>
-              <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
+            <!-- 其他参数：一行4列 -->
+            <div class="grid-4" style="margin-top:6px">
+              <div>
+                <label>佣金率（%）</label>
+                <input id="platformRate" type="text" inputmode="decimal" placeholder="5.5" />
+              </div>
+              <div>
+                <label>销项税率（%）</label>
+                <input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13" />
+              </div>
+              <div>
+                <label>进项税率（%）</label>
+                <input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13" />
+              </div>
+              <div>
+                <label>开票费率（%）</label>
+                <input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6" />
+              </div>
+              <div>
+                <label>服务费税率（%）</label>
+                <input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6" />
+              </div>
+              <div>
+                <label>物流费（¥）</label>
+                <input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8" />
+              </div>
+              <div>
+                <label>运费险（¥）</label>
+                <input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5" />
+              </div>
+              <div>
+                <label>其他成本（¥）</label>
+                <input id="otherCost" type="text" inputmode="decimal" placeholder="2.5" />
+              </div>
             </div>
-          </div>
-          <!-- 其他参数：一行4列 -->
-          <div class="grid-4" style="margin-top:6px">
-            <div>
-              <label>佣金率（%）</label>
-              <input id="platformRate" type="text" inputmode="decimal" placeholder="5.5" />
-            </div>
-            <div>
-              <label>销项税率（%）</label>
-              <input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13" />
-            </div>
-            <div>
-              <label>商品进项税率（%）</label>
-              <input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13" />
-            </div>
-            <div>
-              <label>开票成本比例（%）</label>
-              <input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6" />
-            </div>
-            <div>
-              <label>服务费税率（%）</label>
-              <input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6" />
-            </div>
-            <div>
-              <label>物流费（¥）</label>
-              <input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8" />
-            </div>
-            <div>
-              <label>运费险（¥）</label>
-              <input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5" />
-            </div>
-            <div>
-              <label>其他成本（¥）</label>
-              <input id="otherCost" type="text" inputmode="decimal" placeholder="2.5" />
-            </div>
-          </div>
+          </details>
         </div>
       </section>
 
@@ -298,13 +390,12 @@
         </h2>
         <div class="content">
           <div class="metric-card">
-            <div class="metric-head"><div class="metric-title">KPI 概览（基础口径）</div></div>
+            <div class="metric-head"><div class="metric-title">KPI 概览（动态口径）</div></div>
             <div class="metric-body kpi-grid">
-              <div class="metric-row"><span>毛利率（有效）</span><span class="val" id="kpiGrossMargin">—</span></div>
-              <div class="metric-row"><span>保本广告占比（有效）</span><span class="val" id="kpiAdRateEffTop">—</span></div>
-              <div class="metric-row"><span>保本ROAS（有效）</span><span class="val" id="kpiROASEffTop">—</span></div>
-              <div class="metric-row"><span>保本广告占比（GMV）</span><span class="val" id="kpiAdRateGMVTop">—</span></div>
-              <div class="metric-row"><span>保本ROAS（GMV）</span><span class="val" id="kpiROASGMVTop">—</span></div>
+              <div class="metric-row"><span>毛利率</span><span class="val" id="kpiGrossMargin">—</span></div>
+              <div class="metric-row"><span>保本广告占比</span><span class="val" id="kpiAdRateTop">—</span></div>
+              <div class="metric-row"><span>保本ROAS</span><span class="val" id="kpiROASTop">—</span></div>
+              <div class="metric-row"><span>口径</span><span class="val" id="kpiBasis">—</span></div>
             </div>
           </div>
         </div>
@@ -404,10 +495,39 @@
                 <div class="metric-head"><div class="metric-title">CVR（转化率）→ 利润空间影响</div></div>
                 <div class="metric-body" id="cvrSens"></div>
               </div>
+              
+              <!-- 单件商品利润对比卡片 -->
+              <div class="metric-card">
+                <div class="metric-head"><div class="metric-title">单件商品利润对比</div></div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>单件购买利润</span><span class="val profit-val" id="singleItemBaseProfit">—</span></div>
+                  <div class="metric-row"><span>含连带购买利润</span><span class="val profit-val" id="singleItemBundleProfit">—</span></div>
+                </div>
+              </div>
             </div>
 
             <!-- 投放空间/预算 一栏 -->
             <div>
+              <!-- 新增：当前广告成本卡片 -->
+              <div class="metric-card">
+                <div class="metric-head head-grid">
+                  <div class="metric-title">当前广告成本（模拟数据）</div>
+                  <div class="metric-ctrl">
+                    <div class="seg seg-tiny" id="basis-current-cpa" role="group" aria-label="当前CPA口径">
+                      <button type="button" class="on" data-v="follow">跟随</button>
+                      <button type="button" data-v="effective">有效</button>
+                      <button type="button" data-v="gmv">GMV</button>
+                    </div>
+                  </div>
+                  <div class="metric-sub"><span class="badge"><span id="badgeCurrentCPA">有效</span></span></div>
+                </div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>当前CPA（获客成本）</span><span class="val" id="currentCPA">—</span></div>
+                  <div class="metric-row"><span>当前ROAS（投产比）</span><span class="val" id="currentROAS">—</span></div>
+                  <div class="metric-row"><span>是否盈利</span><span class="val" id="currentProfitStatus">—</span></div>
+                </div>
+              </div>
+              
               <div class="metric-card">
                 <div class="metric-head head-grid">
                   <div class="metric-title">保本广告成本（BE-CPA）</div>
@@ -442,14 +562,7 @@
                 </div>
               </div>
               
-              <!-- 新增：单件商品利润对比卡片 -->
-              <div class="metric-card">
-                <div class="metric-head"><div class="metric-title">单件商品利润对比</div></div>
-                <div class="metric-body">
-                  <div class="metric-row"><span>单件购买利润</span><span class="val profit-val" id="singleItemBaseProfit">—</span></div>
-                  <div class="metric-row"><span>含连带购买利润</span><span class="val profit-val" id="singleItemBundleProfit">—</span></div>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -636,13 +749,18 @@
 
       // BE-ROAS & BE-CPA
       const base = computeBase(p);
-      // 顶部 KPI 概览（基于基础参数）
+      // 顶部 KPI 概览（根据当前选择的口径动态显示）
       const setTxt = (id, text)=>{ const el=document.getElementById(id); if(el) el.textContent = text; };
+      
+      // 根据当前选择的口径显示对应的KPI数据
+      const currentBasis = globalBasis; // 使用全局口径设置
+      const adRateBE = currentBasis === 'gmv' ? base.adRateBE_gmv : base.adRateBE_effective;
+      const ROIBE = currentBasis === 'gmv' ? base.ROI_BE_gmv : base.ROI_BE_effective;
+      
       setTxt('kpiGrossMargin', fmtP(base.grossMarginRate));
-      setTxt('kpiAdRateEffTop', fmtP(base.adRateBE_effective));
-      setTxt('kpiROASEffTop', isFinite(base.ROI_BE_effective)? (base.ROI_BE_effective.toFixed(2)+'倍') : '—');
-      setTxt('kpiAdRateGMVTop', fmtP(base.adRateBE_gmv));
-      setTxt('kpiROASGMVTop', isFinite(base.ROI_BE_gmv)? (base.ROI_BE_gmv.toFixed(2)+'倍') : '—');
+      setTxt('kpiAdRateTop', fmtP(adRateBE));
+      setTxt('kpiROASTop', isFinite(ROIBE)? (ROIBE.toFixed(2)+'倍') : '—');
+      setTxt('kpiBasis', basisName(currentBasis));
       const readSeg = (id)=>{
         const el = document.getElementById(id);
         const on = el ? el.querySelector('button.on') : null;
@@ -738,6 +856,7 @@
       document.getElementById('badgeBasis3').textContent = basisName(globalBasis);
       document.getElementById('badgeBasis4').textContent = followTag('basis-cvr-min');
       document.getElementById('badgeBasis5').textContent = followTag('basis-becpa');
+      document.getElementById('badgeCurrentCPA').textContent = followTag('basis-current-cpa');
 
       document.getElementById('cpcNow').textContent = fmtY(cpc);
       document.getElementById('roasNow').textContent = isFinite(roasNow)? (roasNow.toFixed(2)+'倍') : '—';
@@ -750,6 +869,29 @@
 
       document.getElementById('beROAS').textContent = isFinite(beROAS_becpa)? (beROAS_becpa.toFixed(2)+'倍') : '—';
       document.getElementById('beCPA').textContent = fmtY(beCPA_becpa);
+      
+      // 当前广告成本数据（根据口径选择）
+      const bCurrentCPA = readSeg('basis-current-cpa');
+      const currentCPA = cpc / cvr; // 当前CPA = CPC / CVR
+      const currentROAS = (isFinite(cpc) && cpc > 0 && isFinite(cvr)) ? 
+        ((cvr * (bCurrentCPA === 'gmv' ? aovEff : aovEff * r)) / cpc) : NaN;
+      
+      // 判断是否盈利（与保本ROAS比较）
+      const beROAS_current = bCurrentCPA === 'gmv' ? base.ROI_BE_gmv : base.ROI_BE_effective;
+      const isProfitable = isFinite(currentROAS) && isFinite(beROAS_current) ? currentROAS >= beROAS_current : null;
+      
+      document.getElementById('currentCPA').textContent = fmtY(currentCPA);
+      document.getElementById('currentROAS').textContent = isFinite(currentROAS) ? (currentROAS.toFixed(2) + '倍') : '—';
+      
+      // 是否盈利状态显示
+      const profitStatusEl = document.getElementById('currentProfitStatus');
+      if (isProfitable === null) {
+        profitStatusEl.textContent = '—';
+      } else if (isProfitable) {
+        profitStatusEl.innerHTML = '<span class="ok">盈利</span>';
+      } else {
+        profitStatusEl.innerHTML = '<span class="bad">亏损</span>';
+      }
 
       const passHtml = (pass)=> pass==null? '—' : (pass? '<span class="ok">已达标</span>' : '<span class="bad">未达标</span>');
       const effPass = (isFinite(curEffRate) && isFinite(base.adRateBE_effective)) ? (curEffRate <= base.adRateBE_effective + 1e-12) : null;
@@ -882,7 +1024,7 @@
         emitUpdate();
       });
     }
-    ['basis-cpc-now','basis-cpc-max','basis-cvr-min','basis-becpa'].forEach(bindSeg);
+          ['basis-cpc-now','basis-cpc-max','basis-cvr-min','basis-becpa','basis-current-cpa'].forEach(bindSeg);
 
     // i 按钮弹出
     document.querySelectorAll('.i-btn').forEach(btn=>{

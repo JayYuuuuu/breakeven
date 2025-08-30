@@ -89,8 +89,8 @@
  * @property {number} sellingPrice - 售价（含税）
  * @property {number} returnRate - 退货率（小数 0~1）
  * @property {number} costPrice - 进货价（不含税）
- * @property {number} inputTaxRate - 开票成本比例（如 0.06）
- * @property {number} outputTaxRate - 商品进项税率（如 0.13）
+ * @property {number} inputTaxRate - 开票费率（如 0.06）
+ * @property {number} outputTaxRate - 进项税率（如 0.13）
  * @property {number} platformRate - 平台佣金率（如 0.055）
  * @property {number} shippingCost - 物流费
  * @property {number} shippingInsurance - 运费险

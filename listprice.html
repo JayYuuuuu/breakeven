@@ -295,7 +295,7 @@
             <div class="note">系统默认参数 | 均以含税价为口径（不可修改，用于参与计算）：</div>
             <div class="kpi" style="margin-top:8px">
               <div class="item"><div class="lab">销项税率</div><div class="val" id="k_sales">13%</div></div>
-              <div class="item"><div class="lab">商品进项税率</div><div class="val" id="k_output">13%</div></div>
+              <div class="item"><div class="lab">进项税率</div><div class="val" id="k_output">13%</div></div>
               <div class="item"><div class="lab">开票成本比例</div><div class="val" id="k_input">6%</div></div>
               <div class="item"><div class="lab">服务费税率（佣金/广告）</div><div class="val" id="k_svat">6%</div></div>
               <div class="item"><div class="lab">平台佣金率</div><div class="val" id="k_comm">5.5%</div></div>
@@ -459,7 +459,7 @@
     // 固定系统参数（不可编辑）
     const SYSTEM = {
       salesTaxRate: 0.13,       // 销项税率 13%
-      outputTaxRate: 0.13,      // 商品进项税率 13%
+      outputTaxRate: 0.13,      // 进项税率 13%
       inputTaxRate: 0.06,       // 开票成本比例 6%
       serviceVATRate: 0.06,     // 服务费税率（佣金/广告）6%
       platformRate: 0.055,      // 平台佣金率 5.5%
