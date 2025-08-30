@@ -148,6 +148,14 @@
     body.ipad-pro-11 .big-input{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .big-output{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .lp-compare{ padding:8px 10px; margin:6px 0 8px }
+
+    /* iPad Pro 11: 参数输入栏更窄时，四列表单改为两列，避免单元格过窄导致单选开关挤压变形 */
+    body.ipad-pro-11 .grid-4{ grid-template-columns: repeat(2, 1fr); }
+    /* 使标注为 col-span-2 的项目在 iPad 上占满整行（更稳定的宽度给到开关组） */
+    body.ipad-pro-11 .grid-4 .col-span-2{ grid-column: 1 / -1; }
+    /* 单选开关在窄宽度下允许换行，子项平均分配宽度，避免被强行压缩变形 */
+    body.ipad-pro-11 .switch{ flex-wrap: wrap; gap: 6px; }
+    body.ipad-pro-11 .switch label{ flex: 1 1 0; min-width: 88px; }
     
     /* —— 示例商品输入：比其他输入小2px —— */
     #examplePlatformFilter,
@@ -184,6 +192,22 @@
       letter-spacing:.2px;
       margin-bottom:10px;
       margin-top:10px;
+    }
+
+    /* ===== iPad 家族通用（平板）优化：768px–1220px 宽度区间 ===== */
+    @media (min-width: 768px) and (max-width: 1220px){
+      /* 左右两栏比例略收紧，增强左栏可用宽度 */
+      .wrap{ grid-template-columns: 40% 58%; gap: 12px; }
+      /* 仅限制左侧参数区域的四列表单为两列，避免控件被压缩 */
+      .wrap > section:first-child .grid-4{ grid-template-columns: repeat(2, 1fr); }
+      .wrap > section:first-child .grid-4 .col-span-2{ grid-column: 1 / -1; }
+      /* 单选开关在平板宽度下允许换行，项等分空间；避免挤压变形 */
+      .wrap > section:first-child .switch{ flex-wrap: wrap; gap: 6px; }
+      .wrap > section:first-child .switch label{ flex: 1 1 0; min-width: 88px; }
+      /* 左侧输入适当减小字号与内边距以提升信息密度 */
+      .wrap > section:first-child input,
+      .wrap > section:first-child select{ font-size: 20px; padding: 10px 9px; border-radius: 10px; }
+      .card h2{ min-height: 48px; }
     }
 
     /* KPI */
