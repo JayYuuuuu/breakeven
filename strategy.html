@@ -128,6 +128,12 @@
     .ok{color:var(--ok)} .bad{color:var(--bad)}
     .muted{color:var(--muted)}
     .tiny{font-size:11px}
+    
+    /* 利润字段特殊样式 */
+    .profit-val{font-family:var(--mono); font-weight:700; font-size: 18px;}
+    .profit-val.positive{color:var(--ok)}
+    .profit-val.negative{color:var(--bad)}
+    .profit-val.neutral{color:var(--muted)}
     .chip{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; border:1px solid #e5e5ea; font-size:11px; background:#fafafa}
     .chip.good{border-color:#b7eb8f; background:#f6ffed; color:#237804}
     .chip.bad{border-color:#ffa39e; background:#fff1f0; color:#a8071a}
@@ -430,7 +436,18 @@
               <div class="metric-card">
                 <div class="metric-head"><div class="metric-title">投入1元广告带来净利润</div></div>
                 <div class="metric-body">
-                  <div class="metric-row"><span>在当前 CPC/CVR 下</span><span class="val" id="profitPerAdYuan">—</span></div>
+                  <div class="metric-row"><span>不含连带购买率</span><span class="val" id="profitPerAdYuanNoBundle">—</span></div>
+                  <div class="metric-row"><span>含连带购买率</span><span class="val" id="profitPerAdYuanWithBundle">—</span></div>
+                  <div class="metric-row"><span>连带购买提升</span><span class="val" id="profitPerAdYuanImprovement">—</span></div>
+                </div>
+              </div>
+              
+              <!-- 新增：单件商品利润对比卡片 -->
+              <div class="metric-card">
+                <div class="metric-head"><div class="metric-title">单件商品利润对比</div></div>
+                <div class="metric-body">
+                  <div class="metric-row"><span>单件购买利润</span><span class="val profit-val" id="singleItemBaseProfit">—</span></div>
+                  <div class="metric-row"><span>含连带购买利润</span><span class="val profit-val" id="singleItemBundleProfit">—</span></div>
                 </div>
               </div>
             </div>
@@ -455,7 +472,7 @@
       computeMaxCPC,
       cpcFromCpmCtr,
       computeCPAMetrics,
-      profitPerAdYuan,
+      profitGivenAd,
       to01
     } from './engine.js';
     import { getProductExamples, SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
@@ -574,6 +591,7 @@
         otherCost: num('otherCost') || 0,
         salesTaxRate: clamp01(pct('salesTaxRate')),
         serviceVATRate: clamp01(pct('serviceVATRate')),
+        bundleRate: clamp01(pct('bundleRate')), // 添加连带购买率
         goodsMode: 'canReturn'
       };
     }
@@ -658,11 +676,55 @@
 
       // 投1元净利与当前等价广告占比（用 CPA = CPC/CVR）
       let profitPer1 = NaN, curEffRate = NaN, curGMVRate = NaN;
+      let profitPer1NoBundle = NaN, profitPer1WithBundle = NaN, profitImprovement = NaN;
+      
       if (isFinite(cpc) && isFinite(cvr) && cvr>0){
+        // 计算含连带购买率的情况（当前逻辑）
         const res = computeCPAMetrics(p, { cpc, cvr });
         profitPer1 = res.roiPerAdYuan; // 与即时诊断一致
         curEffRate = res.effectiveRate;
         curGMVRate = res.gmvRate;
+        
+        // 手动计算不含连带购买率的情况
+        // 关键：需要重新计算有效AOV和利润
+        const cpa = cpc / cvr; // 每单广告费
+        
+        // 不含连带购买率的计算（基础售价）
+        const profitNoBundle = profitGivenAd(p, { adCost: cpa });
+        profitPer1NoBundle = (cpa > 0 && isFinite(profitNoBundle.profit)) ? 
+          profitNoBundle.profit / cpa : NaN;
+        
+        // 含连带购买率的计算
+        // 使用engine.js中的calcEffectiveAOV函数计算有效客单价
+        const bundle = p.bundleRate || 0;
+        const effectiveAOV = calcEffectiveAOV(p.sellingPrice, bundle);
+        
+        // 重新计算含连带购买率的利润
+        // 关键：使用有效AOV而不是基础售价
+        const pWithBundle = { ...p, sellingPrice: effectiveAOV };
+        const profitWithBundle = profitGivenAd(pWithBundle, { adCost: cpa });
+        
+        // 投1元广告净利（含连带购买）
+        profitPer1WithBundle = (cpa > 0 && isFinite(profitWithBundle.profit)) ? 
+          profitWithBundle.profit / cpa : NaN;
+        
+        // 计算连带购买提升
+        if (isFinite(profitPer1WithBundle) && isFinite(profitPer1NoBundle)) {
+          profitImprovement = profitPer1WithBundle - profitPer1NoBundle;
+        }
+        
+        // 更新单件商品利润对比卡片
+        // 基础利润（带颜色样式）
+        const baseProfitEl = document.getElementById('singleItemBaseProfit');
+        const baseProfit = profitNoBundle.profit;
+        baseProfitEl.textContent = fmt(baseProfit, 2);
+        baseProfitEl.className = 'val profit-val ' + (baseProfit > 0 ? 'positive' : baseProfit < 0 ? 'negative' : 'neutral');
+        
+        // 连带利润（带颜色样式）
+        const bundleProfitEl = document.getElementById('singleItemBundleProfit');
+        const bundleProfit = profitWithBundle.profit;
+        bundleProfitEl.textContent = fmt(bundleProfit, 2);
+        bundleProfitEl.className = 'val profit-val ' + (bundleProfit > 0 ? 'positive' : bundleProfit < 0 ? 'negative' : 'neutral');
       }
 
       // 渲染基础显示
@@ -699,14 +761,34 @@
       const gmvTh  = fmtP(base.adRateBE_gmv);
       document.getElementById('adRateEff').innerHTML = `${effCur} / ${effTh} ${passHtml(effPass)}`;
       document.getElementById('adRateGMV').innerHTML = `${gmvCur} / ${gmvTh} ${passHtml(gmvPass)}`;
-      // 投1元净利显示，正数绿色，负数红色
-      const profitEl = document.getElementById('profitPerAdYuan');
-      if (isFinite(profitPer1)) {
-        const sign = profitPer1 >= 0 ? '+' : '';
-        const colorClass = profitPer1 >= 0 ? 'ok' : 'bad';
-        profitEl.innerHTML = `<span class="${colorClass}">${sign}${fmt(profitPer1,2)} 元</span>`;
+      // 投1元净利显示：不含连带购买率
+      const profitElNoBundle = document.getElementById('profitPerAdYuanNoBundle');
+      if (isFinite(profitPer1NoBundle)) {
+        const sign = profitPer1NoBundle >= 0 ? '+' : '';
+        const colorClass = profitPer1NoBundle >= 0 ? 'ok' : 'bad';
+        profitElNoBundle.innerHTML = `<span class="${colorClass}">${sign}${fmt(profitPer1NoBundle,2)} 元</span>`;
       } else {
-        profitEl.textContent = '—';
+        profitElNoBundle.textContent = '—';
+      }
+      
+      // 投1元净利显示：含连带购买率
+      const profitElWithBundle = document.getElementById('profitPerAdYuanWithBundle');
+      if (isFinite(profitPer1WithBundle)) {
+        const sign = profitPer1WithBundle >= 0 ? '+' : '';
+        const colorClass = profitPer1WithBundle >= 0 ? 'ok' : 'bad';
+        profitElWithBundle.innerHTML = `<span class="${colorClass}">${sign}${fmt(profitPer1WithBundle,2)} 元</span>`;
+      } else {
+        profitElWithBundle.textContent = '—';
+      }
+      
+      // 连带购买提升显示
+      const profitElImprovement = document.getElementById('profitPerAdYuanImprovement');
+      if (isFinite(profitImprovement)) {
+        const sign = profitImprovement >= 0 ? '+' : '';
+        const colorClass = profitImprovement >= 0 ? 'ok' : 'bad';
+        profitElImprovement.innerHTML = `<span class="${colorClass}">${sign}${fmt(profitImprovement,2)} 元</span>`;
+      } else {
+        profitElImprovement.textContent = '—';
       }
 
       document.getElementById('cpcFromCpm').textContent = fmtY(cpcFrom);
