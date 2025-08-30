@@ -220,7 +220,7 @@
             <div>
               <div class="metric-card">
                 <div class="metric-head head-grid">
-                  <div class="metric-title">当前 CPC（模拟）</div>
+                  <div class="metric-title">当前 CPC（点击单价，模拟）</div>
                   <div class="metric-ctrl">
                     <div class="seg seg-tiny" id="basis-cpc-now" role="group" aria-label="CPC口径">
                       <button type="button" class="on" data-v="follow">跟随</button>
@@ -232,13 +232,13 @@
                   <div class="metric-sub"><span class="badge" id="badgeCPC"><span id="badgeBasis1">有效</span></span></div>
                 </div>
                 <div class="metric-body">
-                  <div class="metric-row"><span class="muted">当前 CPC</span><span class="val" id="cpcNow">—</span></div>
-                  <div class="metric-row"><span class="muted">实际 ROAS</span><span class="val" id="roasNow">—</span></div>
+                  <div class="metric-row"><span class="muted">当前 CPC（点击单价）</span><span class="val" id="cpcNow">—</span></div>
+                  <div class="metric-row"><span class="muted">实际 ROAS（投产比）</span><span class="val" id="roasNow">—</span></div>
                 </div>
               </div>
               <div class="metric-card">
                 <div class="metric-head head-grid">
-                  <div class="metric-title">最大可承受 CPC</div>
+                  <div class="metric-title">最大可承受 CPC（点击单价）</div>
                   <div class="metric-ctrl">
                     <div class="seg seg-tiny" id="basis-cpc-max" role="group" aria-label="CPCmax口径">
                       <button type="button" class="on" data-v="follow">跟随</button>
@@ -256,13 +256,13 @@
                 </div>
               </div>
               <div class="metric-card">
-                <div class="metric-head"><div class="metric-title">CPC → 利润空间影响</div></div>
+                <div class="metric-head"><div class="metric-title">CPC（点击单价）→ 利润空间影响</div></div>
                 <div class="metric-body" id="cpcSens"></div>
               </div>
               <div class="metric-card" id="cpmCard">
-                <div class="metric-head"><div class="metric-title">CPM → CPC 换算</div></div>
+                <div class="metric-head"><div class="metric-title">CPM（千次曝光成本）→ CPC（点击单价）换算</div></div>
                 <div class="metric-body">
-                  <div class="metric-row"><span>换算 CPC</span><span class="val" id="cpcFromCpm">—</span></div>
+                  <div class="metric-row"><span>换算 CPC（点击单价）</span><span class="val" id="cpcFromCpm">—</span></div>
                 </div>
               </div>
             </div>
@@ -271,17 +271,17 @@
             <div>
               <div class="metric-card">
                 <div class="metric-head head-grid">
-                  <div class="metric-title">当前 CVR（模拟/回填）</div>
+                  <div class="metric-title">当前 CVR（转化率，模拟/回填）</div>
                   <div class="metric-ctrl"><button class="i-btn" data-modal="trail-cvr">i</button></div>
                   <div class="metric-sub"><span class="badge"><span id="badgeBasis3">有效</span></span></div>
                 </div>
                 <div class="metric-body">
-                  <div class="metric-row"><span class="muted">当前 CVR</span><span class="val" id="cvrNow">—</span></div>
+                  <div class="metric-row"><span class="muted">当前 CVR（转化率）</span><span class="val" id="cvrNow">—</span></div>
                 </div>
               </div>
               <div class="metric-card">
                 <div class="metric-head head-grid">
-                  <div class="metric-title">保本所需最低 CVR</div>
+                  <div class="metric-title">保本所需最低 CVR（转化率）</div>
                   <div class="metric-ctrl">
                     <div class="seg seg-tiny" id="basis-cvr-min" role="group" aria-label="CVRmin口径">
                       <button type="button" class="on" data-v="follow">跟随</button>
@@ -299,7 +299,7 @@
                 </div>
               </div>
               <div class="metric-card">
-                <div class="metric-head"><div class="metric-title">CVR → 利润空间影响</div></div>
+                <div class="metric-head"><div class="metric-title">CVR（转化率）→ 利润空间影响</div></div>
                 <div class="metric-body" id="cvrSens"></div>
               </div>
             </div>
@@ -308,7 +308,7 @@
             <div>
               <div class="metric-card">
                 <div class="metric-head head-grid">
-                  <div class="metric-title">最大可承受广告费（BE-CPA）</div>
+                  <div class="metric-title">最大可承受广告费（BE-CPA，保本获客成本）</div>
                   <div class="metric-ctrl">
                     <div class="seg seg-tiny" id="basis-becpa" role="group" aria-label="BE-CPA口径">
                       <button type="button" class="on" data-v="follow">跟随</button>
@@ -320,8 +320,8 @@
                   <div class="metric-sub"><span class="badge"><span id="badgeBasis5">有效</span></span></div>
                 </div>
                 <div class="metric-body">
-                  <div class="metric-row"><span>BE-ROAS</span><span class="val" id="beROAS">—</span></div>
-                  <div class="metric-row"><span>BE-CPA</span><span class="val" id="beCPA">—</span></div>
+                  <div class="metric-row"><span>BE-ROAS（保本投产比）</span><span class="val" id="beROAS">—</span></div>
+                  <div class="metric-row"><span>BE-CPA（保本获客成本）</span><span class="val" id="beCPA">—</span></div>
                 </div>
               </div>
               <div class="metric-card">
@@ -763,7 +763,9 @@
     function exBuildLabel(p){
       const price = Number(p.singlePrice)>0? Number(p.singlePrice).toFixed(2): (Array.isArray(p.tierPrices)&&p.tierPrices.length? (Number(p.tierPrices[0]).toFixed(2)):'—');
       const cost  = Number(p.singleCost)>0? Number(p.singleCost).toFixed(2): (Array.isArray(p.tierCosts)&&p.tierCosts.length? (Number(p.tierCosts[0]).toFixed(2)):'—');
-      return `${p.platform||''}｜${p.name||p.sku||''}｜售价${price} 进货${cost}`;
+      const rr = (Number(p.returnRate)===0 || Number(p.returnRate)) ? `${(Number(p.returnRate)*100).toFixed(1)}%` : '';
+      const rrPart = rr ? ` 退货率${rr}` : '';
+      return `${p.platform||''}｜${p.name||p.sku||''}｜售价${price} 进货${cost}${rrPart}`;
     }
     function exFiltered(){
       const list = exExamples();

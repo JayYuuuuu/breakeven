@@ -5980,7 +5980,7 @@
     // 数据持久化存储相关函数
     const STORAGE_KEY = 'product_analysis_data';
     
-    // 保存数据到localStorage
+    // 保存数据到localStorage（统一为对象结构）
     function saveToLocalStorage() {
       const rows = document.querySelectorAll('#productsTableBody tr[id^="row-"]');
       const dataToSave = [];
@@ -6006,32 +6006,36 @@
       });
       
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-        console.log('数据已保存到localStorage');
+        const payload = { version: 2, products: dataToSave, updatedAt: Date.now() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        console.log('数据已保存到localStorage（v2 对象结构）');
       } catch (error) {
         console.error('保存到localStorage失败:', error);
       }
     }
     
-    // 从localStorage加载数据
+    // 从localStorage加载数据（支持v2对象结构，容错数组旧结构）
     function loadFromLocalStorage() {
       try {
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          console.log('从localStorage加载数据:', parsedData);
+          const parsed = JSON.parse(savedData);
+          const products = (parsed && Array.isArray(parsed.products))
+            ? parsed.products
+            : (Array.isArray(parsed) ? parsed : []);
+          console.log('从localStorage加载数据（规范化后）:', products);
           
           // 清空现有表格
           const tableBody = document.getElementById('productsTableBody');
           tableBody.innerHTML = '';
           
           // 恢复数据
-          parsedData.forEach(rowData => {
+          products.forEach(rowData => {
             const row = createProductRowFromData(rowData);
             tableBody.appendChild(row);
           });
           
-          showMessage(`已加载 ${parsedData.length} 行数据`, 'success');
+          showMessage(`已加载 ${products.length} 行数据`, 'success');
           
           // 延迟更新表格状态，确保DOM完全更新后再隐藏提示
           setTimeout(() => {
