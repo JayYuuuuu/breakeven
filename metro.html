@@ -261,29 +261,115 @@
     .chart-content{animation:fadeIn .3s ease}
     @keyframes fadeIn{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
 
-    /* 流程图样式 */
-    .flow-diagram{min-height:600px; position:relative; background:linear-gradient(180deg,#f8f9fa,#ffffff); border-radius:12px; padding:20px; overflow:auto}
-    .flow-node{position:absolute; background:white; border:2px solid #e5e5ea; border-radius:12px; padding:12px 16px; box-shadow:0 2px 8px rgba(0,0,0,0.1); transition:all .3s cubic-bezier(0.4, 0, 0.2, 1); cursor:pointer; min-width:120px; text-align:center; opacity:0; animation:nodeFadeIn 0.6s ease forwards}
-    .flow-node:hover{transform:scale(1.05); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:#007aff}
-    .flow-node:nth-child(1){animation-delay:0.1s}
-    .flow-node:nth-child(2){animation-delay:0.2s}
-    .flow-node:nth-child(3){animation-delay:0.3s}
-    .flow-node:nth-child(4){animation-delay:0.4s}
-    .flow-node:nth-child(5){animation-delay:0.5s}
-    .flow-node:nth-child(6){animation-delay:0.6s}
-    .flow-node:nth-child(7){animation-delay:0.7s}
-    .flow-node:nth-child(8){animation-delay:0.8s}
-    @keyframes nodeFadeIn{from{opacity:0; transform:translateY(20px) scale(0.9)} to{opacity:1; transform:translateY(0) scale(1)}}
-    .flow-node.revenue{background:linear-gradient(135deg,#007aff,#5ac8fa)}
-    .flow-node.cost{background:linear-gradient(135deg,#ff3b30,#ff9500)}
-    .flow-node.tax{background:linear-gradient(135deg,#ff9f0a,#ffcc00)}
-    .flow-node.profit{background:linear-gradient(135deg,#34c759,#30d158)}
-    .flow-node .amount{font-family:var(--mono); font-size:16px; font-weight:600; margin-top:4px; transition:all .3s ease}
-    .flow-node .label{font-size:12px; color:#666}
-    .flow-node.updated .amount{animation:pulse 0.6s ease}
-    @keyframes pulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.1); color:#007aff}}
-    .flow-arrow{position:absolute; width:2px; background:#d2d2d7; transform-origin:center}
-    .flow-arrow:before{content:''; position:absolute; left:-4px; top:-4px; width:10px; height:10px; border:2px solid #d2d2d7; border-left:none; border-bottom:none; transform:rotate(45deg); background:white}
+    /* 流程图样式 —— Apple风格（更轻、更干净） */
+.flow-diagram{min-height:600px; position:relative; background:linear-gradient(180deg,#fafafa,#ffffff); border-radius:12px; padding:20px; overflow:auto}
+
+/* 流程图信息条样式 */
+.flow-info-bar{
+  background:linear-gradient(135deg,#f8f9fa,#ffffff);
+  border:1px solid #e5e5ea;
+  border-radius:8px;
+  padding:12px 16px;
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  font-size:13px;
+  color:var(--muted);
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+
+.flow-info-item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.flow-info-label{
+  font-weight:500;
+  color:var(--ink);
+}
+
+.flow-info-value{
+  background:var(--accent);
+  color:white;
+  padding:2px 8px;
+  border-radius:4px;
+  font-size:12px;
+  font-weight:600;
+  font-family:var(--mono);
+}
+
+.flow-info-basis{
+  background:#34c759;
+  color:white;
+  padding:2px 8px;
+  border-radius:4px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.flow-info-bundle{
+  background:#ff9f0a;
+  color:white;
+  padding:2px 8px;
+  border-radius:4px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.flow-info-separator{
+  width:1px;
+  height:20px;
+  background:#e5e5ea;
+}
+
+    .flow-node{
+      position:absolute;
+      background:#ffffff;
+      border:1px solid #e5e5ea;              /* 轻边框 */
+      border-left:3px solid var(--accent);     /* 统一结构强调，具体色由变体覆盖 */
+      border-radius:12px;
+      padding:12px 16px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.06);   /* 轻阴影 */
+      transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor:pointer; min-width:120px; text-align:center;
+      color:#0f172a;                           /* 深灰文字，避免纯黑压迫 */
+      opacity:0; animation:nodeFadeIn 0.6s ease forwards;
+      backdrop-filter: saturate(120%);
+    }
+    .flow-node:hover{transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,0.12);}
+
+    .flow-node .amount{font-family:var(--mono); font-size:16px; font-weight:700; margin-top:4px; color:#111; transition:color .2s ease}
+    .flow-node .label{font-size:12px; color:#6e6e73}
+
+    /* 变体：以细边+浅底色体现语义，避免高饱和渐变 */
+    .flow-node.revenue{ border-left-color:#0a84ff; background:linear-gradient(180deg,#f2f7ff,#ffffff); }
+    .flow-node.cost{    border-left-color:#ff3b30; background:linear-gradient(180deg,#fff6f5,#ffffff); }
+    .flow-node.tax{     border-left-color:#ffcc00; background:linear-gradient(180deg,#fffbea,#ffffff); }
+    .flow-node.profit{  border-left-color:#34c759; background:linear-gradient(180deg,#effff3,#ffffff); }
+
+    @keyframes nodeFadeIn{from{opacity:0; transform:translateY(10px) scale(0.98)} to{opacity:1; transform:translateY(0) scale(1)}}
+
+    .flow-arrow {
+      position: absolute;
+      width: 3px;                        /* 加粗线条 */
+      background: #007aff;               /* 使用 Apple 蓝 */
+      transform-origin: center;
+      opacity: 0.9;                      /* 增加可见性 */
+    }
+    .flow-arrow:before {
+      content: '';
+      position: absolute;
+      left: -6px; top: -6px;
+      width: 14px; height: 14px;
+      border: 3px solid #007aff;         /* 与主线一致 */
+      border-left: none;
+      border-bottom: none;
+      transform: rotate(45deg);
+      background: transparent;
+      border-radius: 2px;
+    }
 
     /* 图表容器样式 */
     .charts-container{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px}
@@ -304,6 +390,20 @@
       .flow-node{min-width:100px; padding:8px 12px}
       .flow-node .amount{font-size:14px}
       .flow-node .label{font-size:11px}
+      
+      /* 移动端流程图信息条适配 */
+      .flow-info-bar{
+        flex-direction:column;
+        gap:8px;
+        padding:10px 12px;
+      }
+      .flow-info-separator{
+        display:none;
+      }
+      .flow-info-item{
+        justify-content:space-between;
+        width:100%;
+      }
     }
 
     /* 模态框样式 */
@@ -1232,11 +1332,55 @@
 
             <!-- 流程图展示 -->
             <div class="chart-content" id="flow-chart">
+              <!-- 流程图信息条 -->
+              <div class="flow-info-bar" id="flowInfoBar">
+                <div class="flow-info-item">
+                  <span class="flow-info-label">计算基础：</span>
+                  <span class="flow-info-basis" id="flowBasis">售价</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">基础值：</span>
+                  <span class="flow-info-value" id="flowBaseValue">—</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">连带购买率：</span>
+                  <span class="flow-info-bundle" id="flowBundleRate">0%</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">有效AOV：</span>
+                  <span class="flow-info-value" id="flowEffectiveAOV">—</span>
+                </div>
+              </div>
               <div class="flow-diagram" id="flowDiagram"></div>
             </div>
 
             <!-- 饼图分析 -->
             <div class="chart-content" id="pie-chart" style="display:none">
+              <!-- 饼图信息条 -->
+              <div class="flow-info-bar" id="pieInfoBar">
+                <div class="flow-info-item">
+                  <span class="flow-info-label">计算基础：</span>
+                  <span class="flow-info-basis" id="pieBasis">售价</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">基础值：</span>
+                  <span class="flow-info-value" id="pieBaseValue">—</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">连带购买率：</span>
+                  <span class="flow-info-bundle" id="pieBundleRate">0%</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">有效AOV：</span>
+                  <span class="flow-info-value" id="pieEffectiveAOV">—</span>
+                </div>
+              </div>
               <div class="charts-container">
                 <div class="chart-card">
                   <h3>成本结构分析</h3>
@@ -1255,13 +1399,35 @@
 
             <!-- 传统墙体展示 -->
             <div class="chart-content" id="traditional-chart" style="display:none">
-            <div class="legend" style="margin:10px 0 6px">
-              <span><span class="dot" style="background:var(--accent)"></span> 营收</span>
-              <span><span class="dot" style="background:var(--bad)"></span> 成本/税负支出（向下）</span>
-              <span><span class="dot" style="background:var(--ok)"></span> 税额抵扣/回流（向上）</span>
-            </div>
+              <!-- 传统墙体信息条 -->
+              <div class="flow-info-bar" id="traditionalInfoBar">
+                <div class="flow-info-item">
+                  <span class="flow-info-label">计算基础：</span>
+                  <span class="flow-info-basis" id="traditionalBasis">售价</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">基础值：</span>
+                  <span class="flow-info-value" id="traditionalBaseValue">—</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">连带购买率：</span>
+                  <span class="flow-info-bundle" id="traditionalBundleRate">0%</span>
+                </div>
+                <div class="flow-info-separator"></div>
+                <div class="flow-info-item">
+                  <span class="flow-info-label">有效AOV：</span>
+                  <span class="flow-info-value" id="traditionalEffectiveAOV">—</span>
+                </div>
+              </div>
+              <div class="legend" style="margin:10px 0 6px">
+                <span><span class="dot" style="background:var(--accent)"></span> 营收</span>
+                <span><span class="dot" style="background:var(--bad)"></span> 成本/税负支出（向下）</span>
+                <span><span class="dot" style="background:var(--ok)"></span> 税额抵扣/回流（向上）</span>
+              </div>
 
-            <div class="wall" id="wall"></div>
+              <div class="wall" id="wall"></div>
 
             <div class="sep" style="height:8px"></div>
             <div class="pill">迷你推演→不同广告占比下的利润率变化</div>
@@ -2528,6 +2694,14 @@
       const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice; // 为空→用售价
       const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
 
+      // 更新流程图、饼图和传统墙体信息条（如果当前在可视化tab）
+      if (document.getElementById('visualization-tab').classList.contains('active')) {
+        const currentChart = document.querySelector('.chart-tab-btn.active')?.getAttribute('data-chart');
+        if (currentChart === 'flow' || currentChart === 'pie' || currentChart === 'traditional') {
+          updateFlowInfoBar(aov, bundle, effAOV, p.sellingPrice);
+        }
+      }
+
       // —— CPC/CVR → 即时利润率（根据投放参数口径显示对应数据） ——
       const cpcV = num($('cpc').value);
       const cvrV = to01($('cvr').value);
@@ -2820,6 +2994,16 @@
         case 'pie':
           renderPieCharts();
           break;
+        case 'traditional':
+          // 传统墙体不需要特殊渲染，但需要更新信息条
+          const p = params();
+          const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+          const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+          const aovRaw = num(document.getElementById('decAOV')?.value);
+          const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice;
+          const effAOV = calcEffectiveAOV(aov, bundle);
+          updateFlowInfoBar(aov, bundle, effAOV, p.sellingPrice);
+          break;
       }
     }
 
@@ -2838,6 +3022,9 @@
       const aovRaw = num(document.getElementById('decAOV')?.value);
       const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice;
       const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
+
+      // 更新流程图信息条
+      updateFlowInfoBar(aov, bundle, effAOV, p.sellingPrice);
 
       // 使用包含有效AOV的参数进行计算
       const pWithBundle = { ...p, sellingPrice: effAOV };
@@ -2962,6 +3149,72 @@
       });
     }
 
+    // 更新流程图、饼图和传统墙体信息条
+    function updateFlowInfoBar(aov, bundle, effAOV, sellingPrice) {
+      // 更新流程图信息条
+      const flowBasis = document.getElementById('flowBasis');
+      const flowBaseValue = document.getElementById('flowBaseValue');
+      const flowBundleRate = document.getElementById('flowBundleRate');
+      const flowEffectiveAOV = document.getElementById('flowEffectiveAOV');
+
+      // 更新饼图信息条
+      const pieBasis = document.getElementById('pieBasis');
+      const pieBaseValue = document.getElementById('pieBaseValue');
+      const pieBundleRate = document.getElementById('pieBundleRate');
+      const pieEffectiveAOV = document.getElementById('pieEffectiveAOV');
+
+      // 更新传统墙体信息条
+      const traditionalBasis = document.getElementById('traditionalBasis');
+      const traditionalBaseValue = document.getElementById('traditionalBaseValue');
+      const traditionalBundleRate = document.getElementById('traditionalBundleRate');
+      const traditionalEffectiveAOV = document.getElementById('traditionalEffectiveAOV');
+
+      // 判断计算基础
+      const isUsingAOV = (aov !== sellingPrice);
+      const basisText = isUsingAOV ? 'AOV' : '售价';
+      const basisColor = isUsingAOV ? '#007aff' : '#34c759';
+
+      // 显示基础值
+      const baseValueText = isUsingAOV ? `${fmt(aov, 2)}元` : `${fmt(sellingPrice, 2)}元`;
+
+      // 显示连带购买率
+      const bundleText = `${(bundle * 100).toFixed(1)}%`;
+      const bundleColor = bundle > 0 ? '#ff9f0a' : '#6e6e73';
+
+      // 显示有效AOV
+      const effAOVText = `${fmt(effAOV, 2)}元`;
+
+      // 更新流程图信息条
+      if (flowBasis && flowBaseValue && flowBundleRate && flowEffectiveAOV) {
+        flowBasis.textContent = basisText;
+        flowBasis.style.background = basisColor;
+        flowBaseValue.textContent = baseValueText;
+        flowBundleRate.textContent = bundleText;
+        flowBundleRate.style.background = bundleColor;
+        flowEffectiveAOV.textContent = effAOVText;
+      }
+
+      // 更新饼图信息条
+      if (pieBasis && pieBaseValue && pieBundleRate && pieEffectiveAOV) {
+        pieBasis.textContent = basisText;
+        pieBasis.style.background = basisColor;
+        pieBaseValue.textContent = baseValueText;
+        pieBundleRate.textContent = bundleText;
+        pieBundleRate.style.background = bundleColor;
+        pieEffectiveAOV.textContent = effAOVText;
+      }
+
+      // 更新传统墙体信息条
+      if (traditionalBasis && traditionalBaseValue && traditionalBundleRate && traditionalEffectiveAOV) {
+        traditionalBasis.textContent = basisText;
+        traditionalBasis.style.background = basisColor;
+        traditionalBaseValue.textContent = baseValueText;
+        traditionalBundleRate.textContent = bundleText;
+        traditionalBundleRate.style.background = bundleColor;
+        traditionalEffectiveAOV.textContent = effAOVText;
+      }
+    }
+
     // 饼图渲染
     function renderPieCharts() {
       const p = params();
@@ -2974,6 +3227,9 @@
       const aovRaw = num(document.getElementById('decAOV')?.value);
       const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice;
       const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
+
+      // 更新饼图信息条
+      updateFlowInfoBar(aov, bundle, effAOV, p.sellingPrice);
 
       // 使用包含有效AOV的参数进行计算
       const pWithBundle = { ...p, sellingPrice: effAOV };
@@ -4009,6 +4265,17 @@
     initStrategyAssumptionInputs();
     updateAnalysisTitle(); // 初始化利润推演标题
     bind();
+    
+    // 初始化流程图、饼图和传统墙体信息条
+    setTimeout(() => {
+      const p = params();
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+      const aovRaw = num(document.getElementById('decAOV')?.value);
+      const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice;
+      const effAOV = calcEffectiveAOV(aov, bundle);
+      updateFlowInfoBar(aov, bundle, effAOV, p.sellingPrice);
+    }, 200);
     
     // 初始化折叠功能
     initCollapsibleBlocks();
