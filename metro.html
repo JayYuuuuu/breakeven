@@ -1893,6 +1893,10 @@
       const base = computeBase(p) || {};
       const Rev = isFinite(base.Rev) ? base.Rev : 0;
 
+      // 获取连带购买率参数（需要在函数开头定义，因为多处使用）
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+
       // —— 第一行：保本策略（根据左侧口径选择）
       const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
       const isGMV = basis === 'gmv';
@@ -1915,15 +1919,17 @@
       setSimulationValue('beAdRateVal', isGMV ? base.adRateBE_gmv : base.adRateBE_effective, true);
       setSimulationValue('grossMarginVal', base.grossMarginRate, true);
 
-      // —— 第二行：模拟策略（给定广告：来自左侧“投放参数”的 占比/金额/口径）
+      // —— 第二行：模拟策略（给定广告：来自左侧"投放参数"的 占比/金额/口径）
       const ad = currentAd();
       let sim = null;
+      // 使用包含连带购买率影响的参数对象
+      const pWithBundleForSim = { ...p, sellingPrice: calcEffectiveAOV(p.sellingPrice, bundle) };
       if (ad.mode === 'amount' && isFinite(num(document.getElementById('adCost')?.value))) {
         const a = num(document.getElementById('adCost')?.value);
-        if (a > 0) sim = profitGivenAd(p, { adCost: a });
+        if (a > 0) sim = profitGivenAd(pWithBundleForSim, { adCost: a });
       } else if (ad.mode === 'rate' && isFinite(to01(document.getElementById('adRate')?.value))) {
         const r = to01(document.getElementById('adRate')?.value);
-        sim = profitGivenAd(p, { adRate: r, basis: ad.basis || 'effective' });
+        sim = profitGivenAd(pWithBundleForSim, { adRate: r, basis: ad.basis || 'effective' });
       }
       if (sim) {
         // 根据当前口径计算ROAS
@@ -1952,9 +1958,7 @@
 
       // —— 第三行：投放策略（基于模拟 CPC × CVR）
       const aovRaw = num(document.getElementById('decAOV')?.value);
-      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
       const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice; // 为空→用售价
-      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;  // 缺省→0%
       const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
 
       const cpc = num(document.getElementById('cpc')?.value);
@@ -2002,7 +2006,9 @@
       // —— 即时利润率/净利润（按该 CPA 投放）与 投1元广告带来的净利润 ——
       if (isFinite(cpa) && cpa >= 0) {
         try {
-          const simAtCPA = profitGivenAd(p, { adCost: cpa });
+          // 使用包含连带购买率影响的参数对象
+          const pWithBundleForCPA = { ...p, sellingPrice: effAOV };
+          const simAtCPA = profitGivenAd(pWithBundleForCPA, { adCost: cpa });
           const instMargin = simAtCPA && isFinite(simAtCPA.margin) ? simAtCPA.margin : NaN; // 比例
           const instProfit = simAtCPA && isFinite(simAtCPA.profit) ? simAtCPA.profit : NaN; // 金额/单
           const profitPerAdYuan = (isFinite(instProfit) && cpa > 0) ? (instProfit / cpa) : NaN; // 元/元
@@ -2301,9 +2307,15 @@
     function solveAllowedReturnRateForTargetMargin(p, targetMargin, adCostGiven){
       let lo = 0, hi = 0.9;                         // 0%~90% 够用了
       if (!isFinite(targetMargin)) return NaN;
+
+      // 获取连带购买率并计算有效AOV
+      const bundleRate = to01(document.getElementById('decBundleRate')?.value) || 0;
+      const effAOV = calcEffectiveAOV(p.sellingPrice, bundleRate);
+      const pWithBundle = { ...p, sellingPrice: effAOV };
+
       for (let i=0;i<42;i++){
         const mid = (lo+hi)/2;
-        const pmid = { ...p, returnRate: mid };
+        const pmid = { ...pWithBundle, returnRate: mid };
         const { margin } = profitGivenAd(pmid, { adCost: adCostGiven||0 });
         if (!isFinite(margin)) return NaN;
         if (margin >= targetMargin) lo = mid; else hi = mid;
@@ -2315,10 +2327,16 @@
     function solveAllowedAdRateForTargetMargin(p, targetMargin, basis){
       let lo = 0, hi = 0.9;                         // 0%~90%
       if (!isFinite(targetMargin)) return NaN;
+
+      // 获取连带购买率并计算有效AOV
+      const bundleRate = to01(document.getElementById('decBundleRate')?.value) || 0;
+      const effAOV = calcEffectiveAOV(p.sellingPrice, bundleRate);
+      const pWithBundle = { ...p, sellingPrice: effAOV };
+
       for (let i=0;i<42;i++){
         const mid = (lo+hi)/2;                      // 候选占比
-        const adCost = adRateToAmount(p, mid, basis||'effective');
-        const { margin } = profitGivenAd(p, { adCost });
+        const adCost = adRateToAmount(pWithBundle, mid, basis||'effective');
+        const { margin } = profitGivenAd(pWithBundle, { adCost });
         if (!isFinite(margin)) return NaN;
         if (margin >= targetMargin) lo = mid; else hi = mid;
       }
@@ -2367,17 +2385,22 @@
       const base = computeBase(p);
       const r = base.r; const Rev = base.Rev;
 
+      // 获取连带购买率参数
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+
       // 计算并显示有效AOV（含连带）
       const aovRaw = num(document.getElementById('decAOV')?.value);
-      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
       const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice; // 为空→用售价
-      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;  // 缺省→0%
       const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
 
       // —— CPC/CVR → 即时利润率（根据投放参数口径显示对应数据） ——
       const cpcV = num($('cpc').value);
       const cvrV = to01($('cvr').value);
-      const cpaPack = computeCPAMetrics(p, { cpc: cpcV, cvr: cvrV });
+
+      // 创建包含连带购买率影响的参数对象
+      const pWithBundle = { ...p, sellingPrice: effAOV };
+      const cpaPack = computeCPAMetrics(pWithBundle, { cpc: cpcV, cvr: cvrV });
       const cpa = cpaPack.cpa;
       const effRateCPA = cpaPack.effectiveRate;
       const gmvRateCPA = cpaPack.gmvRate;
@@ -2421,7 +2444,9 @@
         }
       }
       {
-        const res = profitGivenAd(p, { adCost: adCostGiven });
+        // 使用包含连带购买率影响的参数对象
+        const pWithBundleForWall = { ...p, sellingPrice: calcEffectiveAOV(p.sellingPrice, bundle) };
+        const res = profitGivenAd(pWithBundleForWall, { adCost: adCostGiven });
         Profit = res.profit; Margin = res.margin; VAT_in_ad = res.VAT_in_ad;
       }
 
@@ -2622,9 +2647,11 @@
       const basis = document.getElementById('simBasisSelect')?.value || 'effective';
       const list = parseListPercents($('simRates').value).map(v => (v>1? v/100: v));
       mini.innerHTML = list.map(rp=>{
-        const { margin, adCostGiven } = profitGivenAdRateAndR(p, rp, r, basis);
+        // 使用包含连带购买率影响的参数对象
+        const pWithBundleForMini = { ...p, sellingPrice: calcEffectiveAOV(p.sellingPrice, bundle) };
+        const { margin, adCostGiven } = profitGivenAdRateAndR(pWithBundleForMini, rp, r, basis);
         const color = !isFinite(margin) ? '#6e6e73' : (margin>=0? 'var(--ok)':'var(--bad)');
-        const roasEffMini = isFinite(adCostGiven) && adCostGiven>0 ? (p.sellingPrice * r) / adCostGiven : NaN;
+        const roasEffMini = isFinite(adCostGiven) && adCostGiven>0 ? (pWithBundleForMini.sellingPrice * r) / adCostGiven : NaN;
         return `<div class="mini">
           <div class="t">占比${(rp*100).toFixed(1)}%（${basis==='gmv'?'GMV':'有效'}）</div>
           <div class="v" style="color:${color}">${isFinite(margin)? (margin*100).toFixed(2)+'%':'—'}</div>
@@ -2818,6 +2845,11 @@
     // 利润推演（表格）算法
     function simulate(){
       const p = params();
+
+      // 获取连带购买率参数
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+
       const adStart = to01(document.getElementById('adStart').value);
       const adEnd   = to01(document.getElementById('adEnd').value);
       const adStep  = to01(document.getElementById('adStep').value);
@@ -2831,10 +2863,12 @@
       let html = '<table><thead><tr><th>广告占比</th>' + rrs.map(r=>`<th><div class="th-top">退货率</div><div class="th-num">${(r*100).toFixed(1)}%</div></th>`).join('') + '</tr></thead><tbody>';
       // 按左侧占比口径计算
       const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
+      // 使用包含连带购买率影响的参数对象
+      const pWithBundleForSimTable = { ...p, sellingPrice: calcEffectiveAOV(p.sellingPrice, bundle) };
       for(const a of ads){
         html += `<tr><td>${(a*100).toFixed(0)}%</td>`;
         for(const r of rrs){
-          const p2 = {...p, returnRate:r};
+          const p2 = {...pWithBundleForSimTable, returnRate:r};
           const {margin} = profitGivenAd(p2,{adRate:a,basis});
           const cls = margin>=0? 'pos' : 'neg';
           html += `<td class="${cls}">${(margin*100).toFixed(1)}%</td>`;
