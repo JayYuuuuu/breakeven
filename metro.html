@@ -119,6 +119,7 @@
     .content{padding:14px}
     .grid{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
     .grid-4{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px}
+    .grid-5{display:grid; grid-template-columns: repeat(5, 1fr); gap:10px}
     .block{margin-bottom:16px}
     .col-span-2{grid-column: span 2}
     .nowrap{white-space: nowrap}
@@ -132,6 +133,7 @@
     @media (max-width:680px){
       .grid{grid-template-columns:1fr}
       .grid-4{grid-template-columns:1fr}
+      .grid-5{grid-template-columns:1fr}
     }
     label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
     input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:22px; font-weight:600; outline:none}
@@ -164,10 +166,12 @@
     body.ipad-pro-11 .big-output{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .lp-compare{ padding:8px 10px; margin:6px 0 8px }
 
-    /* iPad Pro 11: 参数输入栏更窄时，四列表单改为两列，避免单元格过窄导致单选开关挤压变形 */
+    /* iPad Pro 11: 参数输入栏更窄时，多列表单改为两列，避免单元格过窄导致单选开关挤压变形 */
     body.ipad-pro-11 .grid-4{ grid-template-columns: repeat(2, 1fr); }
+    body.ipad-pro-11 .grid-5{ grid-template-columns: repeat(2, 1fr); }
     /* 使标注为 col-span-2 的项目在 iPad 上占满整行（更稳定的宽度给到开关组） */
     body.ipad-pro-11 .grid-4 .col-span-2{ grid-column: 1 / -1; }
+    body.ipad-pro-11 .grid-5 .col-span-2{ grid-column: 1 / -1; }
     /* 单选开关在窄宽度下允许换行，子项平均分配宽度，避免被强行压缩变形 */
     body.ipad-pro-11 .switch{ flex-wrap: wrap; gap: 6px; }
     body.ipad-pro-11 .switch label{ flex: 1 1 0; min-width: 88px; }
@@ -542,6 +546,43 @@
       color: #666;
       opacity: 1;
     }
+
+    /* 可折叠区块样式 */
+    .collapsible-block {
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .collapsible-header {
+      background: #f1f3f4;
+      border-bottom: 1px solid #e5e5ea;
+      border-radius: 12px;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.2s ease;
+    }
+    
+    .collapsible-header:hover {
+      background: #e8eaed;
+    }
+    
+    .collapsible-header.collapsed {
+      border-radius: 12px;
+      border-bottom: none;
+    }
+    
+    .collapsible-content {
+      padding: 14px;
+      border-radius: 0 0 12px 12px;
+    }
+    
+    .collapse-icon {
+      transition: transform 0.2s ease;
+    }
+    
+    .collapsed .collapse-icon {
+      transform: rotate(-90deg);
+    }
     
     /* 推演控制区域样式 */
     .derivation-controls {
@@ -657,7 +698,7 @@
     .lp-compare .good{color:var(--ok)}
     .lp-compare .bad{color:var(--bad)}
 
-    .hint{font-size:12px; color:var(--muted)}
+    .hint{font-size:12px; color:var(--muted); margin-top:8px;}
     .warn{color:var(--bad)}
     
     /* Tab切换样式 */
@@ -766,13 +807,13 @@
                 </select>
               </div>
               <div>
-                <label>搜索（名称/货号）</label>
+                <label>搜索</label>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  <input id="exampleSearch" type="text" placeholder="输入关键词过滤" />
+                  <input id="exampleSearch" type="text" placeholder="名称/货号" />
                 </div>
               </div>
               <div class="col-span-2">
-                <label>从示例数据选择（自动填充售价/进货价/退货率）</label>
+                <label>从示例数据选择</label>
                 <select id="exampleProductSelect">
                   <option value="">— 选择示例商品 —</option>
                 </select>
@@ -787,19 +828,19 @@
           <!-- 重要参数 -->
           <div class="block">
             <div class="pill">重要参数</div>
-            <div class="grid-4">
+            <div class="grid-5">
               <div>
-                <label>含税售价（¥）</label>
+                <label>售价</label>
                 <input id="sellingPrice" type="text" inputmode="decimal" placeholder="79.80" />
               </div>
               <div>
-                <label>进货价（¥）</label>
+                <label>进货价</label>
                 <input id="costPrice" type="text" inputmode="decimal" placeholder="38.00" />
               </div>
-                          <div>
-              <label>退货率（%）</label>
-              <input id="returnRate" type="text" inputmode="decimal" placeholder="12" />
-            </div>
+              <div>
+                <label>退货率</label>
+                <input id="returnRate" type="text" inputmode="decimal" placeholder="12" />
+              </div>
               <div>
                 <label>进货模式</label>
                 <select id="goodsModeSelect">
@@ -807,33 +848,37 @@
                   <option value="cannotReturn">不可退</option>
                 </select>
               </div>
+              <div>
+                <label>平台佣金率</label>
+                <input id="platformRate" type="text" inputmode="decimal" placeholder="5.5" />
+              </div>
             </div>
           </div>
-          <!-- 税费参数 -->
-          <div class="block">
-            <div class="pill">税费参数</div>
-            <div class="grid grid-4">
-              <div><label>销项税率（%）</label><input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
-              <div><label>进项税率（%）</label><input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
-              <div><label>开票费率（%）</label><input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6"></div>
-              <div><label>服务费税率（%）</label><input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6"></div>
+
+          <!-- 税费参数和基础参数（可折叠） -->
+          <div class="block collapsible-block">
+            <div class="pill collapsible-header" style="cursor: pointer; user-select: none;">
+              <span>税费参数和基础参数</span>
+              <span class="collapse-icon" style="float: right; transition: transform 0.2s;">▼</span>
+            </div>
+            <div class="collapsible-content" style="display: none;">
+              <div class="grid grid-4" style="margin-top: 12px;">
+                <div><label>销项税率（%）</label><input id="salesTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
+                <div><label>进项税率（%）</label><input id="outputTaxRate" type="text" inputmode="decimal" placeholder="13"></div>
+                <div><label>开票费率（%）</label><input id="inputTaxRate" type="text" inputmode="decimal" placeholder="6"></div>
+                <div><label>服务费税率（%）</label><input id="serviceVATRate" type="text" inputmode="decimal" placeholder="6"></div>
+                <div><label>物流费（¥）</label><input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8"></div>
+                <div><label>运费险（¥）</label><input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5"></div>
+                <div><label>其他成本（¥）</label><input id="otherCost" type="text" inputmode="decimal" placeholder="2.5"></div>
+              </div>
             </div>
           </div>
-          <!-- 基础参数 -->
-          <div class="block">
-            <div class="pill">基础参数</div>
-            <div class="grid grid-4">
-              <div><label>平台佣金率（%）</label><input id="platformRate" type="text" inputmode="decimal" placeholder="5.5"></div>
-              <div><label>物流费（¥）</label><input id="shippingCost" type="text" inputmode="decimal" placeholder="2.8"></div>
-              <div><label>运费险（¥）</label><input id="shippingInsurance" type="text" inputmode="decimal" placeholder="1.5"></div>
-              <div><label>其他成本（¥）</label><input id="otherCost" type="text" inputmode="decimal" placeholder="2.5"></div>
-            </div>
-          </div>
+
           <!-- 投放参数 -->
           <div class="block">
             <div class="pill">投放参数</div>
-            <div class="grid grid-4">
-              <div class="col-span-2">
+            <div class="grid-4">
+              <div>
                 <label class="nowrap">广告输入模式</label>
                 <select id="adModeSelect">
                   <option value="none">不给定</option>
@@ -841,50 +886,47 @@
                   <option value="amount">金额</option>
                 </select>
               </div>
-              <div class="col-span-2">
+              <div>
                 <label class="nowrap">占比口径</label>
                 <select id="adRateBasisSelect">
-                  <option value="effective">有效营收</option>
+                  <option value="effective">有效</option>
                   <option value="gmv">GMV</option>
                 </select>
               </div>
               <div>
-                <label>广告占比（%）</label>
+                <label>广告占比</label>
                 <input id="adRate" type="text" inputmode="decimal" placeholder="10">
-                <div class="hint" id="adRateHint"></div>
               </div>
               <div>
-                <label>广告费（¥）</label>
+                <label>广告费</label>
                 <input id="adCost" type="text" inputmode="decimal" placeholder="0">
-                <div class="hint" id="adCostHint"></div>
-              </div>
-                          <div>
-              <label>CPC（模拟点击单价）</label>
-              <input id="cpc" type="text" inputmode="decimal" placeholder="2.5">
-            </div>
-              <div>
-                <label>CVR（模拟转化率）</label>
-                <input id="cvr" type="text" inputmode="decimal" placeholder="15">
               </div>
             </div>
-            <div class="hint">说明：占比→金额将按所选口径基数换算；金额→占比会同步显示两口径等价占比。</div>
           </div>
 
-          <!-- 投放策略假设（AOV/连带） -->
+          <!-- 投放策略假设 -->
           <div class="block">
-            <div class="pill">投放策略假设（AOV/连带）</div>
-            <div class="grid grid-4">
-              <div class="col-span-2">
-                <label>结算口径 AOV（¥）</label>
-                <input id="decAOV" type="text" inputmode="decimal" placeholder="使用售价" />
+            <div class="pill">投放策略假设</div>
+            <div class="grid-4">
+              <div>
+                <label>模拟CPC</label>
+                <input id="cpc" type="text" inputmode="decimal" placeholder="2.5">
               </div>
               <div>
-                <label>连带购买率（%）</label>
+                <label>模拟CVR</label>
+                <input id="cvr" type="text" inputmode="decimal" placeholder="15">
+              </div>
+              <div>
+                <label>结算AOV</label>
+                <input id="decAOV" type="text" inputmode="decimal" placeholder="留空使用售价" />
+              </div>
+              <div>
+                <label>连带购买率</label>
                 <input id="decBundleRate" type="text" inputmode="decimal" placeholder="0" />
               </div>
             </div>
             <div class="hint">
-              AOV 为空时默认等于左侧"含税售价"；有效 AOV = AOV × (1 + 连带率)。
+              AOV 为空时默认等于"售价"；有效 AOV = AOV × (1 + 连带率)。
               此设定将影响【投放决策】第三行（CPC×CVR）里的 ROAS、最大可承受 CPC、保本所需 CVR、CPA、点击数等。
             </div>
           </div>
@@ -935,7 +977,6 @@
             </div>
 
             <div class="wall" id="wall"></div>
-            <div id="cpaSummary" class="hint" style="margin-top:6px"></div>
 
             <div class="sep" style="height:8px"></div>
             <div class="pill">迷你推演→不同广告占比下的利润率变化</div>
@@ -2078,19 +2119,7 @@
       // 获取当前投放参数的口径设置
       const cpcAdv = currentAd();
 
-      // —— 砖墙下小计：当前平均转化成本下 ROAS/利润率 对照（新版：显示两口径ROAS+投1元广告净利润） ——
-      const cpaSummary = document.getElementById('cpaSummary');
-      if (isFinite(roasGMV) || isFinite(roasEff) || isFinite(marginCPA)) {
-        const partGMV = isFinite(roasGMV) ? `${roasGMV.toFixed(2)} 倍` : '—';
-        const partEFF = isFinite(roasEff) ? `${roasEff.toFixed(2)} 倍` : '—';
-        const partMRG = isFinite(marginCPA) ? `${(marginCPA*100).toFixed(2)}%` : '—';
-        const partGainPer1 = isFinite(roiCPA) ? `${fmt(roiCPA,2)} 元` : '—';
-        const chosenROASDisplay = (cpcAdv.basis === 'gmv') ? partGMV : partEFF;
-        const basisDisplay = (cpcAdv.basis === 'gmv') ? 'GMV' : '有效';
-        cpaSummary.innerHTML = `当前平均转化成本（CPA）下：ROAS(${basisDisplay}) = <b>${chosenROASDisplay}</b> ｜ 利润率 = <b>${partMRG}</b> ｜ 投1元广告净利润 = <b>${partGainPer1}</b> ｜ 说明：流量效率（ROAS） → 结果效率（利润率） → 投入回报（净利润/广告费）`;
-      } else {
-        cpaSummary.innerHTML = '';
-      }
+
 
       // —— 广告换算 + 利润 ——
       const adv = currentAd();
@@ -2107,38 +2136,18 @@
       // —— 同步显示等价口径：占比↔金额（即使输入框被禁用也展示） ——
       const adRateEl = $('adRate');
       const adCostEl = $('adCost');
-      const adRateHint = document.getElementById('adRateHint');
-      const adCostHint = document.getElementById('adCostHint');
       const basisLabel = (adv.basis === 'gmv') ? 'GMV' : '有效营收';
       if (adv.mode === 'rate') {
         // 用所选口径把占比换算为金额，并同时展示两种口径的等价占比
         if (isFinite(adCostGiven)) {
           adCostEl.value = fmt(adCostGiven, 2); // 只读展示
-          adCostHint.textContent = `按${basisLabel}基数换算金额 ≈ ${fmt(adCostGiven,2)} 元`;
-        } else {
-          adCostHint.textContent = '';
-        }
-        if (adRateHint) {
-          if (isFinite(effectiveRate) && isFinite(gmvRate)) {
-            adRateHint.textContent = `等价占比：有效 ${pct(effectiveRate)} ｜ GMV ${pct(gmvRate)}`;
-          } else {
-            adRateHint.textContent = '';
-          }
         }
       } else if (adv.mode === 'amount') {
         // 金额→占比：把金额折算为两口径占比，同时把当前所选口径的占比填入输入框供参考
         if (isFinite(effectiveRate) && isFinite(gmvRate)) {
           const chosenRate = (adv.basis === 'gmv') ? gmvRate : effectiveRate;
           adRateEl.value = (chosenRate*100).toFixed(2); // 只读展示当前所选口径的等价占比
-          if (adRateHint) adRateHint.textContent = `等价占比：有效 ${pct(effectiveRate)} ｜ GMV ${pct(gmvRate)}`;
-          adCostHint.textContent = '';
-        } else {
-          if (adRateHint) adRateHint.textContent = '';
-          adCostHint.textContent = '';
         }
-      } else { // none
-        if (adRateHint) adRateHint.textContent = '';
-        adCostHint.textContent = '';
       }
       {
         const res = profitGivenAd(p, { adCost: adCostGiven });
@@ -3171,6 +3180,10 @@
     fillDefaults();
     initStrategyAssumptionInputs();
     bind();
+    
+    // 初始化折叠功能
+    initCollapsibleBlocks();
+    
     // 绑定全局输入变化 -> 广播（轻量选择器，避免侵入原逻辑）
     const busWatchIds = [
       'sellingPrice','costPrice','returnRate','inputTaxRate','outputTaxRate','platformRate',
@@ -3199,6 +3212,30 @@
     adjustLayoutForHeader();
     setDeviceClass();
     window.addEventListener('resize', ()=>{ adjustLayoutForHeader(); setDeviceClass(); });
+    
+    // 初始化折叠功能
+    function initCollapsibleBlocks() {
+      const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+      collapsibleHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+          const block = this.closest('.collapsible-block');
+          const content = block.querySelector('.collapsible-content');
+          const icon = this.querySelector('.collapse-icon');
+          
+          if (content.style.display === 'none') {
+            // 展开
+            content.style.display = 'block';
+            this.classList.remove('collapsed');
+            icon.style.transform = 'rotate(0deg)';
+          } else {
+            // 折叠
+            content.style.display = 'none';
+            this.classList.add('collapsed');
+            icon.style.transform = 'rotate(-90deg)';
+          }
+        });
+      });
+    }
     
     // 初始化tab功能（包括状态记忆）
     initTabs();
