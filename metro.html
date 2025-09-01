@@ -802,16 +802,10 @@
             </div>
               <div>
                 <label>进货模式</label>
-                <div class="switch desktop-only">
-                  <label><input type="radio" name="goodsMode" value="canReturn" checked> 可退</label>
-                  <label><input type="radio" name="goodsMode" value="cannotReturn"> 不可退</label>
-                </div>
-                <div class="mobile-only">
-                  <select id="goodsModeSelect">
-                    <option value="canReturn">可退</option>
-                    <option value="cannotReturn">不可退</option>
-                  </select>
-                </div>
+                <select id="goodsModeSelect">
+                  <option value="canReturn">可退</option>
+                  <option value="cannotReturn">不可退</option>
+                </select>
               </div>
             </div>
           </div>
@@ -841,31 +835,18 @@
             <div class="grid grid-4">
               <div class="col-span-2">
                 <label class="nowrap">广告输入模式</label>
-                <div class="switch desktop-only">
-                  <label><input type="radio" name="adMode" value="none"> 不给定</label>
-                  <label><input type="radio" name="adMode" value="rate" checked> 占比</label>
-                  <label><input type="radio" name="adMode" value="amount"> 金额</label>
-                </div>
-                <div class="mobile-only">
-                  <select id="adModeSelect">
-                    <option value="none">不给定</option>
-                    <option value="rate">占比</option>
-                    <option value="amount">金额</option>
-                  </select>
-                </div>
+                <select id="adModeSelect">
+                  <option value="none">不给定</option>
+                  <option value="rate">占比</option>
+                  <option value="amount">金额</option>
+                </select>
               </div>
               <div class="col-span-2">
                 <label class="nowrap">占比口径</label>
-                <div class="switch desktop-only">
-                  <label><input type="radio" name="adRateBasis" value="effective" checked> 有效营收</label>
-                  <label><input type="radio" name="adRateBasis" value="gmv"> GMV</label>
-                </div>
-                <div class="mobile-only">
-                  <select id="adRateBasisSelect">
-                    <option value="effective">有效营收</option>
-                    <option value="gmv">GMV</option>
-                  </select>
-                </div>
+                <select id="adRateBasisSelect">
+                  <option value="effective">有效营收</option>
+                  <option value="gmv">GMV</option>
+                </select>
               </div>
               <div>
                 <label>广告占比（%）</label>
@@ -898,16 +879,10 @@
               </div>
               <div>
                 <label>推演口径</label>
-                <div class="switch desktop-only">
-                  <label><input type="radio" name="simBasis" value="effective" checked> 有效营收</label>
-                  <label><input type="radio" name="simBasis" value="gmv"> GMV</label>
-                </div>
-                <div class="mobile-only">
-                  <select id="simBasisSelect">
-                    <option value="effective">有效营收</option>
-                    <option value="gmv">GMV</option>
-                  </select>
-                </div>
+                <select id="simBasisSelect">
+                  <option value="effective">有效营收</option>
+                  <option value="gmv">GMV</option>
+                </select>
               </div>
             </div>
           </div>
@@ -1439,7 +1414,7 @@
 
     // Helper to update adMode UI (enable/disable adRate/adCost)
     function updateAdModeUI(){
-      const mode = document.querySelector('input[name="adMode"]:checked')?.value || 'none';
+      const mode = document.getElementById('adModeSelect')?.value || 'none';
       const adRateEl = $('adRate');
       const adCostEl = $('adCost');
       if(mode === 'rate'){
@@ -1451,8 +1426,8 @@
       }
     }
 
-    // —— 移动端下拉选择与桌面单选开关同步 ——
-    function initMobileSelects(){
+    // —— 下拉选择框初始化与事件绑定 ——
+    function initSelects(){
       const groups = [
         { name:'goodsMode', selectId:'goodsModeSelect', storage: STORAGE_KEYS.goodsMode },
         { name:'adMode', selectId:'adModeSelect', storage: STORAGE_KEYS.adMode },
@@ -1462,21 +1437,12 @@
       groups.forEach(g=>{
         const sel = document.getElementById(g.selectId);
         if(!sel) return;
-        // 初始化：跟随当前已选中的单选值
-        const current = document.querySelector(`input[name="${g.name}"]:checked`);
-        if(current){ sel.value = current.value; }
-        // 下拉变更 -> 同步单选 & 保存
+        // 下拉变更 -> 保存 & 更新UI
         sel.addEventListener('change', ()=>{
           const v = sel.value;
-          const radio = document.querySelector(`input[name="${g.name}"][value="${v}"]`);
-          if(radio){ radio.checked = true; }
           if(g.storage){ saveToStorage(g.storage, v); }
           updateAdModeUI();
           render();
-        });
-        // 单选变更 -> 同步下拉（桌面情况下仍保持一致）
-        document.querySelectorAll(`input[name="${g.name}"]`).forEach(r=>{
-          r.addEventListener('change', ()=>{ sel.value = r.value; });
         });
       });
     }
@@ -1847,18 +1813,26 @@
       $('shippingInsurance').value = loadFromStorage(STORAGE_KEYS.shippingInsurance, SYSTEM_PARAMS_EXAMPLE.shippingInsurance);
       $('otherCost').value = loadFromStorage(STORAGE_KEYS.otherCost, SYSTEM_PARAMS_EXAMPLE.otherCost);
       
-      // 加载单选按钮状态
+      // 加载下拉框状态
       const goodsMode = loadFromStorage(STORAGE_KEYS.goodsMode, 'canReturn');
-      document.querySelector(`input[name="goodsMode"][value="${goodsMode}"]`).checked = true;
+      if (document.getElementById('goodsModeSelect')) {
+        document.getElementById('goodsModeSelect').value = goodsMode;
+      }
       
       const adMode = loadFromStorage(STORAGE_KEYS.adMode, 'rate');
-      document.querySelector(`input[name="adMode"][value="${adMode}"]`).checked = true;
+      if (document.getElementById('adModeSelect')) {
+        document.getElementById('adModeSelect').value = adMode;
+      }
       
       const adRateBasis = loadFromStorage(STORAGE_KEYS.adRateBasis, 'effective');
-      document.querySelector(`input[name="adRateBasis"][value="${adRateBasis}"]`).checked = true;
+      if (document.getElementById('adRateBasisSelect')) {
+        document.getElementById('adRateBasisSelect').value = adRateBasis;
+      }
       
       const simBasis = loadFromStorage(STORAGE_KEYS.simBasis, 'effective');
-      document.querySelector(`input[name="simBasis"][value="${simBasis}"]`).checked = true;
+      if (document.getElementById('simBasisSelect')) {
+        document.getElementById('simBasisSelect').value = simBasis;
+      }
       
       $('adRate').value = loadFromStorage(STORAGE_KEYS.adRate, '22');
       $('adCost').value = loadFromStorage(STORAGE_KEYS.adCost, '');
@@ -1922,14 +1896,14 @@
         otherCost: num($('otherCost').value),
         salesTaxRate: to01($('salesTaxRate').value),
         serviceVATRate: to01($('serviceVATRate').value),
-        goodsMode: document.querySelector('input[name="goodsMode"]:checked')?.value || 'canReturn'
+        goodsMode: document.getElementById('goodsModeSelect')?.value || 'canReturn'
       };
       return p;
     }
 
     function currentAd(){
-      const mode = document.querySelector('input[name="adMode"]:checked')?.value || 'none';
-      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
+      const mode = document.getElementById('adModeSelect')?.value || 'none';
+      const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
       let adCost = 0, adRate = NaN;
       if(mode==='rate'){
         adRate = to01($('adRate').value);
@@ -2335,7 +2309,7 @@
         `;
       })();
       const mini = $('mini');
-      const basis = document.querySelector('input[name="simBasis"]:checked')?.value || 'effective';
+      const basis = document.getElementById('simBasisSelect')?.value || 'effective';
       const list = parseListPercents($('simRates').value).map(v => (v>1? v/100: v));
       mini.innerHTML = list.map(rp=>{
         const { margin, adCostGiven } = profitGivenAdRateAndR(p, rp, r, basis);
@@ -3022,7 +2996,7 @@
 
       let html = '<table><thead><tr><th>广告占比</th>' + rrs.map(r=>`<th><div class="th-top">退货率</div><div class="th-num">${(r*100).toFixed(1)}%</div></th>`).join('') + '</tr></thead><tbody>';
       // 按左侧占比口径计算
-      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
+      const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
       for(const a of ads){
         html += `<tr><td>${(a*100).toFixed(0)}%</td>`;
         for(const r of rrs){
@@ -3073,8 +3047,8 @@
     function bind(){
       // 初始化Tab切换
       initTabs();
-      // 初始化移动端下拉选择与单选同步
-      initMobileSelects();
+      // 初始化下拉选择框
+      initSelects();
       
       // 为所有输入框添加事件监听
       document.querySelectorAll('input,select').forEach(el=>{
@@ -3145,22 +3119,7 @@
         });
       }
       
-      // 为单选按钮添加实时保存功能
-      document.querySelectorAll('input[type="radio"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-          const name = this.name;
-          const value = this.value;
-          if (name === 'goodsMode' && STORAGE_KEYS.goodsMode) {
-            saveToStorage(STORAGE_KEYS.goodsMode, value);
-          } else if (name === 'adMode' && STORAGE_KEYS.adMode) {
-            saveToStorage(STORAGE_KEYS.adMode, value);
-          } else if (name === 'adRateBasis' && STORAGE_KEYS.adRateBasis) {
-            saveToStorage(STORAGE_KEYS.adRateBasis, value);
-          } else if (name === 'simBasis' && STORAGE_KEYS.simBasis) {
-            saveToStorage(STORAGE_KEYS.simBasis, value);
-          }
-        });
-      });
+      // 下拉框的保存功能已在 initSelects() 中处理
       
       // 重置按钮事件
       const resetBtn = document.getElementById('resetBtn');
@@ -3537,7 +3496,7 @@
     // ===== 到手价推演（反推售价） =====
     function renderPriceSim(){
       const p = params();
-      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
+      const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
       const rates = [];
       const from = parseFloat(document.getElementById('pRateFrom')?.value) || 0;
       const to = parseFloat(document.getElementById('pRateTo')?.value) || 0;
@@ -3578,7 +3537,7 @@
     // ===== 税费推演：实际税负占比 =====
     function renderTaxSim(){
       const p = params();
-      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
+      const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
       const rates = [];
       const from = parseFloat(document.getElementById('tRateFrom')?.value) || 0;
       const to = parseFloat(document.getElementById('tRateTo')?.value) || 0;
@@ -3616,7 +3575,7 @@
     // ===== 成本价推演（反推进货价） =====
     function renderCostSim(){
       const p = params();
-      const basis = document.querySelector('input[name="adRateBasis"]:checked')?.value || 'effective';
+      const basis = document.getElementById('adRateBasisSelect')?.value || 'effective';
       const rates = [];
       const from = parseFloat(document.getElementById('cRateFrom')?.value) || 0;
       const to = parseFloat(document.getElementById('cRateTo')?.value) || 0;
