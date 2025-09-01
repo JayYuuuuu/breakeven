@@ -134,6 +134,8 @@
       .grid{grid-template-columns:1fr}
       .grid-4{grid-template-columns:1fr}
       .grid-5{grid-template-columns:1fr}
+      /* 移动端免佣复选框调整 */
+      label:has(#freeCommission) { font-size: 9px; }
     }
     label{font-size:12px; color:var(--muted); margin:0 0 6px 2px; display:block}
     input, select{width:100%; background:#fff; border:1px solid #d2d2d7; border-radius:12px; padding:12px 10px; font-size:22px; font-weight:600; outline:none}
@@ -156,6 +158,8 @@
     body.ipad-pro-11 .content{ padding:12px }
     body.ipad-pro-11 label{ font-size:11px }
     body.ipad-pro-11 input, body.ipad-pro-11 select{ padding:10px 9px; font-size:20px; border-radius:10px }
+    /* iPad Pro 11免佣复选框调整 */
+    body.ipad-pro-11 label:has(#freeCommission) { font-size: 9px; }
     body.ipad-pro-11 .switch{ padding:4px }
     body.ipad-pro-11 .kpi .val{ font-size:18px }
     body.ipad-pro-11 .mini-grid{ gap:6px }
@@ -226,6 +230,8 @@
       /* 左侧输入适当减小字号与内边距以提升信息密度 */
       .wrap > section:first-child input,
       .wrap > section:first-child select{ font-size: 20px; padding: 10px 9px; border-radius: 10px; }
+      /* 免佣复选框在平板端调整大小 */
+      .wrap > section:first-child label:has(#freeCommission) { font-size: 10px; }
       .card h2{ min-height: 48px; }
     }
 
@@ -245,6 +251,82 @@
     .pos{--c: var(--ok)} .neg{--c: var(--bad)} .neu{--c: var(--accent)}
     .legend{display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted)}
     .legend .dot{width:10px; height:10px; border-radius:50%; background:#ccc; display:inline-block; vertical-align:middle}
+
+    /* 新增图表样式 */
+    .chart-tabs{display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #e5e5ea; padding-bottom:12px}
+    .chart-tab-btn{background:none; border:1px solid #d2d2d7; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:14px; color:var(--muted); transition:all .2s ease}
+    .chart-tab-btn.active{background:var(--accent); color:white; border-color:var(--accent)}
+    .chart-tab-btn:hover{ border-color:var(--accent); color:var(--accent) }
+
+    .chart-content{animation:fadeIn .3s ease}
+    @keyframes fadeIn{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
+
+    /* 流程图样式 */
+    .flow-diagram{min-height:600px; position:relative; background:linear-gradient(180deg,#f8f9fa,#ffffff); border-radius:12px; padding:20px; overflow:auto}
+    .flow-node{position:absolute; background:white; border:2px solid #e5e5ea; border-radius:12px; padding:12px 16px; box-shadow:0 2px 8px rgba(0,0,0,0.1); transition:all .3s cubic-bezier(0.4, 0, 0.2, 1); cursor:pointer; min-width:120px; text-align:center; opacity:0; animation:nodeFadeIn 0.6s ease forwards}
+    .flow-node:hover{transform:scale(1.05); box-shadow:0 8px 32px rgba(0,0,0,0.2); border-color:#007aff}
+    .flow-node:nth-child(1){animation-delay:0.1s}
+    .flow-node:nth-child(2){animation-delay:0.2s}
+    .flow-node:nth-child(3){animation-delay:0.3s}
+    .flow-node:nth-child(4){animation-delay:0.4s}
+    .flow-node:nth-child(5){animation-delay:0.5s}
+    .flow-node:nth-child(6){animation-delay:0.6s}
+    .flow-node:nth-child(7){animation-delay:0.7s}
+    .flow-node:nth-child(8){animation-delay:0.8s}
+    @keyframes nodeFadeIn{from{opacity:0; transform:translateY(20px) scale(0.9)} to{opacity:1; transform:translateY(0) scale(1)}}
+    .flow-node.revenue{background:linear-gradient(135deg,#007aff,#5ac8fa)}
+    .flow-node.cost{background:linear-gradient(135deg,#ff3b30,#ff9500)}
+    .flow-node.tax{background:linear-gradient(135deg,#ff9f0a,#ffcc00)}
+    .flow-node.profit{background:linear-gradient(135deg,#34c759,#30d158)}
+    .flow-node .amount{font-family:var(--mono); font-size:16px; font-weight:600; margin-top:4px; transition:all .3s ease}
+    .flow-node .label{font-size:12px; color:#666}
+    .flow-node.updated .amount{animation:pulse 0.6s ease}
+    @keyframes pulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.1); color:#007aff}}
+    .flow-arrow{position:absolute; width:2px; background:#d2d2d7; transform-origin:center}
+    .flow-arrow:before{content:''; position:absolute; left:-4px; top:-4px; width:10px; height:10px; border:2px solid #d2d2d7; border-left:none; border-bottom:none; transform:rotate(45deg); background:white}
+
+    /* 图表容器样式 */
+    .charts-container{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px}
+    .chart-card{background:white; border:1px solid #e5e5ea; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    .chart-card h3{margin:0 0 16px 0; font-size:16px; color:#111}
+    .chart-card.full-width{grid-column:1/-1}
+    .chart-legend{margin-top:16px; display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px}
+    .chart-legend-item{display:flex; align-items:center; gap:8px; font-size:12px}
+    .chart-legend-color{display:inline-block; width:12px; height:12px; border-radius:3px}
+
+
+
+    /* 移动端适配 */
+    @media (max-width:768px){
+      .charts-container{grid-template-columns:1fr}
+      .chart-card.full-width{grid-column:auto}
+      .flow-diagram{min-height:400px; padding:12px}
+      .flow-node{min-width:100px; padding:8px 12px}
+      .flow-node .amount{font-size:14px}
+      .flow-node .label{font-size:11px}
+    }
+
+    /* 模态框样式 */
+    .modal-overlay{position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:10000; animation:modalFadeIn 0.3s ease}
+    .modal-content{background:white; border-radius:12px; max-width:600px; max-height:80vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation:modalSlideIn 0.3s ease}
+    .modal-header{display:flex; justify-content:space-between; align-items:center; padding:20px 24px; border-bottom:1px solid #e5e5ea}
+    .modal-header h3{margin:0; font-size:18px; color:#111}
+    .modal-close{background:none; border:none; font-size:24px; cursor:pointer; color:#666; padding:0; width:30px; height:30px; display:flex; align-items:center; justify-content:center}
+    .modal-body{padding:20px 24px; max-height:60vh; overflow-y:auto}
+    .detail-section{margin-bottom:20px}
+    .detail-section h4{margin:16px 0 8px 0; font-size:14px; color:#666; border-bottom:1px solid #f0f0f0; padding-bottom:4px}
+    .detail-section .formula{background:#f8f9fa; padding:8px 12px; border-radius:6px; font-family:'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; font-size:13px; color:#0f172a; margin:8px 0; border-left:3px solid #007aff}
+    .detail-section ul{margin:8px 0; padding-left:20px}
+    .detail-section li{margin:4px 0; color:#666}
+    @keyframes modalFadeIn{from{opacity:0} to{opacity:1}}
+    @keyframes modalSlideIn{from{transform:scale(0.9); opacity:0} to{transform:scale(1); opacity:1}}
+
+    /* 移动端模态框适配 */
+    @media (max-width:768px){
+      .modal-content{max-width:95vw; margin:20px}
+      .modal-header{padding:16px 20px}
+      .modal-body{padding:16px 20px}
+    }
 
     /* 迷你推演→不同广告占比下的利润率变化条 */
     .mini-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px}
@@ -1014,7 +1096,13 @@
                 </select>
               </div>
               <div>
-                <label>平台佣金率</label>
+                <label style="display: flex; align-items: center; gap: 8px;">
+                  平台佣金率
+                  <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); cursor: pointer; pointer-events: auto; margin: 0;">
+                    <input type="checkbox" id="freeCommission" style="margin: 0; background: transparent;" />
+                    免
+                  </label>
+                </label>
                 <input id="platformRate" type="text" inputmode="decimal" placeholder="5.5" />
               </div>
             </div>
@@ -1092,7 +1180,7 @@
             </div>
             <div class="hint">
               AOV 为空时默认等于"售价"；有效 AOV = AOV × (1 + 连带率)。
-              此设定将影响【投放决策】第三行（CPC×CVR）里的 ROAS、最大可承受 CPC、保本所需 CVR、CPA、点击数等。
+              此设定将影响【投放决策】第三行（CPC×CVR）里的 ROAS、CPC临界、CVR临界、CPA、点击数等。
             </div>
           </div>
           <!-- 迷你推演参数 -->
@@ -1135,6 +1223,38 @@
         <!-- 可视化展示tab -->
         <div class="tab-content" id="visualization-tab">
           <div class="content">
+            <!-- 可视化图表类型切换 -->
+            <div class="chart-tabs">
+              <button class="chart-tab-btn active" data-chart="flow">流程图</button>
+              <button class="chart-tab-btn" data-chart="pie">饼图分析</button>
+              <button class="chart-tab-btn" data-chart="traditional">传统墙体</button>
+            </div>
+
+            <!-- 流程图展示 -->
+            <div class="chart-content" id="flow-chart">
+              <div class="flow-diagram" id="flowDiagram"></div>
+            </div>
+
+            <!-- 饼图分析 -->
+            <div class="chart-content" id="pie-chart" style="display:none">
+              <div class="charts-container">
+                <div class="chart-card">
+                  <h3>成本结构分析</h3>
+                  <canvas id="costPieChart" width="300" height="300"></canvas>
+                  <div class="chart-legend" id="costPieLegend"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>利润构成分析</h3>
+                  <canvas id="profitDonutChart" width="300" height="300"></canvas>
+                  <div class="chart-legend" id="profitDonutLegend"></div>
+                </div>
+              </div>
+            </div>
+
+
+
+            <!-- 传统墙体展示 -->
+            <div class="chart-content" id="traditional-chart" style="display:none">
             <div class="legend" style="margin:10px 0 6px">
               <span><span class="dot" style="background:var(--accent)"></span> 营收</span>
               <span><span class="dot" style="background:var(--bad)"></span> 成本/税负支出（向下）</span>
@@ -1151,6 +1271,7 @@
               当推演口径为"有效"时，ROAS≈1/占比；当口径为"GMV"时，ROAS≈r/占比。
             </div>
             <div class="mini-grid" id="mini"></div>
+            </div>
           </div>
         </div>
         
@@ -1215,11 +1336,11 @@
                 <div class="metric-value" id="stratROASVal">—</div>
               </div>
               <div class="metric-card large-metric-card">
-                <div class="metric-label">最大可承受 CPC（给定CVR）</div>
+                <div class="metric-label">CPC临界（给定CVR）</div>
                 <div class="metric-value" id="stratMaxCPCVal">—</div>
               </div>
               <div class="metric-card large-metric-card">
-                <div class="metric-label">保本所需 CVR（给定CPC）</div>
+                <div class="metric-label">CVR临界（给定CPC）</div>
                 <div class="metric-value" id="stratBeCVRVal">—</div>
               </div>
               <div class="metric-card large-metric-card">
@@ -1249,7 +1370,7 @@
         <!-- 利润推演tab -->
         <div class="tab-content" id="analysis-tab">
           <div class="content">
-            <div class="pill">利润推演（付费占比 × 退货率）</div>
+            <div class="pill" id="analysisTitle">利润推演（付费占比 × 退货率）</div>
             <div class="derivation-controls">
               <div class="control-group">
                 <span class="control-label">付费占比范围：</span>
@@ -1590,6 +1711,7 @@
       inputTaxRate: 'metro_inputTaxRate',
       serviceVATRate: 'metro_serviceVATRate',
       platformRate: 'metro_platformRate',
+      freeCommission: 'metro_freeCommission',
       shippingCost: 'metro_shippingCost',
       shippingInsurance: 'metro_shippingInsurance',
       otherCost: 'metro_otherCost',
@@ -1829,6 +1951,7 @@
       try{ renderTaxSim(); }catch(_){}
       try{ renderCostSim(); }catch(_){}
       try{ lpEnsureInit(); lpRecalcAll(); }catch(_){}
+      try{ updateAnalysisTitle(); }catch(_){} // 更新利润推演标题
     }
 
     // 渲染投放决策紧凑三行指标
@@ -1982,9 +2105,9 @@
       if (maxCpcLabel) {
         if (isFinite(cvr) && cvr > 0) {
           const cvrPercent = (cvr * 100).toFixed(0);
-          maxCpcLabel.innerHTML = `最大可承受 CPC（<span class="cvr-highlight">CVR${cvrPercent}%</span>）`;
+          maxCpcLabel.innerHTML = `CPC临界（<span class="cvr-highlight">CVR${cvrPercent}%</span>）`;
         } else {
-          maxCpcLabel.textContent = '最大可承受 CPC（给定CVR）';
+          maxCpcLabel.textContent = 'CPC临界（给定CVR）';
         }
       }
 
@@ -1994,9 +2117,9 @@
       const beCvrLabel = document.querySelector('#stratBeCVRVal').parentElement.querySelector('.metric-label');
       if (beCvrLabel) {
         if (isFinite(cpc) && cpc > 0) {
-          beCvrLabel.innerHTML = `保本所需 CVR（<span class="cpc-highlight">CPC${cpc.toFixed(2)}</span>）`;
+          beCvrLabel.innerHTML = `CVR临界（<span class="cpc-highlight">CPC${cpc.toFixed(2)}</span>）`;
         } else {
-          beCvrLabel.textContent = '保本所需 CVR（给定CPC）';
+          beCvrLabel.textContent = 'CVR临界（给定CPC）';
         }
       }
 
@@ -2377,6 +2500,17 @@
       </div>`;
     }
 
+    // 更新利润推演标题，显示连带购买率
+    function updateAnalysisTitle(){
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+      const analysisTitle = document.getElementById('analysisTitle');
+      if (analysisTitle) {
+        const bundleText = bundle > 0 ? `｜连带${(bundle * 100).toFixed(0)}%` : '';
+        analysisTitle.textContent = `利润推演（付费占比 × 退货率${bundleText}）`;
+      }
+    }
+
     function render(){
       // 数据来源徽标设置函数
       const setSrc=(id,txt)=>{ const el=$(id); if(el) el.innerHTML = '<span class="dot"></span>'+txt; };
@@ -2418,13 +2552,17 @@
       // —— 广告换算 + 利润 ——
       const adv = currentAd();
       let adCostGiven = 0, VAT_in_ad = 0, Profit = NaN, Margin = NaN, effectiveRate = NaN, gmvRate = NaN;
+
+      // 使用包含有效AOV的参数来计算广告成本，保持与投放决策页面一致
+      const pWithBundleForAdCost = { ...p, sellingPrice: effAOV };
+
       if(adv.mode==='rate'){
-        adCostGiven = adRateToAmount(p, adv.adRate, adv.basis);
-        const rates = adAmountToRates(p, adCostGiven);
+        adCostGiven = adRateToAmount(pWithBundleForAdCost, adv.adRate, adv.basis);
+        const rates = adAmountToRates(pWithBundleForAdCost, adCostGiven);
         effectiveRate = rates.effective; gmvRate = rates.gmv;
       }else if(adv.mode==='amount'){
         adCostGiven = Math.max(0, adv.adCost);
-        const rates = adAmountToRates(p, adCostGiven);
+        const rates = adAmountToRates(pWithBundleForAdCost, adCostGiven);
         effectiveRate = rates.effective; gmvRate = rates.gmv;
       }
       // —— 同步显示等价口径：占比↔金额（即使输入框被禁用也展示） ——
@@ -2444,8 +2582,8 @@
         }
       }
       {
-        // 使用包含连带购买率影响的参数对象
-        const pWithBundleForWall = { ...p, sellingPrice: calcEffectiveAOV(p.sellingPrice, bundle) };
+        // 使用包含有效AOV的参数对象计算利润，与广告成本计算保持一致
+        const pWithBundleForWall = { ...p, sellingPrice: effAOV };
         const res = profitGivenAd(pWithBundleForWall, { adCost: adCostGiven });
         Profit = res.profit; Margin = res.margin; VAT_in_ad = res.VAT_in_ad;
       }
@@ -2662,7 +2800,300 @@
       
       // 更新投放决策tab（如果当前在决策tab）
       try{ renderStrategyCompact(); }catch(_){}
+
+      // 更新利润推演标题，显示连带购买率
+      updateAnalysisTitle();
+
+      // 渲染新图表（如果当前在可视化tab）
+      if (document.getElementById('visualization-tab').classList.contains('active')) {
+        renderNewCharts();
+      }
     }
+
+    // 新图表渲染函数
+    function renderNewCharts() {
+      const currentChartType = document.querySelector('.chart-tab-btn.active')?.getAttribute('data-chart') || 'flow';
+      switch(currentChartType) {
+        case 'flow':
+          renderFlowDiagram();
+          break;
+        case 'pie':
+          renderPieCharts();
+          break;
+      }
+    }
+
+    // 流程图渲染
+    function renderFlowDiagram() {
+      const flowDiagram = document.getElementById('flowDiagram');
+      if (!flowDiagram) return;
+
+      const p = params();
+
+      // 获取连带购买率参数（与传统墙体保持一致）
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+
+      // 计算并显示有效AOV（含连带）
+      const aovRaw = num(document.getElementById('decAOV')?.value);
+      const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice;
+      const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
+
+      // 使用包含有效AOV的参数进行计算
+      const pWithBundle = { ...p, sellingPrice: effAOV };
+      const base = computeBase(pWithBundle);
+
+      const adv = currentAd();
+      const adCost = adv.mode === 'rate' ? adRateToAmount(pWithBundle, adv.adRate, adv.basis) : adv.adCost;
+      const profitResult = profitGivenAd(pWithBundle, { adCost });
+
+      const nodes = [
+        { id: 'revenue', label: '有效营收', amount: base.Rev, type: 'revenue', x: 50, y: 50 },
+        { id: 'cost_goods', label: '进货成本', amount: -base.goodsCost, type: 'cost', x: 300, y: 50 },
+        { id: 'cost_others', label: '其他成本', amount: -base.othersCost, type: 'cost', x: 300, y: 150 },
+        { id: 'cost_commission', label: '平台佣金', amount: -base.commission, type: 'cost', x: 300, y: 250 },
+        { id: 'cost_vat_out', label: '销项税支出', amount: -base.VAT_out, type: 'tax', x: 550, y: 50 },
+        { id: 'vat_in_goods', label: '进货税抵扣', amount: base.VAT_in_goods, type: 'tax', x: 550, y: 150 },
+        { id: 'vat_in_comm', label: '佣金税抵扣', amount: base.VAT_in_comm, type: 'tax', x: 550, y: 250 },
+        { id: 'gross_profit', label: '毛利润', amount: base.A, type: 'profit', x: 800, y: 150 }
+      ];
+
+      if (adCost > 0) {
+        nodes.push(
+          { id: 'cost_ad', label: '广告费', amount: -adCost, type: 'cost', x: 300, y: 350 },
+          { id: 'vat_in_ad', label: '广告税抵扣', amount: profitResult.VAT_in_ad, type: 'tax', x: 550, y: 350 },
+          { id: 'net_profit', label: '净利润', amount: profitResult.profit, type: 'profit', x: 800, y: 250 }
+        );
+      }
+
+      // 检查是否是更新而不是初次渲染
+      const isUpdate = flowDiagram.children.length > 0;
+      const oldAmounts = {};
+
+      if (isUpdate) {
+        // 收集旧的数值用于比较
+        Array.from(flowDiagram.children).forEach(child => {
+          if (child.classList.contains('flow-node')) {
+            const nodeId = child.getAttribute('data-node-id');
+            const amountEl = child.querySelector('.amount');
+            if (amountEl) {
+              oldAmounts[nodeId] = amountEl.textContent;
+            }
+          }
+        });
+      }
+
+      flowDiagram.innerHTML = nodes.map(node => `
+        <div class="flow-node ${node.type}" style="left: ${node.x}px; top: ${node.y}px;" data-node-id="${node.id}">
+          <div class="label">${node.label}</div>
+          <div class="amount">${fmt(node.amount, 2)}</div>
+        </div>
+      `).join('');
+
+      // 添加节点点击事件和数值变化动画
+      nodes.forEach(node => {
+        const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+        if (nodeEl) {
+          nodeEl.addEventListener('click', () => {
+            showNodeDetails(node);
+          });
+
+          // 检查数值是否变化，添加动画效果
+          if (isUpdate && oldAmounts[node.id] !== fmt(node.amount, 2)) {
+            nodeEl.classList.add('updated');
+            setTimeout(() => {
+              nodeEl.classList.remove('updated');
+            }, 600);
+          }
+        }
+      });
+
+      // 添加连接线
+      const connections = [
+        { from: 'revenue', to: 'cost_goods' },
+        { from: 'revenue', to: 'cost_others' },
+        { from: 'revenue', to: 'cost_commission' },
+        { from: 'cost_goods', to: 'cost_vat_out' },
+        { from: 'cost_goods', to: 'vat_in_goods' },
+        { from: 'cost_commission', to: 'vat_in_comm' },
+        { from: 'revenue', to: 'gross_profit' },
+        { from: 'cost_goods', to: 'gross_profit' },
+        { from: 'cost_others', to: 'gross_profit' },
+        { from: 'cost_commission', to: 'gross_profit' },
+        { from: 'cost_vat_out', to: 'gross_profit' },
+        { from: 'vat_in_goods', to: 'gross_profit' },
+        { from: 'vat_in_comm', to: 'gross_profit' }
+      ];
+
+      if (adCost > 0) {
+        connections.push(
+          { from: 'revenue', to: 'cost_ad' },
+          { from: 'cost_ad', to: 'vat_in_ad' },
+          { from: 'gross_profit', to: 'net_profit' },
+          { from: 'vat_in_ad', to: 'net_profit' },
+          { from: 'cost_ad', to: 'net_profit' }
+        );
+      }
+
+      // 简单的连接线绘制
+      connections.forEach(conn => {
+        const fromNode = document.getElementById(conn.from);
+        const toNode = document.getElementById(conn.to);
+        if (fromNode && toNode) {
+          const fromRect = fromNode.getBoundingClientRect();
+          const toRect = toNode.getBoundingClientRect();
+          const containerRect = flowDiagram.getBoundingClientRect();
+
+          const x1 = fromRect.left + fromRect.width/2 - containerRect.left;
+          const y1 = fromRect.top + fromRect.height/2 - containerRect.top;
+          const x2 = toRect.left + toRect.width/2 - containerRect.left;
+          const y2 = toRect.top + toRect.height/2 - containerRect.top;
+
+          const arrow = document.createElement('div');
+          arrow.className = 'flow-arrow';
+          arrow.style.left = Math.min(x1, x2) + 'px';
+          arrow.style.top = Math.min(y1, y2) + 'px';
+          arrow.style.width = Math.abs(x2 - x1) + 'px';
+          arrow.style.height = Math.abs(y2 - y1) + 'px';
+          arrow.style.transformOrigin = '0 0';
+          arrow.style.transform = `rotate(${Math.atan2(y2 - y1, x2 - x1)}rad)`;
+          flowDiagram.appendChild(arrow);
+        }
+      });
+    }
+
+    // 饼图渲染
+    function renderPieCharts() {
+      const p = params();
+
+      // 获取连带购买率参数（与传统墙体保持一致）
+      const bundleRaw = to01(document.getElementById('decBundleRate')?.value);
+      const bundle = (isFinite(bundleRaw) && bundleRaw >= 0) ? bundleRaw : 0;
+
+      // 计算并显示有效AOV（含连带）
+      const aovRaw = num(document.getElementById('decAOV')?.value);
+      const aov = (isFinite(aovRaw) && aovRaw > 0) ? aovRaw : p.sellingPrice;
+      const effAOV = calcEffectiveAOV(aov, bundle); // 有效客单价（考虑连带）
+
+      // 使用包含有效AOV的参数进行计算
+      const pWithBundle = { ...p, sellingPrice: effAOV };
+      const base = computeBase(pWithBundle);
+
+      const adv = currentAd();
+      const adCost = adv.mode === 'rate' ? adRateToAmount(pWithBundle, adv.adRate, adv.basis) : adv.adCost;
+
+      // 成本结构数据
+      const costData = [
+        { label: '进货成本', value: Math.abs(base.goodsCost), color: '#ff3b30' },
+        { label: '其他成本', value: Math.abs(base.othersCost), color: '#ff9500' },
+        { label: '平台佣金', value: Math.abs(base.commission), color: '#ff9f0a' },
+        { label: '销项税', value: Math.abs(base.VAT_out), color: '#ffcc00' }
+      ];
+
+      if (adCost > 0) {
+        costData.push({ label: '广告费', value: adCost, color: '#af52de' });
+      }
+
+      // 利润构成数据
+      const profitData = [
+        { label: '毛利润', value: Math.max(0, base.A), color: '#34c759' },
+        { label: '税负支出', value: Math.abs(base.VAT_out), color: '#ff3b30' },
+        { label: '税额抵扣', value: base.VAT_in_goods + base.VAT_in_comm, color: '#007aff' }
+      ];
+
+      drawPieChart('costPieChart', costData, 'costPieLegend');
+      drawDonutChart('profitDonutChart', profitData, 'profitDonutLegend');
+    }
+
+    // 饼图绘制函数
+    function drawPieChart(canvasId, data, legendId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 20;
+
+      let startAngle = -Math.PI / 2;
+      const total = data.reduce((sum, item) => sum + item.value, 0);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      data.forEach(item => {
+        const sliceAngle = (item.value / total) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = item.color;
+        ctx.fill();
+
+        // 添加文字
+        const textAngle = startAngle + sliceAngle / 2;
+        const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
+        const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${(item.value / total * 100).toFixed(1)}%`, textX, textY);
+
+        startAngle += sliceAngle;
+      });
+
+      // 渲染图例
+      renderLegend(legendId, data);
+    }
+
+    // 环形图绘制函数
+    function drawDonutChart(canvasId, data, legendId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const outerRadius = Math.min(centerX, centerY) - 20;
+      const innerRadius = outerRadius * 0.6;
+
+      let startAngle = -Math.PI / 2;
+      const total = data.reduce((sum, item) => sum + item.value, 0);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      data.forEach(item => {
+        const sliceAngle = (item.value / total) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, outerRadius, startAngle, startAngle + sliceAngle);
+        ctx.arc(centerX, centerY, innerRadius, startAngle + sliceAngle, startAngle, true);
+        ctx.closePath();
+        ctx.fillStyle = item.color;
+        ctx.fill();
+
+        startAngle += sliceAngle;
+      });
+
+      // 渲染图例
+      renderLegend(legendId, data);
+    }
+
+    // 图例渲染函数
+    function renderLegend(legendId, data) {
+      const legend = document.getElementById(legendId);
+      if (!legend) return;
+
+      legend.innerHTML = data.map(item => `
+        <div class="chart-legend-item">
+          <div class="chart-legend-color" style="background-color: ${item.color}"></div>
+          <span>${item.label}: ${fmt(item.value, 2)}元 (${(item.value / data.reduce((sum, d) => sum + d.value, 0) * 100).toFixed(1)}%)</span>
+        </div>
+      `).join('');
+    }
+
+
+
+
 
     // Tab标题映射表
     const TAB_TITLES = {
@@ -2696,6 +3127,33 @@
       const savedTab = loadFromStorage(STORAGE_KEYS.currentTab, 'decision');
       console.log('🔄 恢复上次选择的tab:', savedTab);
       activateTab(savedTab);
+
+      // 初始化图表tab切换
+      initChartTabs();
+    }
+
+    // 图表tab切换功能
+    function initChartTabs() {
+      const chartTabBtns = document.querySelectorAll('.chart-tab-btn');
+
+      chartTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetChart = btn.getAttribute('data-chart');
+
+          // 移除所有active状态
+          document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.chart-content').forEach(c => c.style.display = 'none');
+
+          // 激活指定图表tab
+          btn.classList.add('active');
+          const targetContent = document.getElementById(`${targetChart}-chart`);
+          if (targetContent) {
+            targetContent.style.display = 'block';
+            // 渲染对应的图表
+            renderNewCharts();
+          }
+        });
+      });
     }
       
       // 激活指定tab
@@ -2912,7 +3370,49 @@
       });
     }
     
+    // 免佣功能处理
+    function initFreeCommission(){
+      const freeCommissionCheckbox = document.getElementById('freeCommission');
+      const platformRateInput = document.getElementById('platformRate');
+
+      if (!freeCommissionCheckbox || !platformRateInput) return;
+
+      // 从本地存储恢复状态
+      const isFreeCommission = loadFromStorage(STORAGE_KEYS.freeCommission, 'false') === 'true';
+      freeCommissionCheckbox.checked = isFreeCommission;
+
+      // 如果是免佣状态，设置为0
+      if (isFreeCommission) {
+        platformRateInput.value = '0';
+        platformRateInput.disabled = true;
+      }
+
+      // 绑定复选框变化事件
+      freeCommissionCheckbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        saveToStorage(STORAGE_KEYS.freeCommission, isChecked.toString());
+
+        if (isChecked) {
+          // 免佣：保存当前值并设置为0
+          platformRateInput.dataset.previousValue = platformRateInput.value;
+          platformRateInput.value = '0';
+          platformRateInput.disabled = true;
+        } else {
+          // 取消免佣：恢复之前的值
+          const previousValue = platformRateInput.dataset.previousValue || (SYSTEM_PARAMS_EXAMPLE.platformRate * 100).toFixed(1);
+          platformRateInput.value = previousValue;
+          platformRateInput.disabled = false;
+        }
+
+        // 触发重新计算
+        recomputeAllTabs();
+      });
+    }
+
     function bind(){
+      // 初始化免佣功能
+      initFreeCommission();
+
       // 初始化Tab切换
       initTabs();
       // 初始化下拉选择框
@@ -2975,7 +3475,17 @@
 
       ;['decBasis','decCPM','decCTR','decAOV','decBundleRate','decTargetMargin'].forEach(id=>{
         const el = document.getElementById(id);
-        if(el){ el.addEventListener('input', renderStrategyCompact); el.addEventListener('change', renderStrategyCompact); }
+        if(el){
+          const handler = () => {
+            renderStrategyCompact();
+            // 如果是连带购买率变化，同时更新利润推演标题
+            if (id === 'decBundleRate') {
+              updateAnalysisTitle();
+            }
+          };
+          el.addEventListener('input', handler);
+          el.addEventListener('change', handler);
+        }
       });
 
       // 保存口径选择 decBasis
@@ -3026,6 +3536,19 @@
           fillDefaults();
           initStrategyAssumptionInputs();
           updateAdModeUI();
+
+          // 重置免佣状态
+          const freeCommissionCheckbox = document.getElementById('freeCommission');
+          const platformRateInput = document.getElementById('platformRate');
+          if (freeCommissionCheckbox) {
+            freeCommissionCheckbox.checked = false;
+            saveToStorage(STORAGE_KEYS.freeCommission, 'false');
+          }
+          if (platformRateInput) {
+            platformRateInput.disabled = false;
+            platformRateInput.value = (SYSTEM_PARAMS_EXAMPLE.platformRate * 100).toFixed(1);
+          }
+
           render();
 
           // 同步复位示例筛选与选择
@@ -3484,6 +4007,7 @@
 
     fillDefaults();
     initStrategyAssumptionInputs();
+    updateAnalysisTitle(); // 初始化利润推演标题
     bind();
     
     // 初始化折叠功能
@@ -3547,6 +4071,160 @@
     
     // 显示本地存储状态
     showStorageStatus();
+
+    // 节点详情显示函数
+    function showNodeDetails(node) {
+      const details = getNodeDetails(node);
+      const modal = createModal(details.title, details.content);
+      document.body.appendChild(modal);
+
+      // 点击外部关闭模态框
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+        }
+      });
+    }
+
+    // 获取节点详情信息
+    function getNodeDetails(node) {
+      const p = params();
+      const base = computeBase(p);
+
+      const details = {
+        revenue: {
+          title: '有效营收',
+          content: `
+            <div class="detail-section">
+              <h4>计算公式</h4>
+              <p class="formula">有效营收 = 售价 × (1 - 退货率)</p>
+              <p class="formula">Rev = ${fmt(p.sellingPrice, 2)} × (1 - ${p.returnRate}) = ${fmt(base.Rev, 2)}</p>
+
+              <h4>参数说明</h4>
+              <ul>
+                <li>售价：${fmt(p.sellingPrice, 2)}元（含税）</li>
+                <li>退货率：${(p.returnRate * 100).toFixed(2)}%</li>
+                <li>有效销售比例：${((1 - p.returnRate) * 100).toFixed(2)}%</li>
+              </ul>
+            </div>
+          `
+        },
+        cost_goods: {
+          title: '进货成本',
+          content: `
+            <div class="detail-section">
+              <h4>计算公式</h4>
+              <p class="formula">进货成本 = 进货价 × (1 + 开票成本比例) × ${p.goodsMode === 'canReturn' ? '有效销量比例' : '1'}</p>
+              <p class="formula">${fmt(-base.goodsCost, 2)} = ${fmt(p.costPrice, 2)} × (1 + ${p.inputTaxRate}) × ${p.goodsMode === 'canReturn' ? (1 - p.returnRate).toFixed(4) : '1'}</p>
+
+              <h4>参数说明</h4>
+              <ul>
+                <li>进货价：${fmt(p.costPrice, 2)}元（不含税）</li>
+                <li>开票成本比例：${(p.inputTaxRate * 100).toFixed(2)}%</li>
+                <li>进货模式：${p.goodsMode === 'canReturn' ? '可退货' : '不可退货'}</li>
+              </ul>
+            </div>
+          `
+        },
+        cost_others: {
+          title: '其他固定成本',
+          content: `
+            <div class="detail-section">
+              <h4>成本组成</h4>
+              <ul>
+                <li>物流费：${fmt(p.shippingCost, 2)}元</li>
+                <li>运费险：${fmt(p.shippingInsurance, 2)}元</li>
+                <li>其他成本：${fmt(p.otherCost, 2)}元</li>
+              </ul>
+              <p class="formula">总计：${fmt(-base.othersCost, 2)}元</p>
+
+              <h4>说明</h4>
+              <p>这些成本在商品发货时即产生，与退货无关</p>
+            </div>
+          `
+        },
+        cost_commission: {
+          title: '平台佣金',
+          content: `
+            <div class="detail-section">
+              <h4>计算公式</h4>
+              <p class="formula">佣金 = 售价 × 佣金率 × 有效销量比例</p>
+              <p class="formula">${fmt(-base.commission, 2)} = ${fmt(p.sellingPrice, 2)} × ${p.platformRate} × ${(1 - p.returnRate).toFixed(4)}</p>
+
+              <h4>参数说明</h4>
+              <ul>
+                <li>平台佣金率：${(p.platformRate * 100).toFixed(2)}%</li>
+                <li>仅对实际成交商品收取佣金</li>
+              </ul>
+            </div>
+          `
+        },
+        cost_vat_out: {
+          title: '销项税支出',
+          content: `
+            <div class="detail-section">
+              <h4>计算公式</h4>
+              <p class="formula">销项税 = 有效营收 × 销项税率 ÷ (1 + 销项税率)</p>
+              <p class="formula">${fmt(-base.VAT_out, 2)} = ${fmt(base.Rev, 2)} × ${p.salesTaxRate} ÷ (1 + ${p.salesTaxRate})</p>
+
+              <h4>说明</h4>
+              <p>销项税是销售商品时需要缴纳的增值税</p>
+            </div>
+          `
+        },
+        vat_in_goods: {
+          title: '进货税抵扣',
+          content: `
+            <div class="detail-section">
+              <h4>计算公式</h4>
+              <p class="formula">抵扣税额 = 进货价 × 商品进项税率 × ${p.goodsMode === 'canReturn' ? '有效销量比例' : '1'}</p>
+              <p class="formula">${fmt(base.VAT_in_goods, 2)} = ${fmt(p.costPrice, 2)} × ${p.outputTaxRate} × ${p.goodsMode === 'canReturn' ? (1 - p.returnRate).toFixed(4) : '1'}</p>
+
+              <h4>说明</h4>
+              <p>可以抵扣的进货增值税，减少实际税负</p>
+            </div>
+          `
+        },
+        gross_profit: {
+          title: '毛利润',
+          content: `
+            <div class="detail-section">
+              <h4>计算公式</h4>
+              <p class="formula">毛利润 = 有效营收 - 进货成本 - 其他成本 - 佣金 - 销项税 + 进货抵扣 + 佣金抵扣</p>
+              <p class="formula">${fmt(base.A, 2)} = ${fmt(base.Rev, 2)} - ${fmt(Math.abs(base.goodsCost), 2)} - ${fmt(Math.abs(base.othersCost), 2)} - ${fmt(Math.abs(base.commission), 2)} - ${fmt(Math.abs(base.VAT_out), 2)} + ${fmt(base.VAT_in_goods, 2)} + ${fmt(base.VAT_in_comm, 2)}</p>
+
+              <h4>说明</h4>
+              <p>不含广告费用的毛利润，是衡量商品盈利能力的基础指标</p>
+            </div>
+          `
+        }
+      };
+
+      return details[node.id] || { title: node.label, content: '<p>暂无详细信息</p>' };
+    }
+
+    // 创建模态框
+    function createModal(title, content) {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>${title}</h3>
+            <button class="modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            ${content}
+          </div>
+        </div>
+      `;
+
+      // 关闭按钮事件
+      const closeBtn = modal.querySelector('.modal-close');
+      closeBtn.addEventListener('click', () => modal.remove());
+
+      return modal;
+    }
   </script>
 </body>
 </html>
