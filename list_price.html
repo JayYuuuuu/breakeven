@@ -124,29 +124,55 @@
         <h2 style="margin:0;font-size:16px;">毛利率换算（折扣 → 折扣）</h2>
         <button class="ghost-link" id="mcResetAll" title="恢复默认数值">恢复默认</button>
       </div>
-      <div class="settings-inline" id="mcInline">
-        <label>日常原价立减 %</label>
+      
+      <!-- 第一步：日常设定 -->
+      <div class="settings-inline" style="margin-bottom:16px; padding:12px; background:#f8f9fa; border-radius:8px; border:1px solid #e9ecef;">
+        <div style="width:100%; margin-bottom:8px; font-size:13px; font-weight:600; color:#495057;">📊 日常设定</div>
+        <label><strong>原价</strong> → 日常价立减 %</label>
         <input id="mcBaseDisc" type="number" step="0.01" value="10" placeholder="如 10 表示立减10%">
         <label>日常毛利率 %</label>
         <input id="mcBaseGM" type="number" step="0.01" value="30" placeholder="例如 30">
+        <div class="sub" style="font-size:12px; color:#6c757d; margin-top:4px;">
+          <strong>原价</strong> → <strong>日常价</strong>（立减后）→ 活动期价格变化
+        </div>
+        <div style="margin-top:8px; padding:8px; background:#fff; border-radius:6px; border:1px solid #dee2e6;">
+          <div style="font-size:11px; color:#495057; margin-bottom:4px; font-weight:600;">价格层次关系：</div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <span style="background:#e3f2fd; padding:2px 6px; border-radius:4px; color:#1976d2; font-weight:600;">原价</span>
+            <span>→</span>
+            <span style="background:#f3e5f5; padding:2px 6px; border-radius:4px; color:#7b1fa2; font-weight:600;">日常价</span>
+            <span>→</span>
+            <span style="background:#e8f5e8; padding:2px 6px; border-radius:4px; color:#388e3c; font-weight:600;">活动价</span>
+          </div>
+        </div>
+      </div>
 
-        <!-- 方案A：活动立减更深（直接立减%） -->
-        <div id="mcGroupDirect" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-          <label>活动方案A：原价立减 %</label>
+      <!-- 第二步：方案对比 -->
+      <div style="margin-bottom:16px;">
+        <div style="width:100%; margin-bottom:8px; font-size:13px; font-weight:600; color:#495057;">🔄 活动方案对比</div>
+        
+        <!-- 方案A：直接立减 -->
+        <div id="mcGroupDirect" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:12px; background:#fff; border:1px solid #dee2e6; border-radius:8px;">
+          <div style="width:100%; margin-bottom:6px; font-size:12px; font-weight:600; color:#007bff;">方案A：<strong>原价</strong> → 活动价（直接立减）</div>
+          <label><strong>原价</strong>立减 %</label>
           <input id="mcTargetDisc" type="number" step="0.01" value="12" placeholder="例如 12">
-          <div id="mcResult" class="value" style="font-size:22px;">活动期毛利率（方案A）：—</div>
+          <div id="mcResult" class="value" style="font-size:18px; font-weight:600; color:#28a745;">—</div>
         </div>
 
-        <!-- 方案B：在日常原价立减基础上日常价上打折 -->
-        <div id="mcGroupFold" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-          <label>活动方案B：日常价上打折</label>
+        <!-- 方案B：先立减再打折 -->
+        <div id="mcGroupFold" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:12px; background:#fff; border:1px solid #dee2e6; border-radius:8px;">
+          <div style="width:100%; margin-bottom:6px; font-size:12px; font-weight:600; color:#fd7e14;">方案B：<strong>原价</strong> → <strong>日常价</strong> → 活动价（再打折）</div>
+          <label><strong>日常价</strong>上再打折</label>
           <input id="mcExtraFold" type="number" step="0.01" value="9.8" placeholder="例如 9.8 表示 9.8 折" style="width:110px;">
-          <div id="mcComboText" class="sub" style="font-size:13px;color:#6e6e73;">等效折扣（方案B）：—</div>
-          <div id="mcResultFold" class="value" style="font-size:22px;">活动期毛利率（方案B）：—</div>
+          <div id="mcComboText" class="sub" style="font-size:12px;color:#6c757d;">等效折扣：—</div>
+          <div id="mcResultFold" class="value" style="font-size:18px; font-weight:600; color:#28a745;">—</div>
         </div>
+      </div>
 
-        <!-- 总结：哪个方案更优惠、相对价格差多少、各自毛利率较日常下降多少 -->
-        <div id="mcCompareText" class="sub" style="width:100%; font-size:14px; margin-top:6px; color:#6e6e73;">—</div>
+      <!-- 第三步：结论分析 -->
+      <div style="padding:12px; background:#e7f3ff; border:1px solid #b3d9ff; border-radius:8px;">
+        <div style="width:100%; margin-bottom:8px; font-size:13px; font-weight:600; color:#0056b3;">📈 结论分析</div>
+        <div id="mcCompareText" class="sub" style="font-size:13px; color:#0056b3; line-height:1.5;">—</div>
       </div>
     </section>
   </main>
@@ -184,11 +210,11 @@
         const b = Math.max(0, Math.min(100, parseFloat(targetDi.value)||0)) / 100;
         const mDirect = convertMarginPercent(baseGM.value, baseDisc.value, targetDi.value); // 百分数
         if (!isFinite(mDirect)) {
-          out.textContent = '活动期毛利率（方案A）：—';
+          out.textContent = '—';
         } else {
           const dropA = (mA*100 - Number(mDirect)); // pp
-          const deltaTextA = isFinite(dropA) ? `（较日常毛利率${dropA>=0? '下降':'上升'}${Math.abs(dropA).toFixed(2)}%）` : '';
-          out.textContent = `活动期毛利率（方案A）：${Number(mDirect).toFixed(2)}%${deltaTextA}`;
+          const deltaTextA = isFinite(dropA) ? `（${dropA>=0? '下降':'上升'}${Math.abs(dropA).toFixed(2)}%）` : '';
+          out.textContent = `${Number(mDirect).toFixed(2)}%${deltaTextA}`;
         }
         const factorDirect = 1 - b; // 直接立减的成交系数
 
@@ -196,8 +222,8 @@
         const dRaw = parseFloat(extraFld.value);
         const d = Math.max(0, Math.min(10, isFinite(dRaw)? dRaw: 0)) / 10; // 0..1
         if (d === 0){
-          outFold.textContent = '活动期毛利率（方案B）：—';
-          comboTxt.textContent = '等效折扣（方案B）：—';
+          outFold.textContent = '—';
+          comboTxt.textContent = '—';
           compareTxt.textContent = '—';
           return;
         }
@@ -207,9 +233,9 @@
         const effDiscountPct = (effective * 100).toFixed(2);
         const effFoldText = (effFold * 10).toFixed(2);
         const dropB = (mA*100 - mPrime);       // pp
-        const deltaTextB = isFinite(dropB) ? `（较日常毛利率${dropB>=0? '下降':'上升'}${Math.abs(dropB).toFixed(2)}%）` : '';
-        outFold.textContent  = `活动期毛利率（方案B）：${mPrime.toFixed(2)}%${deltaTextB}`;
-        comboTxt.textContent = `约原价 ${effFoldText} 折（约原价立减 ${effDiscountPct}%）`;
+        const deltaTextB = isFinite(dropB) ? `（${dropB>=0? '下降':'上升'}${Math.abs(dropB).toFixed(2)}%）` : '';
+        outFold.textContent = `${mPrime.toFixed(2)}%${deltaTextB}`;
+        comboTxt.innerHTML = `约<strong>原价</strong> ${effFoldText} 折（约<strong>原价</strong>立减 ${effDiscountPct}%）`;
 
         // —— 方案对比：哪个更优惠 ——
         // 方案A 成交系数 vs 方案B 成交系数（越小越便宜）
@@ -218,10 +244,10 @@
         if (isFinite(fA) && isFinite(fB) && fA>0 && fB>0){
           let better, diffPct;
           if (fA < fB){
-            better = '方案A（原价基础上立减）';
+            better = '方案A更优惠（直接立减）';
             diffPct = ((fB - fA) / fB) * 100; // 相对方案B更低多少%
           } else if (fB < fA){
-            better = '方案B（先立减再打折）';
+            better = '方案B更优惠（先立减再打折）';
             diffPct = ((fA - fB) / fA) * 100; // 相对方案A更低多少%
           } else {
             better = '两方案等价';
@@ -229,7 +255,7 @@
           }
           const dropAText = isFinite(mDirect) ? `${(mA*100 - Number(mDirect)).toFixed(2)}%` : '—';
           const dropBText = isFinite(dropB) ? `${dropB.toFixed(2)}%` : '—';
-          compareTxt.textContent = `${better}；相对价格更低约 ${Math.abs(diffPct).toFixed(2)}%。日常→活动毛利率下降：A=${dropAText}，B=${dropBText}`;
+          compareTxt.innerHTML = `<strong>${better}</strong><br>相对价格差异：约 ${Math.abs(diffPct).toFixed(2)}%<br>毛利率变化：方案A ${dropAText}，方案B ${dropBText}<br><small style="color:#6c757d;">价格层次：<strong>原价</strong> → <strong>日常价</strong> → 活动价</small>`;
         } else {
           compareTxt.textContent = '—';
         }
