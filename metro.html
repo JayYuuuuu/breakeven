@@ -3615,8 +3615,8 @@
         });
       });
       
-      // 恢复上次选择的tab（默认显示投放决策tab）
-      const savedTab = loadFromStorage(STORAGE_KEYS.currentTab, 'decision');
+      // 恢复上次选择的tab（默认显示可视化展示tab）
+      const savedTab = loadFromStorage(STORAGE_KEYS.currentTab, 'visualization');
       console.log('🔄 恢复上次选择的tab:', savedTab);
       activateTab(savedTab);
 
@@ -3995,8 +3995,8 @@
       const resetBtn = document.getElementById('resetBtn');
       if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-          // 保存当前选中的tab，不清空tab记忆
-          const currentActiveTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab') || 'visualization';
+          // 重置时强制恢复到可视化展示tab
+          const currentActiveTab = 'visualization';
           const savedTab = localStorage.getItem(STORAGE_KEYS.currentTab);
           
           // 清除除currentTab外的所有本地存储
@@ -4019,10 +4019,8 @@
             console.warn('清理分平台档位索引失败:', e);
           }
           
-          // 如果之前没有保存过tab，则保存当前选中的tab
-          if (!savedTab) {
-            localStorage.setItem(STORAGE_KEYS.currentTab, currentActiveTab);
-          }
+          // 重置时强制保存可视化展示tab
+          localStorage.setItem(STORAGE_KEYS.currentTab, currentActiveTab);
           
           // 纯前端复位：按默认值重新填充，不刷新页面
           fillDefaults();
@@ -4052,6 +4050,9 @@
           if (exampleSel) { exampleSel.value = ''; saveToStorage(STORAGE_KEYS.exampleSku, ''); }
           showTierUI(false);
           populateExampleSelector();
+          
+          // 重置后激活可视化展示tab
+          activateTab('visualization');
           
           // 统一：重置后对右侧所有Tab进行一次计算
           recomputeAllTabs();

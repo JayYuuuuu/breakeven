@@ -18,7 +18,8 @@
 ```
 breakeven/
 ├── engine.js              # 纯函数计算引擎（核心）
-├── index.html             # 主界面（基础计算和推演）
+├── index.html             # 主界面（基础计算和推演，自动跳转到metro.html）
+├── metro.html             # 费用可视化墙（默认首页）
 ├── product_analysis.html  # 商品分析页面（批量分析）
 ├── list_price.html        # 标价计算页面（到手价↔页面标价）
 ├── product_examples.js    # 示例商品数据和系统参数
@@ -137,7 +138,15 @@ interface Product {
 - **数值分析**：CPC/CVR/客单价临界值计算和投放建议
 - **投放决策**：ROI安全边际分析、投放阈值计算
 
-### 2. 商品分析页面 (product_analysis.html)
+### 2. Metro页面 (metro.html) - 默认首页
+- **可视化展示**：默认显示流程图、饼图分析、传统墙体等可视化内容
+- **多Tab切换**：支持可视化展示、投放决策、利润推演、到手价推演、税费推演、成本价推演
+- **智能重置**：重置时自动恢复到可视化展示tab
+- **实时计算**：参数变化时实时更新所有tab的计算结果
+- **数据合并**：自动合并示例数据和用户本地数据
+- **响应式设计**：支持桌面端和移动端自适应布局
+
+### 3. 商品分析页面 (product_analysis.html)
 - **批量商品管理**：支持添加、编辑、删除商品
 - **多价格模式**：单一价格、多档价格、单一售价+多档进货价
 - **Excel导入导出**：支持CSV格式数据导入导出
@@ -393,6 +402,33 @@ adCostBreakEven = (1 + serviceVATRate) × A
 这些函数现在可以在 `metro.html`、`index.html`、`single.html` 等多个页面中复用，确保计算逻辑的一致性和可维护性。
 
 ## 🚀 部署和使用
+
+### 首页跳转功能
+
+系统已配置自动跳转功能，将metro.html设置为默认首页：
+
+#### 跳转机制
+- **默认行为**：访问index.html时自动跳转到metro.html
+- **禁用跳转**：可通过URL参数`?noRedirect=true`禁用自动跳转
+- **直接访问**：可直接访问metro.html作为首页
+
+#### 使用方式
+```bash
+# 默认跳转到metro页面
+http://localhost:8000/index.html
+
+# 禁用自动跳转，停留在index页面
+http://localhost:8000/index.html?noRedirect=true
+
+# 直接访问metro页面
+http://localhost:8000/metro.html
+```
+
+#### 跳转验证
+可以通过以下方式验证跳转功能：
+- 直接访问index.html，观察是否自动跳转到metro.html
+- 访问index.html?noRedirect=true，确认不会自动跳转
+- 直接访问metro.html，确认页面正常加载
 
 ### 本地开发
 ```bash
