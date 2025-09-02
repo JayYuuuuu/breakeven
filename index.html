@@ -1027,7 +1027,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
       solveSellingPrice, solveCostPrice, taxBurdenGiven, valueAnalysis,
       profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent,
       // 新增投放决策相关函数
-      cpmToCpc, calculateEffectiveAOV, calculateROAS, getSafetyStatus,
+      cpmToCpc, calcEffectiveAOV, calculateROAS, getSafetyStatus,
       calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
       generateInvestmentAdvice, safetyMarginAnalysis
     } from './engine.js';
@@ -2349,7 +2349,7 @@ A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + V
         const mode = document.getElementById('decBuyMode').value;
         
         // 计算有效AOV（考虑连带购买率）
-        const effectiveAOV = calculateEffectiveAOV(aov, bundleRate);
+        const effectiveAOV = calcEffectiveAOV(aov, bundleRate);
         
         // 计算CPC（根据买量方式）
         let cpc = 0;

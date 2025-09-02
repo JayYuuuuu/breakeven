@@ -1897,7 +1897,7 @@
       breakevenAdCostFromROI, cpcAtBreakeven, cvrAtBreakeven, 
       cpcCvrCurve, safetyMarginAnalysis,
       // 新增投放决策相关函数
-      cpmToCpc, calculateEffectiveAOV, calculateROAS, getSafetyStatus,
+      cpmToCpc, calcEffectiveAOV, calculateROAS, getSafetyStatus,
       calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
       generateInvestmentAdvice,
       // 保本计算核心函数
@@ -6897,7 +6897,7 @@
           : aov;
         
         // 2. 连带放大后 AOV：用于计算 BE-CPA、Max CPC、ROAS 等（随连带率变化）
-        const aovWithBundle = calculateEffectiveAOV(aov, bundleRate);
+        const aovWithBundle = calcEffectiveAOV(aov, bundleRate);
         const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
           ? (aovWithBundle * (1 - product.returnRate))
           : aovWithBundle;
@@ -7871,7 +7871,7 @@
           : aovIn;
         
         // 2. 连带放大后 AOV：用于计算 BE-CPA、Max CPC、ROAS 等（随连带率变化）
-        const aovWithBundle = calculateEffectiveAOV(aovIn, bundleRate);
+        const aovWithBundle = calcEffectiveAOV(aovIn, bundleRate);
         const usedAOV = (basis === 'effective' && isFinite(product.returnRate))
           ? (aovWithBundle * (1 - product.returnRate))
           : aovWithBundle;

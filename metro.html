@@ -27,11 +27,12 @@
       position: sticky;
       top: 20px;
       /* 使用 dvh 以避免 iPad 浏览器地址栏导致的 100vh 误差产生额外滚动空间 */
-      height: calc(100vh - 40px);
-      height: calc(100dvh - 40px);
+      height: calc(100vh - 40px - 120px); /* 减去footer高度60px */
+      height: calc(100dvh - 40px - 120px); /* 减去footer高度60px */
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      padding-bottom: 12px;
     }
     
     /* 左侧参数输入区内容可滚动 */
@@ -39,35 +40,60 @@
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
+      /* 为footer留出底部空间，避免内容被遮挡 */
+      padding-bottom: 20px;
     }
     
     /* 右侧内容区域自适应高度，可滚动 */
     .wrap > section:last-child {
-      min-height: calc(100vh - 40px);
-      min-height: calc(100dvh - 40px);
+      min-height: calc(100vh - 40px - 120px); /* 减去footer高度60px */
+      min-height: calc(100dvh - 40px - 120px); /* 减去footer高度60px */
       overflow: visible;
     }
     
     /* 右侧内容区域内部可滚动 */
     .wrap > section:last-child .content {
-      max-height: calc(100vh - 120px);
-      max-height: calc(100dvh - 120px);
+      max-height: calc(100vh - 120px - 120px); /* 减去footer高度60px */
+      max-height: calc(100dvh - 120px - 120px); /* 减去footer高度60px */
       overflow-y: auto;
       overflow-x: hidden;
     }
 
     /* 大屏（>1100px）时：将 header 高度计算在可视区域内 */
     body.large-screen .wrap > section:first-child{
-      height: calc(100vh - var(--header-h) - 40px);
-      height: calc(100dvh - var(--header-h) - 40px);
+      height: calc(100vh - var(--header-h) - 40px - 64px); /* 减去大屏footer高度64px */
+      height: calc(100dvh - var(--header-h) - 40px - 64px); /* 减去大屏footer高度64px */
     }
     body.large-screen .wrap > section:last-child{
-      min-height: calc(100vh - var(--header-h) - 40px);
-      min-height: calc(100dvh - var(--header-h) - 40px);
+      min-height: calc(100vh - var(--header-h) - 40px - 64px); /* 减去大屏footer高度64px */
+      min-height: calc(100dvh - var(--header-h) - 40px - 64px); /* 减去大屏footer高度64px */
     }
     body.large-screen .wrap > section:last-child .content{
-      max-height: calc(100vh - var(--header-h) - 120px);
-      max-height: calc(100dvh - var(--header-h) - 120px);
+      max-height: calc(100vh - var(--header-h) - 120px - 64px); /* 减去大屏footer高度64px */
+      max-height: calc(100dvh - var(--header-h) - 120px - 64px); /* 减去大屏footer高度64px */
+    }
+    
+    /* 大屏模式下底部导航栏优化 */
+    body.large-screen .footer-nav {
+      padding: 14px 24px;
+      height: 64px;
+    }
+    
+    body.large-screen .footer-nav .tab-buttons {
+      gap: 10px;
+    }
+    
+    body.large-screen .footer-nav .tab-btn,
+    body.large-screen .footer-nav .external-tab-link {
+      padding: 10px 18px;
+      font-size: 14px;
+      min-width: 90px;
+    }
+    
+    /* 大屏模式左侧内容区域为footer留出底部空间 */
+    body.large-screen .wrap > section:first-child .content {
+      /* 为footer留出底部空间，避免内容被遮挡 */
+      padding-bottom: 20px;
     }
     
     /* 移动端适配：取消sticky效果 */
@@ -80,6 +106,8 @@
       
       .wrap > section:first-child .content {
         overflow: visible;
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
       }
       
       .wrap > section:last-child {
@@ -89,8 +117,136 @@
       .wrap > section:last-child .content {
         max-height: none;
         overflow: visible;
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
+      }
+      
+      /* 移动端时调整右侧内容区域高度，为底部导航栏留出空间 */
+      .wrap > section:last-child .content {
+        max-height: calc(100vh - 120px - 56px); /* 减去移动端footer高度56px */
+        max-height: calc(100dvh - 120px - 56px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
+      }
+      
+      /* 移动端大屏模式下的高度调整 */
+      body.large-screen .wrap > section:last-child .content {
+        max-height: calc(100vh - var(--header-h) - 120px - 56px); /* 减去移动端footer高度56px */
+        max-height: calc(100dvh - var(--header-h) - 120px - 56px);
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
       }
     }
+    
+    /* 底部固定导航栏样式 */
+    .footer-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 1px solid #e5e5ea;
+      padding: 12px 20px;
+      z-index: 1000;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .footer-nav .tab-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 0 10px;
+    }
+    
+    .footer-nav .tab-btn {
+      padding: 8px 16px;
+      border: 1px solid #d2d2d7;
+      background: #f5f5f7;
+      color: var(--muted);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-radius: 8px;
+      white-space: nowrap;
+      font-size: 13px;
+      min-width: 80px;
+      text-align: center;
+    }
+    
+    .footer-nav .tab-btn:hover {
+      background: #e5e5ea;
+      color: var(--ink);
+    }
+    
+    .footer-nav .tab-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    
+    .footer-nav .external-tab-link {
+      background: #f0f8ff;
+      border-color: #007acc;
+      color: #007acc;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      border: 1px solid;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      min-width: 80px;
+      text-align: center;
+    }
+    
+    .footer-nav .external-tab-link:hover {
+      background: #e6f3ff;
+      border-color: #0056cc;
+      color: #0056cc;
+    }
+    
+    .footer-nav .external-tab-link::after {
+      content: "↗";
+      font-size: 10px;
+      font-weight: bold;
+    }
+    
+    /* 移动端底部导航栏适配 */
+    @media (max-width: 768px) {
+      .footer-nav {
+        padding: 8px 12px;
+        height: 56px;
+      }
+      
+      .footer-nav .tab-buttons {
+        gap: 6px;
+        padding: 0 5px;
+      }
+      
+      .footer-nav .tab-btn,
+      .footer-nav .external-tab-link {
+        padding: 6px 12px;
+        font-size: 12px;
+        min-width: 70px;
+      }
+    }
+    
+
     
     /* 自定义滚动条样式 */
     .wrap > section:first-child .content::-webkit-scrollbar,
@@ -163,12 +319,35 @@
     body.ipad-pro-11 .switch{ padding:4px }
     body.ipad-pro-11 .kpi .val{ font-size:18px }
     body.ipad-pro-11 .mini-grid{ gap:6px }
-    body.ipad-pro-11 .tab-buttons .tab-btn{ padding:6px 10px; font-size:12px }
+
     body.ipad-pro-11 .derivation-controls{ gap:12px; padding:12px }
     body.ipad-pro-11 .derivation-controls input[type="number"]{ width:56px; padding:5px 6px; font-size:12px }
     body.ipad-pro-11 .big-input{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .big-output{ font-size:42px; padding:16px 14px; border-radius:12px }
     body.ipad-pro-11 .lp-compare{ padding:8px 10px; margin:6px 0 8px }
+    
+    /* iPad Pro 11底部导航栏优化 */
+    body.ipad-pro-11 .footer-nav {
+      padding: 10px 16px;
+      height: 58px;
+    }
+    
+    body.ipad-pro-11 .footer-nav .tab-buttons {
+      gap: 8px;
+    }
+    
+    body.ipad-pro-11 .footer-nav .tab-btn,
+    body.ipad-pro-11 .footer-nav .external-tab-link {
+      padding: 7px 14px;
+      font-size: 12px;
+      min-width: 75px;
+    }
+    
+    /* iPad Pro 11左侧内容区域为footer留出底部空间 */
+    body.ipad-pro-11 .wrap > section:first-child .content {
+      /* 为footer留出底部空间，避免内容被遮挡 */
+      padding-bottom: 20px;
+    }
 
     /* iPad Pro 11: 参数输入栏更窄时，多列表单改为两列，避免单元格过窄导致单选开关挤压变形 */
     body.ipad-pro-11 .grid-4{ grid-template-columns: repeat(2, 1fr); }
@@ -179,6 +358,22 @@
     /* 单选开关在窄宽度下允许换行，子项平均分配宽度，避免被强行压缩变形 */
     body.ipad-pro-11 .switch{ flex-wrap: wrap; gap: 6px; }
     body.ipad-pro-11 .switch label{ flex: 1 1 0; min-width: 88px; }
+    
+    /* iPad Pro 11右侧内容区域高度调整，为底部导航栏留出空间 */
+    body.ipad-pro-11 .wrap > section:last-child .content {
+      max-height: calc(100vh - 120px - 58px); /* 减去iPad Pro footer高度58px */
+      max-height: calc(100dvh - 120px - 58px);
+      /* 为footer留出底部空间，避免内容被遮挡 */
+      padding-bottom: 20px;
+    }
+    
+    /* iPad Pro 11大屏模式下的高度调整 */
+    body.ipad-pro-11.large-screen .wrap > section:last-child .content {
+      max-height: calc(100vh - var(--header-h) - 120px - 58px); /* 减去iPad Pro footer高度58px */
+      max-height: calc(100dvh - var(--header-h) - 120px - 58px);
+      /* 为footer留出底部空间，避免内容被遮挡 */
+      padding-bottom: 20px;
+    }
     
     /* —— 示例商品输入：比其他输入小2px —— */
     #examplePlatformFilter,
@@ -233,6 +428,45 @@
       /* 免佣复选框在平板端调整大小 */
       .wrap > section:first-child label:has(#freeCommission) { font-size: 10px; }
       .card h2{ min-height: 48px; }
+      
+      /* 平板端底部导航栏优化 */
+      .footer-nav {
+        padding: 11px 18px;
+        height: 59px;
+      }
+      
+      .footer-nav .tab-buttons {
+        gap: 9px;
+      }
+      
+      .footer-nav .tab-btn,
+      .footer-nav .external-tab-link {
+        padding: 8px 15px;
+        font-size: 13px;
+        min-width: 82px;
+      }
+      
+      /* 平板端左侧内容区域为footer留出底部空间 */
+      .wrap > section:first-child .content {
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
+      }
+      
+      /* 平板端右侧内容区域高度调整 */
+      .wrap > section:last-child .content {
+        max-height: calc(100vh - 120px - 59px); /* 减去平板端footer高度59px */
+        max-height: calc(100dvh - 120px - 59px);
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
+      }
+      
+      /* 平板端大屏模式下的高度调整 */
+      body.large-screen .wrap > section:last-child .content {
+        max-height: calc(100vh - var(--header-h) - 120px - 59px); /* 减去平板端footer高度59px */
+        max-height: calc(100dvh - var(--header-h) - 120px - 59px);
+        /* 为footer留出底部空间，避免内容被遮挡 */
+        padding-bottom: 20px;
+      }
     }
 
     /* KPI */
@@ -1060,7 +1294,6 @@
       border: 1px solid #d2d2d7;
       background: #f5f5f7;
       color: var(--muted);
-      font-size: 11px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.15s ease;
@@ -1289,7 +1522,7 @@
             <div class="grid">
               <div>
                 <label>广告占比列表（%，逗号分隔）</label>
-                <input id="simRates" type="text" inputmode="text" value="5,8,10,12,15">
+                <input id="simRates" type="text" inputmode="text" value="15,20,25,28,30,35">
               </div>
               <div>
                 <label>推演口径</label>
@@ -1307,17 +1540,6 @@
       <section class="card">
         <h2>
           <span id="tabTitle">利润推演</span>
-          <!-- Tab切换按钮 -->
-          <div class="tab-buttons">
-            <button class="tab-btn" data-tab="visualization">可视化展示</button>
-            <button class="tab-btn" data-tab="decision">投放决策</button>
-            <button class="tab-btn" data-tab="analysis">利润推演</button>
-            <button class="tab-btn" data-tab="price">到手价推演</button>
-            <button class="tab-btn" data-tab="tax">税费推演</button>
-            <button class="tab-btn" data-tab="cost">成本价推演</button>
-            <a href="product_analysis.html" target="_blank" class="external-tab-link">商品分析</a>
-            <a href="list_price.html" target="_blank" class="external-tab-link">标价计算</a>
-          </div>
         </h2>
         
         <!-- 可视化展示tab -->
@@ -1662,6 +1884,20 @@
 
       </section>
     </div>
+    
+    <!-- 底部固定导航栏 -->
+    <footer class="footer-nav">
+      <div class="tab-buttons">
+        <button class="tab-btn" data-tab="visualization">可视化展示</button>
+        <button class="tab-btn" data-tab="decision">投放决策</button>
+        <button class="tab-btn" data-tab="analysis">利润推演</button>
+        <button class="tab-btn" data-tab="price">到手价推演</button>
+        <button class="tab-btn" data-tab="tax">税费推演</button>
+        <button class="tab-btn" data-tab="cost">成本价推演</button>
+        <a href="product_analysis.html" target="_blank" class="external-tab-link">商品分析</a>
+        <a href="list_price.html" target="_blank" class="external-tab-link">标价计算</a>
+      </div>
+    </footer>
   </main>
 
   <script type="module">
@@ -2516,7 +2752,7 @@
       $('adCost').value = loadFromStorage(STORAGE_KEYS.adCost, '');
       $('cpc').value = loadFromStorage(STORAGE_KEYS.cpc, '2.5');
       $('cvr').value = loadFromStorage(STORAGE_KEYS.cvr, '15');
-      $('simRates').value = loadFromStorage(STORAGE_KEYS.simRates, '10,12,18,20,22,25,28,30,33,35');
+      $('simRates').value = loadFromStorage(STORAGE_KEYS.simRates, '15,20,25,28,30,35');
 
       // 投放决策tab默认值（有则用存储，无则给友好默认）
       if (document.getElementById('decBasis')) document.getElementById('decBasis').value = loadFromStorage(STORAGE_KEYS.decBasis, 'effective');

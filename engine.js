@@ -1185,17 +1185,19 @@ export function cpmToCpc(cpm, ctr) {
   return ctrVal > 0 ? cpmVal / (ctrVal * 1000) : 0;
 }
 
-/**
- * 计算有效AOV（考虑连带购买率）
- * @param {number} aov - 基础客单价
- * @param {number} bundleRate - 连带购买率（小数0-1）
- * @returns {number} 有效客单价
+/*
+ * 【已废弃】使用 calcEffectiveAOV 代替此函数
+ * 原因：calcEffectiveAOV 提供了更好的边界检查和数据验证
+ *
+ * @deprecated 请使用 calcEffectiveAOV 函数
  */
+/*
 export function calculateEffectiveAOV(aov, bundleRate) {
   const aovVal = Number(aov) || 0;
   const bundleVal = Number(bundleRate) || 0;
   return aovVal * (1 + bundleVal);
 }
+*/
 
 /**
  * 计算ROAS（广告投入产出比）
