@@ -1763,7 +1763,7 @@
               <div class="control-group">
                 <span class="control-label">付费占比范围：</span>
                 <span class="chip">起</span>
-                <input id="adStart" type="number" step="1" value="5">
+                <input id="adStart" type="number" step="1" value="0">
                 <span class="chip">止</span>
                 <input id="adEnd" type="number" step="1" value="35">
                 <span class="chip">步长</span>
@@ -2766,7 +2766,7 @@
       if (document.getElementById('decTargetMargin')) document.getElementById('decTargetMargin').value = loadFromStorage(STORAGE_KEYS.decTargetMargin, '8.0');
       
       // 利润推演（表格）默认范围（支持本地恢复）
-      if (document.getElementById('adStart')) document.getElementById('adStart').value = loadFromStorage(STORAGE_KEYS.adStart, '5');
+      if (document.getElementById('adStart')) document.getElementById('adStart').value = loadFromStorage(STORAGE_KEYS.adStart, '0');
       if (document.getElementById('adEnd')) document.getElementById('adEnd').value = loadFromStorage(STORAGE_KEYS.adEnd, '35');
       if (document.getElementById('adStep')) document.getElementById('adStep').value = loadFromStorage(STORAGE_KEYS.adStep, '2');
       if (document.getElementById('rrStart')) document.getElementById('rrStart').value = loadFromStorage(STORAGE_KEYS.rrStart, '5');
