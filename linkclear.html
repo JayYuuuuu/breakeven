@@ -37,7 +37,7 @@
       color:var(--ink);
       letter-spacing:.1px;
     }
-    .wrap{ max-width: 760px; margin: 10vh auto; padding: 0 24px; }
+    .wrap{ max-width: 1199px; margin: 10vh auto; padding: 0 24px; }
     header{ text-align:center; margin-bottom: 64px; }
     h1{ font-weight:700; font-size: clamp(32px, 5vw, 56px); letter-spacing:-.2px; line-height:1.08; margin:.2em 0 .1em; }
     .sub{ color:var(--muted); font-size: clamp(16px, 2.2vw, 18px); letter-spacing:.1px; }
@@ -138,7 +138,88 @@
     .result-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .capsule{ font-size:12px; color:var(--muted); background: rgba(120,120,128,.10); border-radius:999px; padding:6px 10px; }
     .list{ list-style:none; padding:0; margin:0; }
-    .list li{ padding:8px 10px; border-radius:10px; border:1px solid rgba(120,120,128,.12); margin-bottom:8px; font-size:14px; }
+    .list li{ 
+      padding:8px 10px; 
+      border-radius:10px; 
+      border:1px solid rgba(120,120,128,.12); 
+      margin-bottom:8px; 
+      font-size:14px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 10px;
+    }
+    .title-text{ 
+      flex: 1; 
+      min-width: 0; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+    }
+    .copy-icon{ 
+      appearance: none; 
+      border: none; 
+      background: transparent; 
+      cursor: pointer; 
+      padding: 4px; 
+      border-radius: 4px; 
+      color: var(--muted); 
+      transition: all 0.15s ease; 
+      flex-shrink: 0;
+      opacity: 0.7;
+      display: flex;
+      align-items: center; 
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      position: relative;
+    }
+    .copy-icon::before,
+    .copy-icon::after{ 
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border: 1px solid currentColor;
+      background: transparent;
+      border-radius: 1px;
+    }
+    .copy-icon::before{ 
+      top: 2px;
+      left: 2px;
+      z-index: 1;
+    }
+    .copy-icon::after{ 
+      top: 6px;
+      left: 6px;
+      z-index: 2;
+      background: var(--card);
+    }
+    .copy-icon:hover{ 
+      background: rgba(120,120,128,.08); 
+      color: var(--ink); 
+      opacity: 1;
+    }
+    .copy-icon:active{ 
+      transform: scale(0.9); 
+    }
+    .copy-icon.copy-success::before{ 
+      display: none !important; /* 隐藏第一个方形 */
+    }
+    .copy-icon.copy-success::after{ 
+      content: '✓' !important;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      color: var(--ok);
+      font-weight: bold;
+      background: transparent !important;
+      border: none !important;
+      width: auto !important;
+      height: auto !important;
+      border-radius: 0 !important;
+    }
     .tools-row{ display:flex; gap:10px; flex-wrap:wrap; }
     .btn.small{ padding:10px 14px; font-size:13px; border-radius:12px; }
     .tbl{ width:100%; border-collapse:collapse; margin-top:8px; }
@@ -152,7 +233,7 @@
     .col{ min-width:0; }
     .tbl tr.clickable{ cursor: pointer; }
     .tbl tr.active{ background: rgba(10,132,255,.08); }
-    .hl{ background: color-mix(in oklab, var(--accent) 25%, transparent); padding: 0 2px; border-radius: 4px; }
+    .hl{ background: rgb(255, 225, 0); padding: 0 2px; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -672,14 +753,21 @@
     const filtering = !!(showHitsOnlyEl && showHitsOnlyEl.checked && currentTerm);
     const visible = filtering ? lastTitles.filter(t=> t.includes(currentTerm)) : lastTitles;
 
-    const items = visible.map(t=>{
+    const items = visible.map((t, index)=>{
       const full = escapeHtml(t);
       const shown = escapeHtml(truncateByChars(t, MAX_CHARS));
       const highlightedShown = currentTerm ? highlightInEscaped(shown, currentTerm) : shown;
-      return `<li title="${full}">${highlightedShown}</li>`;
+      return `<li title="${full}" data-index="${index}">
+        <span class="title-text">${highlightedShown}</span>
+        <button class="copy-icon" title="复制标题" data-title="${full}"></button>
+      </li>`;
     }).join('');
 
     titleList.innerHTML = items;
+    
+    // 绑定复制图标点击事件
+    bindCopyIconEvents();
+    
     const total = lastTitles.length;
     const shownN = visible.length;
     titleCount.textContent = filtering && shownN!==total ? `${shownN}/${total}` : String(total);
@@ -688,7 +776,53 @@
     copyTitlesBtn.disabled = total===0;    // 复制/导出基于 lastTitles，不受过滤影响
     exportCsvBtn.disabled = total===0;
     genFreqBtn.disabled = total===0;
-    if(!has){ freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */ }
+    
+    // 自动触发关键词统计（当有标题时）
+    if(total > 0){
+      const stats = buildKeywordStats(lastTitles);
+      const top = rankKeywords(stats, {minDF:2});
+      renderKeywordTable(top);
+    } else {
+      freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */
+    }
+  }
+
+  // 绑定复制图标点击事件
+  function bindCopyIconEvents(){
+    const copyIcons = titleList.querySelectorAll('.copy-icon');
+    copyIcons.forEach(icon => {
+      icon.addEventListener('click', async (e) => {
+        e.stopPropagation(); // 阻止事件冒泡
+        const title = icon.getAttribute('data-title');
+        try {
+          await navigator.clipboard.writeText(title);
+          // 显示复制成功反馈
+          showCopySuccess(icon);
+        } catch (err) {
+          // 降级方案：使用传统复制方法
+          const textArea = document.createElement('textarea');
+          textArea.value = title;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          
+          // 显示复制成功反馈
+          showCopySuccess(icon);
+        }
+      });
+    });
+  }
+
+  // 显示复制成功反馈
+  function showCopySuccess(icon) {
+    // 添加成功状态类
+    icon.classList.add('copy-success');
+    
+    setTimeout(() => {
+      // 移除成功状态类
+      icon.classList.remove('copy-success');
+    }, 800);
   }
 
   function escapeHtml(s){
