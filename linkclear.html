@@ -951,13 +951,14 @@
     const top = rankKeywords(stats, {minDF:2});
     renderKeywordTable(top);
   });
-})();
-</script>
-</body>
-</html>
+
   if (showHitsOnlyEl) {
     showHitsOnlyEl.addEventListener('change', ()=>{
       // 仅切换可见性，不改变 lastTitles 或 currentTerm
       renderTitles(lastTitles);
     });
   }
+})();
+</script>
+</body>
+</html>
