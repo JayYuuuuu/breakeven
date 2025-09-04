@@ -224,6 +224,22 @@
     .btn.small{ padding:10px 14px; font-size:13px; border-radius:12px; }
     .tbl{ width:100%; border-collapse:collapse; margin-top:8px; }
     .tbl th, .tbl td{ border-bottom:1px solid rgba(120,120,128,.12); text-align:left; padding:8px 6px; font-size:13px; }
+    /* 采集/集合样式 */
+    .mini-controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pill.clickable{ cursor:pointer; user-select:none; transition: all 0.2s ease; }
+    .pill.clickable.active{ 
+      background: var(--accent); 
+      color: var(--card); 
+      box-shadow: 0 2px 8px rgba(10,132,255,.25);
+    }
+    .btn.tiny{ padding:8px 10px; font-size:12px; border-radius:10px; }
+    .tabchips{ display:flex; gap:6px; align-items:center; }
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(120,120,128,.18); background:transparent; color:var(--muted); cursor:pointer; }
+    .chip.active{ background: var(--card); color: var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+
+    /* 批次备注输入 */
+    .note{ height:28px; padding:4px 10px; border-radius:10px; border:1px solid rgba(120,120,128,.22); background:transparent; color:var(--ink); font-size:12px; min-width: 180px; }
+    .note::placeholder{ color: color-mix(in oklab, var(--muted) 70%, transparent); }
 
     /* 分屏与高亮 */
     .split{ display:block; gap:18px; }
@@ -303,6 +319,15 @@
             <button class="btn small ghost" id="copyTitlesBtn" disabled>复制标题</button>
             <button class="btn small ghost" id="exportCsvBtn" disabled>导出 CSV</button>
             <button class="btn small ghost" id="genFreqBtn" disabled>关键词统计</button>
+            <button class="btn small ghost" id="addToPoolBtn" disabled>加入集合</button>
+            <button class="btn small ghost" id="viewPoolBtn" disabled>查看集合</button>
+            <button class="btn small ghost" id="viewBatchBtn" disabled>查看本批</button>
+            <button class="btn small ghost" id="clearPoolBtn" disabled>清空集合</button>
+            <button class="btn small ghost" id="undoLastBatchBtn" disabled>撤销上一批</button>
+            <button class="btn small ghost" id="toggleBatchListBtn" disabled>批次列表</button>
+            <button class="btn small ghost" id="exportProjectBtn">导出项目</button>
+            <button class="btn small ghost" id="importProjectBtn">导入项目</button>
+            <input id="importFile" type="file" accept="application/json" style="display:none" />
           </div>
           <div class="result-wrap">
             <div class="result-head">
@@ -311,13 +336,35 @@
                 <input type="checkbox" id="showHitsOnly" aria-label="仅显示命中" />
                 <label for="showHitsOnly">仅显示命中</label>
               </div>
+              <div class="mini-controls">
+                <div class="switch">
+                  <input type="checkbox" id="collectMode" aria-label="采集模式" />
+                  <label for="collectMode">采集模式</label>
+                </div>
+                <input id="batchNote" class="note" placeholder="备注（搜索词/页码…）" />
+                <input id="quickQ" class="note" placeholder="搜索词" />
+                <input id="quickP" class="note" type="number" min="1" step="1" placeholder="页码" value="1" style="width:90px" />
+                <div class="switch">
+                  <input type="checkbox" id="autoNote" aria-label="模板自动备注" />
+                  <label for="autoNote">模板</label>
+                </div>
+                <div class="pill clickable" id="poolInfo" title="点击查看集合">集合 0 条</div>
+              </div>
             </div>
+            <div id="batchChips" class="tabchips hidden"></div>
             <div class="split">
               <div class="col">
                 <ul class="list" id="titleList"></ul>
               </div>
               <div class="col">
                 <div id="freqWrap" class="hidden">
+                  <div class="mini-controls" style="justify-content: space-between; align-items: center;">
+                    <div>
+                      <button class="chip active" id="modeUnion">并集</button>
+                      <button class="chip" id="modeInter">交集</button>
+                    </div>
+                    <button class="btn tiny ghost" id="clearTermsBtn" disabled>清空选择</button>
+                  </div>
                   <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
                   <table class="tbl" id="freqTable">
                     <thead><tr><th>关键词</th><th>频次</th></tr></thead>
@@ -392,6 +439,158 @@
   const freqWrap = document.getElementById('freqWrap');
   const freqTable = document.querySelector('#freqTable tbody');
   const showHitsOnlyEl = document.getElementById('showHitsOnly');
+
+  // 采集/集合
+  const addToPoolBtn = document.getElementById('addToPoolBtn');
+  const viewPoolBtn = document.getElementById('viewPoolBtn');
+  const viewBatchBtn = document.getElementById('viewBatchBtn');
+  const clearPoolBtn = document.getElementById('clearPoolBtn');
+  const collectModeEl = document.getElementById('collectMode');
+  const poolInfoEl = document.getElementById('poolInfo');
+  const batchNoteEl = document.getElementById('batchNote');
+  const quickQEl = document.getElementById('quickQ');
+  const quickPEl = document.getElementById('quickP');
+  const autoNoteEl = document.getElementById('autoNote');
+  const LS_KEY = 'linkclear_batches_v1';
+  const LS_Q = 'linkclear_q_v1';
+  const LS_P = 'linkclear_p_v1';
+  const LS_AUTO = 'linkclear_auto_v1';
+  function saveQuick(){
+    try{
+      if(quickQEl) localStorage.setItem(LS_Q, String(quickQEl.value||''));
+      if(quickPEl) localStorage.setItem(LS_P, String(quickPEl.value||'1'));
+      if(autoNoteEl) localStorage.setItem(LS_AUTO, autoNoteEl.checked ? '1':'0');
+    }catch(_){/* ignore */}
+  }
+  function loadQuick(){
+    try{
+      if(quickQEl){ const v = localStorage.getItem(LS_Q); if(v!==null) quickQEl.value = v; }
+      if(quickPEl){ const v = localStorage.getItem(LS_P); if(v!==null) quickPEl.value = v; }
+      if(autoNoteEl){ const v = localStorage.getItem(LS_AUTO); if(v!==null) autoNoteEl.checked = (v==='1'); }
+    }catch(_){/* ignore */}
+  }
+
+  // 批次与多关键词过滤状态
+  const undoLastBatchBtn = document.getElementById('undoLastBatchBtn');
+  const toggleBatchListBtn = document.getElementById('toggleBatchListBtn');
+  const batchChips = document.getElementById('batchChips');
+  const modeUnionBtn = document.getElementById('modeUnion');
+  const modeInterBtn = document.getElementById('modeInter');
+  const clearTermsBtn = document.getElementById('clearTermsBtn');
+
+  // 批次数组：每批为对象 { titles: string[], note: string, ts: number }
+  let batches = [];
+  function saveToStorage(){
+    try{
+      const data = batches.map(b=>({ titles: b.titles||[], note: b.note||'', ts: b.ts||Date.now() }));
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    }catch(_){/* ignore */}
+  }
+  function loadFromStorage(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return;
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr)){
+        batches = arr.map(b=>({ titles: (b.titles||[]).map(t=> String(t)), note: String(b.note||''), ts: Number(b.ts||Date.now()) }));
+        recomputePoolFromBatches();
+        renderBatchChips();
+      }
+    }catch(_){/* ignore */}
+  }
+  let selectedTerms = new Set(); // 多选关键词
+  let filterMode = 'union';      // 'union' | 'intersection'
+
+  let batchTitles = [];    // 本批提取结果
+  let poolTitles = [];     // 多页集合
+  let currentView = 'batch'; // 'batch' | 'pool'
+
+  function mergeUnique(base, add){
+    const s = new Set(base);
+    add.forEach(t=>{ const k=t.replace(/\s+/g,' ').trim(); if(!s.has(k)) { s.add(k); base.push(k); } });
+    return base;
+  }
+  function dedupe(arr){
+    const seen = new Set();
+    const out = [];
+    for(const t of arr){
+      const norm = t.replace(/\s+/g,' ').trim();
+      if(!seen.has(norm)) { seen.add(norm); out.push(norm); }
+    }
+    return out;
+  }
+  function updatePoolUI(){
+    const n = poolTitles.length;
+    if(poolInfoEl) poolInfoEl.textContent = `集合 ${n} 条`;
+    const hasPool = n>0;
+    viewPoolBtn.disabled = !hasPool;
+    clearPoolBtn.disabled = !hasPool;
+  }
+
+  function recomputePoolFromBatches(){
+    const all = batches.flatMap(b=> b.titles || []);
+    poolTitles = dedupe(all);
+    updatePoolUI();
+    if(currentView==='pool'){ renderTitles(poolTitles); }
+    updateBatchButtons();
+    saveToStorage();
+  }
+  function addBatchToPool(batch){
+    if(!batch || !batch.length) return;
+    let note = (batchNoteEl?.value || '').trim();
+    // 若启用模板，且未手填备注，则根据搜索词/页码自动生成
+    if(!note && autoNoteEl && autoNoteEl.checked && quickQEl && quickPEl){
+      const q = (quickQEl.value||'').trim();
+      const p = parseInt(quickPEl.value||'1',10) || 1;
+      if(q){ note = `关键词=${q} · 第${p}页`; }
+    }
+    batches.push({ titles: batch.slice(), note, ts: Date.now() });
+    if(batchNoteEl) batchNoteEl.value='';
+    // 若启用模板，页码自增 +1
+    if(autoNoteEl && autoNoteEl.checked && quickPEl){
+      const np = (parseInt(quickPEl.value||'1',10) || 1) + 1;
+      quickPEl.value = String(np);
+      saveQuick();
+    }
+    recomputePoolFromBatches();
+  }
+  quickQEl?.addEventListener('input', saveQuick);
+  quickPEl?.addEventListener('input', saveQuick);
+  autoNoteEl?.addEventListener('change', saveQuick);
+  function updateBatchButtons(){
+    const hasBatch = batches.length>0;
+    undoLastBatchBtn.disabled = !hasBatch;
+    toggleBatchListBtn.disabled = !hasBatch;
+    if(batchChips){ batchChips.classList.toggle('hidden', !hasBatch); }
+  }
+  function renderBatchChips(){
+    if(!batchChips) return;
+    const html = batches.map((b, i)=>{
+      const label = `批${i+1}（${(b.titles||[]).length}）` + (b.note ? `·${escapeHtml(b.note)}` : '');
+      const tip = b.note ? `批${i+1} | ${new Date(b.ts||Date.now()).toLocaleString()}\n${b.note}` : `批${i+1} | ${new Date(b.ts||Date.now()).toLocaleString()}`;
+      return `<button class="chip" data-idx="${i}" title="${escapeHtml(tip)}">${label}</button>`;
+    }).join('');
+    batchChips.innerHTML = html;
+    batchChips.querySelectorAll('.chip').forEach(ch=>{
+      ch.addEventListener('click', ()=>{
+        const idx = parseInt(ch.getAttribute('data-idx'), 10);
+        if(!isNaN(idx) && batches[idx]){
+          renderTitles(batches[idx].titles);
+        }
+      });
+      ch.addEventListener('dblclick', ()=>{
+        const idx = parseInt(ch.getAttribute('data-idx'), 10);
+        if(isNaN(idx) || !batches[idx]) return;
+        const cur = batches[idx].note || '';
+        const next = prompt('编辑该批备注（搜索词/页码…）', cur);
+        if(next!==null){
+          batches[idx].note = next.trim();
+          saveToStorage();
+          renderBatchChips();
+        }
+      });
+    });
+  }
 
   // 页面标题获取相关函数
   function fallbackTitle(u){
@@ -739,24 +938,65 @@
     return dedupe(picked);
   }
 
-  let lastTitles = [];
-  let currentTerm = null; // 当前高亮关键词（null 表示无高亮）
+  // —— 页码自动识别 ——
+  function detectPageNumberFromText(text){
+    const s = String(text);
+    // 规则1：显式“第X页”优先
+    let m = s.match(/第\s*(\d{1,4})\s*页/);
+    if(m) return parseInt(m[1],10);
+    // 规则2：形如 "X/总页" 取前者（避免日期等，要求两侧为数字与斜杠）
+    m = s.match(/(?:^|\D)(\d{1,4})\s*\/\s*\d{1,4}(?:\D|$)/);
+    if(m) return parseInt(m[1],10);
+    // 规则3：中文提示“到第 X 页”
+    m = s.match(/到\s*第?\s*(\d{1,4})\s*页/);
+    if(m) return parseInt(m[1],10);
+    return null;
+  }
+  function tryAutoFillPageFrom(text){
+    if(!(autoNoteEl && autoNoteEl.checked && quickPEl)) return;
+    const p = detectPageNumberFromText(text);
+    if(p && p>0){ quickPEl.value = String(p); saveQuick(); }
+  }
 
-  function highlightInEscaped(escaped, term){
-    if(!term) return escaped;
-    const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(safeTerm, 'g');
-    return escaped.replace(re, '<mark class="hl">'+escapeHtml(term)+'</mark>');
+  let lastTitles = [];
+  let currentTerm = null; // 兼容单选高亮（selectedTerms 为空或只有一个时使用）
+
+  function highlightInEscaped(escaped){
+    if(!selectedTerms || selectedTerms.size===0) return escaped;
+    const parts = Array.from(selectedTerms).map(t=> t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const re = new RegExp('(' + parts.join('|') + ')', 'g');
+    return escaped.replace(re, m=>'<mark class="hl">'+escapeHtml(m)+'</mark>');
   }
   function renderTitles(titles){
     lastTitles = titles.slice(); // 保存原文用于复制/导出/统计
-    const filtering = !!(showHitsOnlyEl && showHitsOnlyEl.checked && currentTerm);
-    const visible = filtering ? lastTitles.filter(t=> t.includes(currentTerm)) : lastTitles;
+    currentView = (titles === poolTitles) ? 'pool' : 'batch';
+    
+    // 更新集合信息的高亮状态
+    if(poolInfoEl) {
+      if(currentView === 'pool') {
+        poolInfoEl.classList.add('active');
+      } else {
+        poolInfoEl.classList.remove('active');
+      }
+    }
+    
+    const needFilter = showHitsOnlyEl && showHitsOnlyEl.checked && selectedTerms.size>0;
+    let visible = lastTitles;
+    if(needFilter){
+      const terms = Array.from(selectedTerms);
+      visible = lastTitles.filter(t=>{
+        if(filterMode==='intersection'){
+          return terms.every(w=> t.includes(w));
+        }else{
+          return terms.some(w=> t.includes(w));
+        }
+      });
+    }
 
     const items = visible.map((t, index)=>{
       const full = escapeHtml(t);
       const shown = escapeHtml(truncateByChars(t, MAX_CHARS));
-      const highlightedShown = currentTerm ? highlightInEscaped(shown, currentTerm) : shown;
+      const highlightedShown = highlightInEscaped(shown);
       return `<li title="${full}" data-index="${index}">
         <span class="title-text">${highlightedShown}</span>
         <button class="copy-icon" title="复制标题" data-title="${full}"></button>
@@ -770,13 +1010,16 @@
     
     const total = lastTitles.length;
     const shownN = visible.length;
-    titleCount.textContent = filtering && shownN!==total ? `${shownN}/${total}` : String(total);
+    titleCount.textContent = needFilter && shownN!==total ? `${shownN}/${total}` : String(total);
 
     const has = visible.length>0;
     copyTitlesBtn.disabled = total===0;    // 复制/导出基于 lastTitles，不受过滤影响
     exportCsvBtn.disabled = total===0;
     genFreqBtn.disabled = total===0;
-    
+    // 控制集合相关按钮
+    addToPoolBtn.disabled = (batchTitles.length===0);
+    viewBatchBtn.disabled = (batchTitles.length===0);
+    updatePoolUI();
     // 自动触发关键词统计（当有标题时）
     if(total > 0){
       const stats = buildKeywordStats(lastTitles);
@@ -785,6 +1028,7 @@
     } else {
       freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */
     }
+    updateBatchButtons();
   }
 
   // 绑定复制图标点击事件
@@ -1047,19 +1291,18 @@
   function bindKeywordRowClicks(){
     const rows = freqTable.querySelectorAll('tr.clickable');
     rows.forEach(tr=>{
-      tr.addEventListener('click', ()=>{
+      tr.addEventListener('click', (e)=>{
         const term = tr.getAttribute('data-term');
-        // 切换逻辑：
-        if(currentTerm === term){
-          // 取消当前高亮
-          currentTerm = null;
-          rows.forEach(r=>r.classList.remove('active'));
+        if(selectedTerms.has(term)){
+          selectedTerms.delete(term);
+          tr.classList.remove('active');
         }else{
-          currentTerm = term;
-          rows.forEach(r=>r.classList.remove('active'));
+          selectedTerms.add(term);
           tr.classList.add('active');
         }
-        // 重新渲染标题（带或不带高亮）
+        // 单选兼容：如果只选中一个，则设为 currentTerm；否则置空
+        currentTerm = (selectedTerms.size===1) ? Array.from(selectedTerms)[0] : null;
+        clearTermsBtn.disabled = selectedTerms.size===0;
         renderTitles(lastTitles);
       });
     });
@@ -1067,7 +1310,18 @@
 
   extractBtn.addEventListener('click', ()=>{
     const titles = extractTitlesFromText(bulkInput.value);
-    renderTitles(titles);
+    // 尝试从文本中识别页码并覆盖 stepper
+    tryAutoFillPageFrom(bulkInput.value);
+    batchTitles = titles.slice();
+    renderTitles(batchTitles);
+    addToPoolBtn.disabled = batchTitles.length===0;
+    viewBatchBtn.disabled = batchTitles.length===0;
+    // 采集模式：自动加入集合并清空文本框
+    if(collectModeEl && collectModeEl.checked && batchTitles.length>0){
+      addBatchToPool(batchTitles);
+      bulkInput.value = '';
+      renderBatchChips();
+    }
   });
 
   copyTitlesBtn.addEventListener('click', async ()=>{
@@ -1081,7 +1335,8 @@
   });
 
   genFreqBtn.addEventListener('click', ()=>{
-    const stats = buildKeywordStats(lastTitles);
+    const base = poolTitles.length ? poolTitles : lastTitles;
+    const stats = buildKeywordStats(base);
     const top = rankKeywords(stats, {minDF:2});
     renderKeywordTable(top);
   });
@@ -1092,6 +1347,143 @@
       renderTitles(lastTitles);
     });
   }
+
+  // —— 多关键词过滤模式切换与清空选择 ——
+  modeUnionBtn?.addEventListener('click', ()=>{
+    filterMode = 'union';
+    modeUnionBtn.classList.add('active');
+    modeInterBtn.classList.remove('active');
+    renderTitles(lastTitles);
+  });
+  modeInterBtn?.addEventListener('click', ()=>{
+    filterMode = 'intersection';
+    modeInterBtn.classList.add('active');
+    modeUnionBtn.classList.remove('active');
+    renderTitles(lastTitles);
+  });
+  clearTermsBtn?.addEventListener('click', ()=>{
+    selectedTerms.clear();
+    currentTerm = null;
+    clearTermsBtn.disabled = true;
+    // 清除关键词表高亮
+    freqTable.querySelectorAll('tr.clickable.active').forEach(r=> r.classList.remove('active'));
+    renderTitles(lastTitles);
+  });
+
+  // —— 批次相关按钮事件与集合操作 ——
+  addToPoolBtn.addEventListener('click', ()=>{
+    if(batchTitles.length){ addBatchToPool(batchTitles); renderBatchChips(); }
+  });
+  viewPoolBtn.addEventListener('click', ()=>{
+    if(poolTitles.length){ renderTitles(poolTitles); }
+  });
+  viewBatchBtn.addEventListener('click', ()=>{
+    if(batchTitles.length){ renderTitles(batchTitles); }
+  });
+  clearPoolBtn.addEventListener('click', ()=>{
+    batches = []; poolTitles = []; updatePoolUI(); updateBatchButtons(); renderBatchChips();
+    localStorage.removeItem(LS_KEY);
+    if(currentView==='pool'){ 
+      titleList.innerHTML=''; 
+      titleCount.textContent = '0'; 
+      // 清空集合时移除高亮状态
+      if(poolInfoEl) poolInfoEl.classList.remove('active');
+    }
+  });
+  poolInfoEl?.addEventListener('click', ()=>{ if(poolTitles.length){ renderTitles(poolTitles); } });
+  undoLastBatchBtn.addEventListener('click', ()=>{
+    if(batches.length){ batches.pop(); recomputePoolFromBatches(); renderBatchChips(); }
+  });
+  toggleBatchListBtn.addEventListener('click', ()=>{
+    if(!batchChips) return;
+    const nowHidden = !batchChips.classList.contains('hidden');
+    batchChips.classList.toggle('hidden', nowHidden);
+    if(!nowHidden) renderBatchChips();
+  });
+
+  // —— 采集模式下粘贴自动采集（按批入池） ——
+  bulkInput.addEventListener('paste', ()=>{
+    setTimeout(()=>{
+      if(collectModeEl && collectModeEl.checked){
+        const titles = extractTitlesFromText(bulkInput.value);
+        // 尝试从文本中识别页码并覆盖 stepper
+        tryAutoFillPageFrom(bulkInput.value);
+        if(titles.length){
+          batchTitles = titles.slice();
+          addBatchToPool(batchTitles);
+          renderTitles(batchTitles);
+          renderBatchChips();
+          bulkInput.value = '';
+        }
+      }
+    }, 0);
+  });
+
+  // —— 项目导出/导入 —— 
+  const exportProjectBtn = document.getElementById('exportProjectBtn');
+  const importProjectBtn = document.getElementById('importProjectBtn');
+  const importFileEl = document.getElementById('importFile');
+
+  function exportProject(){
+    const payload = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      quick: {
+        q: quickQEl?.value || '',
+        p: quickPEl?.value || '1',
+        auto: !!(autoNoteEl && autoNoteEl.checked)
+      },
+      batches: batches.map(b=>({ titles: b.titles||[], note: b.note||'', ts: b.ts||Date.now() }))
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const ts = new Date();
+    const pad = n=> String(n).padStart(2,'0');
+    const name = `linkclear_project_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.json`;
+    download(name, json, 'application/json;charset=utf-8');
+  }
+
+  function importProjectFromFile(file){
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(String(reader.result||'{}'));
+        if(!data || !Array.isArray(data.batches)) throw new Error('格式错误');
+        if(!confirm('导入将覆盖当前项目的批次与备注，确定继续？')) return;
+        // 恢复 batches
+        batches = data.batches.map(b=>({
+          titles: Array.isArray(b.titles) ? b.titles.map(t=> String(t)) : [],
+          note: typeof b.note==='string' ? b.note : '',
+          ts: Number(b.ts||Date.now())
+        }));
+        // 恢复 quick 设置
+        if(data.quick){
+          if(quickQEl) quickQEl.value = String(data.quick.q||'');
+          if(quickPEl) quickPEl.value = String(data.quick.p||'1');
+          if(autoNoteEl) autoNoteEl.checked = !!data.quick.auto;
+          saveQuick();
+        }
+        recomputePoolFromBatches();
+        renderBatchChips();
+        alert('导入完成');
+      }catch(e){ alert('导入失败：'+ e.message); }
+    };
+    reader.onerror = ()=> alert('读取文件失败');
+    reader.readAsText(file, 'utf-8');
+  }
+
+  exportProjectBtn?.addEventListener('click', exportProject);
+  importProjectBtn?.addEventListener('click', ()=> importFileEl && importFileEl.click());
+  importFileEl?.addEventListener('change', ()=>{
+    const f = importFileEl.files && importFileEl.files[0];
+    if(f) importProjectFromFile(f);
+    importFileEl.value = '';
+  });
+
+  // 初始化
+  loadFromStorage();
+  loadQuick();
+  updatePoolUI();
+  updateBatchButtons();
 })();
 </script>
 </body>
