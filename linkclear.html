@@ -143,6 +143,16 @@
     .btn.small{ padding:10px 14px; font-size:13px; border-radius:12px; }
     .tbl{ width:100%; border-collapse:collapse; margin-top:8px; }
     .tbl th, .tbl td{ border-bottom:1px solid rgba(120,120,128,.12); text-align:left; padding:8px 6px; font-size:13px; }
+
+    /* 分屏与高亮 */
+    .split{ display:block; gap:18px; }
+    @media (min-width: 980px){
+      .split{ display:grid; grid-template-columns: 1fr 1fr; align-items:start; }
+    }
+    .col{ min-width:0; }
+    .tbl tr.clickable{ cursor: pointer; }
+    .tbl tr.active{ background: rgba(10,132,255,.08); }
+    .hl{ background: color-mix(in oklab, var(--accent) 25%, transparent); padding: 0 2px; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -216,14 +226,24 @@
           <div class="result-wrap">
             <div class="result-head">
               <div class="capsule"><span id="titleCount">0</span> 条标题</div>
+              <div class="switch">
+                <input type="checkbox" id="showHitsOnly" aria-label="仅显示命中" />
+                <label for="showHitsOnly">仅显示命中</label>
+              </div>
             </div>
-            <ul class="list" id="titleList"></ul>
-            <div id="freqWrap" class="hidden">
-              <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
-              <table class="tbl" id="freqTable">
-                <thead><tr><th>关键词</th><th>频次</th></tr></thead>
-                <tbody></tbody>
-              </table>
+            <div class="split">
+              <div class="col">
+                <ul class="list" id="titleList"></ul>
+              </div>
+              <div class="col">
+                <div id="freqWrap" class="hidden">
+                  <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
+                  <table class="tbl" id="freqTable">
+                    <thead><tr><th>关键词</th><th>频次</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -290,6 +310,7 @@
   const titleCount = document.getElementById('titleCount');
   const freqWrap = document.getElementById('freqWrap');
   const freqTable = document.querySelector('#freqTable tbody');
+  const showHitsOnlyEl = document.getElementById('showHitsOnly');
 
   // 页面标题获取相关函数
   function fallbackTitle(u){
@@ -638,16 +659,36 @@
   }
 
   let lastTitles = [];
+  let currentTerm = null; // 当前高亮关键词（null 表示无高亮）
+
+  function highlightInEscaped(escaped, term){
+    if(!term) return escaped;
+    const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(safeTerm, 'g');
+    return escaped.replace(re, '<mark class="hl">'+escapeHtml(term)+'</mark>');
+  }
   function renderTitles(titles){
-    lastTitles = titles.slice(); // 保存原文用于复制/导出/词频
-    const items = titles.map(t=>`<li title="${escapeHtml(t)}">${escapeHtml(truncateByChars(t, MAX_CHARS))}</li>`).join('');
+    lastTitles = titles.slice(); // 保存原文用于复制/导出/统计
+    const filtering = !!(showHitsOnlyEl && showHitsOnlyEl.checked && currentTerm);
+    const visible = filtering ? lastTitles.filter(t=> t.includes(currentTerm)) : lastTitles;
+
+    const items = visible.map(t=>{
+      const full = escapeHtml(t);
+      const shown = escapeHtml(truncateByChars(t, MAX_CHARS));
+      const highlightedShown = currentTerm ? highlightInEscaped(shown, currentTerm) : shown;
+      return `<li title="${full}">${highlightedShown}</li>`;
+    }).join('');
+
     titleList.innerHTML = items;
-    titleCount.textContent = String(titles.length);
-    const has = titles.length>0;
-    copyTitlesBtn.disabled = !has;
-    exportCsvBtn.disabled = !has;
-    genFreqBtn.disabled = !has;
-    if(!has){ freqWrap.classList.add('hidden'); freqTable.innerHTML=''; }
+    const total = lastTitles.length;
+    const shownN = visible.length;
+    titleCount.textContent = filtering && shownN!==total ? `${shownN}/${total}` : String(total);
+
+    const has = visible.length>0;
+    copyTitlesBtn.disabled = total===0;    // 复制/导出基于 lastTitles，不受过滤影响
+    exportCsvBtn.disabled = total===0;
+    genFreqBtn.disabled = total===0;
+    if(!has){ freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */ }
   }
 
   function escapeHtml(s){
@@ -781,11 +822,64 @@
     return best; // 越大越好
   }
 
+  // 统计上下文的主导字符及占比
+  function dominantCtx(map){
+    if(!map) return {ch:null, p:0};
+    let total = 0, bestCh=null, bestC=0;
+    map.forEach((c,ch)=>{ total+=c; if(c>bestC){bestC=c; bestCh=ch;} });
+    const p = total ? bestC/total : 0;
+    return {ch: bestCh, p};
+  }
+
+  // 判断 token 是否疑似“尾随/前缀碎片”：
+  // 若左(或右)侧 80% 以上出现同一字符，且与该字符拼接后的更长 token 频次不低于当前，视为碎片
+  function isTailOrHeadFragment(token, dfMap, leftCtx, rightCtx){
+    const L = leftCtx.get(token); const R = rightCtx.get(token);
+    const {ch: lch, p: lp} = dominantCtx(L);
+    const {ch: rch, p: rp} = dominantCtx(R);
+    // 左侧主导且不是起始边界
+    if(lch && lch !== '^' && lp >= 0.8){
+      const candidate = lch + token;
+      const d1 = dfMap.get(token)||0, d2 = dfMap.get(candidate)||0;
+      if(d2 >= d1*0.8) return true;
+    }
+    // 右侧主导且不是结束边界
+    if(rch && rch !== '$' && rp >= 0.8){
+      const candidate = token + rch;
+      const d1 = dfMap.get(token)||0, d2 = dfMap.get(candidate)||0;
+      if(d2 >= d1*0.8) return true;
+    }
+    return false;
+  }
+
+  // 计算首/尾二元的 PMI，返回 {leftPMI, rightPMI}
+  function edgePMI(token, dfMap, charDf, N){
+    const len = token.length;
+    if(len < 2) return {leftPMI:0, rightPMI:0};
+    const leftBi = token.slice(0,2);
+    const rightBi = token.slice(len-2);
+    function biPMI(bi){
+      const a = bi[0], b = bi[1];
+      const dfAB = dfMap.get(bi) || 0;
+      const dfA  = (a.length===1? (charDf.get(a)||0) : (dfMap.get(a)||0));
+      const dfB  = (b.length===1? (charDf.get(b)||0) : (dfMap.get(b)||0));
+      if(dfAB>0 && dfA>0 && dfB>0) return Math.log2((dfAB*N)/(dfA*dfB));
+      return 0;
+    }
+    return { leftPMI: biPMI(leftBi), rightPMI: biPMI(rightBi) };
+  }
+
   function rankKeywords(stats, opts={ minDF:2 }){
     const {N, tokenDf, charDf, leftCtx, rightCtx, tokenTitles, titleHasBrand} = stats;
     const rows = [];
     tokenDf.forEach((df, token)=>{
       if(df < opts.minDF) return;
+      // 先过滤明显的尾随/前缀碎片
+      if (isTailOrHeadFragment(token, tokenDf, leftCtx, rightCtx)) return;
+
+      // 边缘PMI：要求首/尾二元具备一定黏合（避免“年秋*”、“猫人青*”这类跨强边界拼接）
+      const {leftPMI, rightPMI} = edgePMI(token, tokenDf, charDf, N);
+
       const HL = entropy(leftCtx.get(token) || new Map());
       const HR = entropy(rightCtx.get(token) || new Map());
       const sepScore = Math.min(HL, HR);   // 分隔自由度
@@ -794,8 +888,9 @@
       const tset = tokenTitles.get(token) || new Set();
       let brandCo = 0; tset.forEach(i=>{ if(titleHasBrand[i]) brandCo++; });
       const brandBoost = Math.min(2, brandCo / 3);
-      // 组合评分：DF主导，PMI/熵/品牌为辅
-      const score = df + 0.75*pmi + 0.5*sepScore + 0.5*brandBoost;
+      // 对边缘PMI过低的短语进行惩罚（阈值可调，默认 0.5）
+      const edgePenalty = (leftPMI < 0.5 ? 0.8 : 0) + (rightPMI < 0.5 ? 0.8 : 0); // 每侧-0.8 分
+      const score = df + 0.75*pmi + 0.5*sepScore + 0.5*brandBoost - edgePenalty;
       rows.push({ token, df, pmi, sep: sepScore, brand: brandBoost, score });
     });
     // 长词覆盖短词
@@ -810,8 +905,30 @@
   }
 
   function renderKeywordTable(pairs){
-    freqTable.innerHTML = pairs.map(([w,c])=>`<tr><td>${escapeHtml(w)}</td><td>${c}</td></tr>`).join('');
+    freqTable.innerHTML = pairs.map(([w,c])=>`<tr class="clickable" data-term="${escapeHtml(w)}"><td>${escapeHtml(w)}</td><td>${c}</td></tr>`).join('');
     freqWrap.classList.remove('hidden');
+    bindKeywordRowClicks();
+  }
+
+  function bindKeywordRowClicks(){
+    const rows = freqTable.querySelectorAll('tr.clickable');
+    rows.forEach(tr=>{
+      tr.addEventListener('click', ()=>{
+        const term = tr.getAttribute('data-term');
+        // 切换逻辑：
+        if(currentTerm === term){
+          // 取消当前高亮
+          currentTerm = null;
+          rows.forEach(r=>r.classList.remove('active'));
+        }else{
+          currentTerm = term;
+          rows.forEach(r=>r.classList.remove('active'));
+          tr.classList.add('active');
+        }
+        // 重新渲染标题（带或不带高亮）
+        renderTitles(lastTitles);
+      });
+    });
   }
 
   extractBtn.addEventListener('click', ()=>{
@@ -838,3 +955,9 @@
 </script>
 </body>
 </html>
+  if (showHitsOnlyEl) {
+    showHitsOnlyEl.addEventListener('change', ()=>{
+      // 仅切换可见性，不改变 lastTitles 或 currentTerm
+      renderTitles(lastTitles);
+    });
+  }
