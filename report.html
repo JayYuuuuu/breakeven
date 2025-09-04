@@ -32,18 +32,20 @@ table{border-collapse:separate;border-spacing:0;width:100%;min-width:520px;}
 thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:10px 12px;white-space:nowrap;}
 tbody td{border-top:1px solid var(--border);padding:10px 12px;vertical-align:top;}
 
-/* Mobile stacked table */
+/* Mobile stacked table - 保留表格显示，支持横向滚动 */
 @media (max-width: 640px){
-  table{display:none;} /* hide classic */
-  .stack-list{display:grid;gap:10px;padding:10px;}
-  .stack-card{border:1px solid var(--border);border-radius:10px;background:#fff;padding:10px;}
-  .stack-row{display:flex;gap:8px;margin:6px 0;align-items:flex-start;}
-  .stack-key{min-width:8em;color:#555;flex:0 0 auto;}
-  .stack-val{flex:1;}
-  .table-scroll{overflow:visible;}
+  /* 移除隐藏表格的规则，让表格正常显示 */
+  /* table{display:none;} 已删除 */
+  .stack-list{display:none;} /* 隐藏卡片式布局 */
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;} /* 保持横向滚动 */
+  table{min-width:600px;} /* 确保表格有足够的最小宽度以触发滚动 */
+  thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:8px 10px;white-space:nowrap;font-size:14px;} /* 调整移动端表头样式 */
+  tbody td{padding:8px 10px;font-size:14px;} /* 调整移动端单元格样式 */
 }
-/* Desktop show both is unnecessary, but keep classic on wider screens */
-@media (min-width: 641px){ .stack-list{display:none;} }
+/* 桌面端隐藏卡片式布局，保持表格显示 */
+@media (min-width: 641px){ 
+  .stack-list{display:none;} /* 隐藏卡片式布局 */
+}
 .footer{color:var(--muted);font-size:12px;margin:16px 2px;}
 </style>
 </head>
@@ -52,7 +54,7 @@ tbody td{border-top:1px solid var(--border);padding:10px 12px;vertical-align:top
     
 <header>
   <h1>银线穿梭：中国中老年保暖内衣市场战略准入报告（移动端）</h1>
-  <div class="meta">移动端优先排版 · 2025年09月04日</div>
+  <div class="meta">整理时间：2025年09月04日</div>
 </header>
 <div class="toc">
   <h2>目录</h2>
