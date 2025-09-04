@@ -9,7 +9,7 @@
   --ink:#111; --muted:#666; --brand:#0b5fff; --bg:#fff; --border:#e7e7e7;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;line-height:1.7;font-size:16px;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;line-height:1.75;font-size:16px;}
 .container{max-width:900px;margin:0 auto;padding:16px;}
 header{padding:6px 0 10px 0;}
 h1{font-size:22px;margin:0 0 8px 0;}
@@ -20,8 +20,8 @@ h1{font-size:22px;margin:0 0 8px 0;}
 .toc li{margin:4px 0;}
 h2{font-size:20px;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px;}
 h3{font-size:18px;margin:12px 0 6px;}
-p{margin:8px 0;text-align:justify;}
-ul{margin:8px 0 8px 1.1rem;}
+p{margin:10px 0;text-align:justify;line-height:1.75;}
+ul{margin:10px 0 10px 1.1rem;}
 hr{border:none;border-top:1px dashed var(--border);margin:16px 0;}
 
 /* Desktop/tablet table */
@@ -32,15 +32,32 @@ table{border-collapse:separate;border-spacing:0;width:100%;min-width:520px;}
 thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:10px 12px;white-space:nowrap;}
 tbody td{border-top:1px solid var(--border);padding:10px 12px;vertical-align:top;}
 
-/* Mobile stacked table - 保留表格显示，支持横向滚动 */
+/* 移动端优化 - 改善文字密度和行间距 */
 @media (max-width: 640px){
-  /* 移除隐藏表格的规则，让表格正常显示 */
-  /* table{display:none;} 已删除 */
+  /* 基础文字和行间距优化 */
+  html,body{font-size:18px;line-height:1.8;} /* 增大字体和行高，提升可读性 */
+  .container{padding:20px 16px;} /* 增加容器内边距 */
+  
+  /* 标题间距优化 */
+  h1{font-size:24px;margin:0 0 12px 0;line-height:1.4;} /* 增大标题字体和间距 */
+  h2{font-size:22px;margin:24px 0 12px;padding-top:18px;line-height:1.4;} /* 增大二级标题间距 */
+  h3{font-size:20px;margin:16px 0 10px;line-height:1.4;} /* 增大三级标题间距 */
+  
+  /* 段落和列表间距优化 */
+  p{margin:12px 0;line-height:1.8;text-align:justify;} /* 增大段落间距和行高 */
+  ul{margin:12px 0 12px 1.2rem;} /* 增大列表间距 */
+  .toc li{margin:8px 0;} /* 增大目录项间距 */
+  
+  /* 表格样式优化 */
   .stack-list{display:none;} /* 隐藏卡片式布局 */
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;} /* 保持横向滚动 */
   table{min-width:600px;} /* 确保表格有足够的最小宽度以触发滚动 */
-  thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:8px 10px;white-space:nowrap;font-size:14px;} /* 调整移动端表头样式 */
-  tbody td{padding:8px 10px;font-size:14px;} /* 调整移动端单元格样式 */
+  thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;font-weight:600;padding:10px 12px;white-space:nowrap;font-size:16px;} /* 调整移动端表头样式 */
+  tbody td{padding:10px 12px;font-size:16px;} /* 调整移动端单元格样式 */
+  
+  /* 目录样式优化 */
+  .toc{padding:16px;margin:16px 0 20px;} /* 增大目录内边距 */
+  .toc h2{font-size:20px;margin:0 0 12px 0;} /* 调整目录标题 */
 }
 /* 桌面端隐藏卡片式布局，保持表格显示 */
 @media (min-width: 641px){ 
