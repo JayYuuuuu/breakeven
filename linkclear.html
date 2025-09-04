@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>链接净化器 · 极简</title>
+  <meta name="description" content="输入原始链接，一键生成干净链接，支持复制与跳转。" />
+  <style>
+    :root{
+      --bg: #fbfbfd;
+      --card: #ffffff;
+      --ink: #111114;
+      --muted: #6b7280;
+      --accent: #0a84ff; /* iOS 蓝 */
+      --ok: #34c759; /* Apple 绿 */
+      --ring: rgba(10,132,255,.25);
+      --radius: 28px;
+      --shadow: 0 30px 60px rgba(0,0,0,.08), 0 8px 20px rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg: #0b0b0c;
+        --card: #121214;
+        --ink: #f5f7fa;
+        --muted: #9aa1aa;
+        --accent: #0a84ff;
+        --ok: #30d158;
+        --ring: rgba(10,132,255,.35);
+        --shadow: 0 30px 60px rgba(0,0,0,.55), 0 8px 20px rgba(0,0,0,.35);
+      }
+    }
+    * { box-sizing: border-box; }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, Segoe UI, Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      background: radial-gradient(1200px 800px at 50% -20%, rgba(10,132,255,.06), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0));
+      color:var(--ink);
+      letter-spacing:.1px;
+    }
+    .wrap{ max-width: 760px; margin: 10vh auto; padding: 0 24px; }
+    header{ text-align:center; margin-bottom: 64px; }
+    h1{ font-weight:700; font-size: clamp(32px, 5vw, 56px); letter-spacing:-.2px; line-height:1.08; margin:.2em 0 .1em; }
+    .sub{ color:var(--muted); font-size: clamp(16px, 2.2vw, 18px); letter-spacing:.1px; }
+
+    .card{ background: color-mix(in oklab, var(--card) 86%, transparent); backdrop-filter: saturate(160%) blur(16px); border-radius: var(--radius); box-shadow: var(--shadow); padding: 34px; border:1px solid rgba(120,120,128,.12); }
+    .stack{ display:flex; flex-direction:column; gap:32px; }
+
+    label{ font-size:14px; color:var(--muted); display:block; margin: 22px 2px 22px; }
+    .input, .output{
+      width:100%; font-size: clamp(18px, 2.4vw, 22px); line-height:1.45; padding: 22px 24px; border-radius: 18px;
+      border:1px solid rgba(120, 120, 128, .16); background: transparent; color:var(--ink);
+      outline:none; transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .input::placeholder, .output::placeholder{ color: color-mix(in oklab, var(--muted) 70%, transparent); }
+    .input:focus{ border-color: var(--accent); box-shadow: 0 0 0 8px var(--ring); }
+
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .btn{
+      appearance: none; border:0; cursor:pointer; border-radius: 16px; padding: 16px 22px; font-weight:700;
+      font-size:17px; background: var(--ink); color: var(--card); transition: transform .03s ease, box-shadow .2s ease, background .2s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,.12);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ background: linear-gradient(180deg, rgba(10,132,255,.92), rgba(10,132,255,.84)); }
+    .btn.primary.copied{ filter: saturate(120%); }
+    .btn.ghost{ background: transparent; color: var(--ink); border:1px solid rgba(120,120,128,.22); }
+    .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+
+    .meta{ display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top:8px; }
+    .pill{ border-radius:12px; padding:8px 10px; border:0; background: rgba(120,120,128,.08); color:var(--muted); font-size:13px; }
+    .titlepill{ border-radius:12px; padding:8px 12px; background: rgba(120,120,128,.10); color: var(--ink); font-size:14px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .titlewrap{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+    .retry{ appearance:none; border:1px solid rgba(120,120,128,.22); background:transparent; border-radius:10px; padding:6px 10px; font-size:12px; color: var(--muted); cursor:pointer; }
+    .retry:disabled{ opacity:.5; cursor:not-allowed; }
+    .okdot{ display:inline-flex; width:10px; height:10px; background:var(--ok); border-radius:999px; box-shadow: 0 0 0 8px rgba(48,209,88,.14); margin-right:8px; vertical-align: -1px; }
+
+    details{ background: rgba(120,120,128,.08); border-radius: 14px; padding: 10px 12px; border:1px solid rgba(120,120,128,.12); }
+    summary{ cursor: pointer; color: var(--muted); font-size: 13px; }
+    code.kv{ display:inline-block; background: rgba(120,120,128,.10); padding: 2px 8px; border-radius: 10px; margin: 4px 6px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
+    .muted{ color: var(--muted); }
+    footer{ text-align:center; margin: 28px auto 0; color: color-mix(in oklab, var(--muted) 90%, transparent); font-size: 12px; }
+    footer strong{ font-weight:600; }
+
+    .hidden{ display:none !important; }
+
+    .switch{ display:flex; align-items:center; gap:10px; }
+    .switch input{ width:38px; height:22px; appearance:none; -webkit-appearance:none; outline:none; border-radius:999px; position:relative; background: rgba(120,120,128,.22); transition: background .2s ease; cursor:pointer; }
+    .switch input:checked{ background: var(--accent); }
+    .switch input::after{ content:""; position:absolute; width:18px; height:18px; border-radius:50%; left:2px; top:2px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); transition: transform .2s ease; }
+    .switch input:checked::after{ transform: translateX(16px); }
+    .switch label{ font-size:13px; color: var(--muted); cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>链接净化器</h1>
+      <div class="sub">输入原始链接 → 一键生成干净链接。无杂乱参数，重点信息更清晰。</div>
+    </header>
+
+    <section class="card">
+      <div class="stack">
+        <div>
+          <label for="raw">原始链接</label>
+          <input id="raw" class="input" placeholder="粘贴包含一堆追踪参数的链接… 回车生成" autofocus>
+        </div>
+
+        <div>
+          <label for="clean">干净链接</label>
+          <input id="clean" class="output" readonly placeholder="这里将生成净化后的链接…">
+          <div class="meta">
+            <div class="switch">
+              <input type="checkbox" id="keepSku" aria-label="保留 SKU 参数" />
+              <label for="keepSku">保留 SKU 参数</label>
+            </div>
+            <div class="pill" id="status"><span class="okdot hidden" id="okdot"></span><span id="statusText">等待输入…</span></div>
+            <div class="row">
+              <button class="btn primary" id="copyBtn" disabled>一键复制</button>
+              <button class="btn ghost" id="openBtn" disabled>一键跳转 ↗</button>
+            </div>
+          </div>
+          <div class="titlewrap hidden" id="titleWrap">
+            <span class="muted">页面标题</span>
+            <div class="titlepill" id="pageTitle">正在获取…</div>
+            <button class="retry" id="retryTitle">重新获取</button>
+          </div>
+        </div>
+
+        <details id="detailBox" class="hidden">
+          <summary>规则与本次处理结果（可展开查看）</summary>
+          <div style="margin-top:8px; font-size:14px">
+            <div class="muted" style="margin-bottom:6px">已移除的常见追踪参数示例：</div>
+            <div id="knownKeys"></div>
+            <div class="muted" style="margin:10px 0 6px">本次从原链接中移除的参数：</div>
+            <div id="removedKeys"></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <footer>
+      小提示：对 <strong>Tmall/Taobao</strong> 商品页仅保留 <code class="kv">id</code>（可选保留 <code class="kv">skuId</code>）；已屏蔽阿里系常见冗余字段（<code class="kv">spm</code>、<code class="kv">scm</code>、<code class="kv">tbpm</code>、<code class="kv">u_channel</code>、<code class="kv">algo*</code> 等）。
+    </footer>
+  </div>
+
+<script>
+(function(){
+  const rawEl   = document.getElementById('raw');
+  const cleanEl = document.getElementById('clean');
+  const copyBtn = document.getElementById('copyBtn');
+  const openBtn = document.getElementById('openBtn');
+  const status  = document.getElementById('status');
+  const okdot   = document.getElementById('okdot');
+  const statusText = document.getElementById('statusText');
+  const detailBox  = document.getElementById('detailBox');
+  const knownKeysEl = document.getElementById('knownKeys');
+  const removedKeysEl = document.getElementById('removedKeys');
+  const keepSkuEl = document.getElementById('keepSku');
+  const titleWrap = document.getElementById('titleWrap');
+  const pageTitleEl = document.getElementById('pageTitle');
+  const retryTitleBtn = document.getElementById('retryTitle');
+  function fallbackTitle(u){
+    try{
+      const host = u.hostname.replace(/^www\./,'');
+      const params = new URLSearchParams(u.search);
+      const id = params.get('id');
+      if(/tmall/.test(host)) return id ? `天猫商品（ID: ${id}）` : '天猫商品';
+      if(/taobao/.test(host)) return id ? `淘宝商品（ID: ${id}）` : '淘宝商品';
+    }catch(_){/* ignore */}
+    return '';
+  }
+
+  function withTimeout(p, ms=5000){
+    return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
+  }
+
+  async function fetchTitle(url){
+    try{
+      const u = new URL(url);
+      const proxied = `https://r.jina.ai/${u.protocol}//${u.hostname}${u.pathname}${u.search}`;
+      const res = await withTimeout(fetch(proxied), 6000);
+      if(!res.ok) throw new Error('bad status');
+      const txt = await res.text();
+      // Heuristic: r.jina.ai returns simplified content; first non-empty line is often the title
+      const lines = txt.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      if(lines.length){
+        // Prefer a line not starting with 'By ' or '作者'
+        const candidate = lines.find(s=>!/^by\s+/i.test(s) && s.length>4) || lines[0];
+        return candidate.slice(0,180);
+      }
+    }catch(e){ /* ignore */ }
+    return '';
+  }
+
+  // —— 常见追踪参数黑名单（统一转小写后匹配）
+  const TRACKING = new Set([
+    'utm_source','utm_medium','utm_campaign','utm_term','utm_content','utm_id','utm_referrer',
+    'gclid','gbraid','wbraid','dclid','fbclid','msclkid','yclid',
+    'spm','scm','pvid','pid','algo_exp_id','algo_pvid','algo_expid','acm','clk1','clk2',
+    'ali_refid','ali_trackid','utparam','xxc','mi_id','priceTid','mm_sceneid',
+    'mkt_tok','icid','icamp','ref','ref_src','igshid','fb_action_ids','fb_action_types',
+    'aff_id','affid','aff','affsource','aff_platform','aff_trace_key','tag',
+    'irclickid','clickid','click_id','s_kwcid','mc_eid','mc_cid','_hsenc','_hsmi','from','source',
+    'abbucket','forcemini','ns',
+    'tbpm','un','u_channel'
+  ].map(s=>s.toLowerCase()));
+
+  // —— 按域名的白名单（只保留这些）
+  const ALLOW_BY_HOST = {
+    'detail.tmall.com': new Set(['id']),
+    'detail.tmall.hk': new Set(['id']),
+    'item.taobao.com': new Set(['id']),
+    'detail.m.tmall.com': new Set(['id']),
+    'm.intl.taobao.com': new Set(['id']),
+    'chaoshi.detail.tmall.com': new Set(['id']),
+    'new-detail.tmall.com': new Set(['id']),
+    'new-detail.m.tmall.com': new Set(['id']),
+    'www.youtube.com': new Set(['v','t','list','index']),
+    'youtu.be': new Set([]), // 短链无需查询参数
+    'www.amazon.com': new Set(['psc']),
+    'www.amazon.cn': new Set(['psc']),
+    'item.jd.com': new Set([]), // JD 商品页通常不需要参数
+    'www.jd.com': new Set([])
+  };
+
+  // 展示“已知追踪参数”的样例
+  knownKeysEl.innerHTML = Array.from(TRACKING).slice(0,24).map(k=>`<code class="kv">${k}</code>`).join('');
+
+  function tryParseUrl(input){
+    if(!input) return null;
+    let s = String(input).trim();
+    // 如果缺协议，尝试补全 https://
+    if(!/^https?:\/\//i.test(s)) s = 'https://' + s;
+    try{ return new URL(s); }catch(e){ return null; }
+  }
+
+  function cleanUrl(raw){
+    const url = tryParseUrl(raw);
+    if(!url) return { ok:false, reason:'链接无效', out:'', removed:[] };
+
+    // 归一化：去掉 hash
+    url.hash = '';
+
+    const host = url.hostname.replace(/^www\./,'');
+    const fullHost = url.hostname; // 用于白名单匹配
+
+    // 复制查询参数并筛选
+    const params = new URLSearchParams(url.search);
+    const removed = [];
+
+    // 是否命中白名单域名
+    let allowSet = ALLOW_BY_HOST[fullHost] || ALLOW_BY_HOST[host] || null;
+
+    // If user wants to keep SKU for Tmall/Taobao, allow it dynamically
+    if(allowSet && keepSkuEl.checked){
+      allowSet = new Set([...allowSet, 'skuid']);
+    }
+
+    // 对 Tmall/Taobao：把 skuId/ID 名统一按小写比较
+    const keepParam = (k)=>{
+      const key = k.toLowerCase();
+      if(key==='skuid' && !keepSkuEl.checked) return false;
+      if(allowSet){
+        // 白名单：仅保留 allowSet 内的键（大小写不敏感）
+        return allowSet.has(key);
+      }
+      // 非白名单：移除常见追踪参数，其余保留以避免破坏核心语义
+      if(key.startsWith('algo')) return false;
+      return !TRACKING.has(key);
+    };
+
+    // 构建新参数
+    const kept = new URLSearchParams();
+    for(const [k,v] of params){
+      if(keepParam(k)) kept.append(k, v);
+      else removed.push(k);
+    }
+
+    // 特例：tmall/taobao 若只有 id 则保留；若两者都没有且原链接为 item 页，判定为无效
+    if(allowSet){
+      const hasAny = Array.from(kept.keys()).length>0;
+      if(!hasAny && (host.includes('tmall')||host.includes('taobao'))){
+        return { ok:false, reason:'缺少必要的商品参数（id/skuId）', out:'', removed };
+      }
+    }
+
+    // 生成干净链接
+    url.search = kept.toString();
+
+    // 去掉末尾空问号
+    const out = url.toString().replace(/\?$/, '');
+    return { ok:true, out, removed };
+  }
+
+  function render(result){
+    if(!result.ok){
+      cleanEl.value = '';
+      copyBtn.disabled = true; openBtn.disabled = true;
+      okdot.classList.add('hidden');
+      statusText.textContent = result.reason || '处理失败';
+      detailBox.classList.add('hidden');
+      removedKeysEl.innerHTML = '';
+      titleWrap.classList.add('hidden');
+      return;
+    }
+    cleanEl.value = result.out;
+    copyBtn.disabled = false; openBtn.disabled = false;
+    okdot.classList.remove('hidden');
+    statusText.textContent = '已生成干净链接';
+    // Title fetching (best-effort)
+    titleWrap.classList.remove('hidden');
+    pageTitleEl.textContent = '正在获取…';
+    retryTitleBtn.disabled = true;
+    if(result.out){
+      const u = new URL(result.out);
+      fetchTitle(result.out).then(t=>{
+        if(t){
+          pageTitleEl.textContent = t;
+        }else{
+          const ft = fallbackTitle(u) || '未获取到标题（站点限制）';
+          pageTitleEl.textContent = ft;
+        }
+      }).catch(()=>{
+        const ft = fallbackTitle(u) || '未获取到标题（网络或站点限制）';
+        pageTitleEl.textContent = ft;
+      }).finally(()=>{
+        retryTitleBtn.disabled = false;
+      });
+    }
+    // 细节面板
+    detailBox.classList.remove('hidden');
+    removedKeysEl.innerHTML = result.removed.length ?
+      result.removed.map(k=>`<code class="kv">${k}</code>`).join('') :
+      '<span class="muted">（原链接未包含常见追踪参数）</span>';
+  }
+  retryTitleBtn.addEventListener('click', ()=>{
+    const v = cleanEl.value.trim();
+    if(!v) return;
+    pageTitleEl.textContent = '正在获取…';
+    retryTitleBtn.disabled = true;
+    const u = new URL(v);
+    fetchTitle(v).then(t=>{
+      if(t){ pageTitleEl.textContent = t; }
+      else{ pageTitleEl.textContent = fallbackTitle(u) || '未获取到标题（站点限制）'; }
+    }).catch(()=>{
+      pageTitleEl.textContent = fallbackTitle(u) || '未获取到标题（网络或站点限制）';
+    }).finally(()=>{ retryTitleBtn.disabled = false; });
+  });
+
+  function run(){ render(cleanUrl(rawEl.value)); }
+
+  rawEl.addEventListener('input', ()=>{
+    // 实时净化（输入为 URL 时会直接生成）
+    const r = cleanUrl(rawEl.value);
+    // 只有看起来像 URL 时才展示结果
+    if(r.ok){ render(r); } else {
+      cleanEl.value = '';
+      copyBtn.disabled = true; openBtn.disabled = true;
+      okdot.classList.add('hidden');
+      statusText.textContent = '等待输入…';
+      detailBox.classList.add('hidden');
+      removedKeysEl.innerHTML = '';
+      titleWrap.classList.add('hidden');
+    }
+  });
+
+  // 点击输入框时全选内容，方便覆盖输入
+  rawEl.addEventListener('click', (e)=>{
+    // 如果输入框有内容且不是通过拖拽选择文本，则全选
+    if(rawEl.value && !window.getSelection().toString()){
+      rawEl.select();
+    }
+  });
+
+  rawEl.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      run();
+      copyBtn.focus();
+    }
+  });
+
+  copyBtn.addEventListener('click', async ()=>{
+    const v = cleanEl.value.trim();
+    if(!v) return;
+    try{
+      await navigator.clipboard.writeText(v);
+      statusText.textContent = '已复制到剪贴板';
+      copyBtn.classList.add('copied');
+      okdot.style.background = 'var(--ok)';
+      setTimeout(()=>{
+        statusText.textContent = '已生成干净链接'; 
+        okdot.style.background='var(--ok)';
+        copyBtn.classList.remove('copied');
+      }, 1600);
+    }catch{
+      // 兼容不支持 Clipboard API 的环境
+      cleanEl.select(); document.execCommand('copy');
+      statusText.textContent = '已复制（兼容模式）';
+      setTimeout(()=>{ statusText.textContent = '已生成干净链接'; }, 1600);
+    }
+  });
+
+  openBtn.addEventListener('click', ()=>{
+    const v = cleanEl.value.trim();
+    if(!v) return;
+    // 安全起见，仅在 http/https 时跳转
+    if(/^https?:\/\//i.test(v)) window.open(v, '_blank', 'noopener,noreferrer');
+  });
+
+  // 粘贴即刻处理的体验
+  window.addEventListener('paste', () => {
+    setTimeout(run, 0); // 等待粘贴完成后再运行
+  });
+
+  keepSkuEl.addEventListener('change', () => run());
+})();
+</script>
+</body>
+</html>
