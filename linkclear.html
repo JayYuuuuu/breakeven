@@ -612,11 +612,32 @@
   }
   function closeSession(){
     if(!currentSession) return;
-    const closed = { id: currentSession.id, name: currentSession.name, createdAt: currentSession.createdAt, closedAt: Date.now(), pages: (currentSession.pages||batches).map((p,i)=>({ pageNo: p.pageNo||(i+1), titles: p.titles||[], ts: p.ts||Date.now() })) };
+    // 确保保存所有批次数据，优先使用batches数组（包含完整信息）
+    const pagesToSave = batches.length > 0 ? batches : (currentSession.pages || []);
+    const closed = { 
+      id: currentSession.id, 
+      name: currentSession.name, 
+      createdAt: currentSession.createdAt, 
+      closedAt: Date.now(), 
+      pages: pagesToSave.map((p,i)=>({ 
+        pageNo: p.pageNo||(i+1), 
+        titles: p.titles||[], 
+        ts: p.ts||Date.now() 
+      })) 
+    };
     sessions.push(closed); saveSessions();
     // 清空当前批次与界面
     currentSession = null; localStorage.removeItem(LS_CUR);
-    batches = []; poolTitles = []; renderTitles([]); renderBatchChips(); updatePoolUI(); updateBatchButtons();
+    batches = []; poolTitles = []; 
+    // 先隐藏关键词分析模块，再清空标题列表
+    freqWrap.classList.add('hidden');
+    selectedTerms.clear();
+    renderTitles([]); 
+    // 强制清空批次列表
+    if(batchChips) batchChips.innerHTML = '';
+    renderBatchChips(); 
+    updatePoolUI(); 
+    updateBatchButtons();
     updateSessionBanner();
     setCloseSessionButtonsDisabled(true);
   }
