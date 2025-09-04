@@ -702,35 +702,111 @@
     return Array.from(set).filter(k=>!STOPWORDS.has(k));
   }
 
-  // 构建“按标题计数”的频次（Document Frequency）：一个标题里同一关键词只记一次
-  function buildKeywordDF(titles){
-    const df = new Map();
-    for(const t of titles){
-      const cands = genCandidatesFromTitle(t);
-      const uniq = new Set(cands);
-      uniq.forEach(k=> df.set(k, (df.get(k)||0)+1));
-    }
-    return df;
+  // —— 语意短语增强：PMI + 左右熵 + 品牌协同 ——
+  const BRANDS = [
+    '恒源祥','巴拉巴拉','迪士尼','蕉内','红豆','英博伦','久岁伴','MQD','HODO','BANANAIN','DAVE＆BELLA','英氏','YEEHOO','PAW PATROL','JOYNCLEON','THREEGUN','拉比','棉花堂','棉小蟹','BOBDOG','Schiesser','舒雅','浪莎','MINI BALA','红豆居家'
+  ];
+  const BRAND_RE_ROMAN = /\b[A-Z][A-Z0-9&.+-]{1,}\b/;
+
+  function hasBrand(title){
+    if (BRANDS.some(b=> title.includes(b))) return true;
+    return BRAND_RE_ROMAN.test(title);
   }
 
-  // 质量提升：
-  // 1) 去除被更长且不低频的关键词完全包含的短词（保持更具信息量的“最大短语”）
-  // 2) 严格阈值：至少出现在2个不同标题中（可按需改）
-  function pruneKeywords(df){
-    const minDF = 2; // 阈值：至少2个标题出现
-    const entries = Array.from(df.entries()).filter(([k,c])=> c>=minDF);
-    // 构建按长度降序，频次降序排序，便于优先保留长高频
-    entries.sort((a,b)=> (b[0].length - a[0].length) || (b[1]-a[1]));
+  // 统计DF、左右邻字符分布与品牌共现
+  function buildKeywordStats(titles){
+    const N = titles.length;
+    const tokenDf = new Map();           // 2-8字 token 的文档频次
+    const charDf  = new Map();           // 单字文档频次（PMI用）
+    const leftCtx = new Map();           // token -> Map(char -> count)
+    const rightCtx= new Map();           // token -> Map(char -> count)
+    const tokenTitles = new Map();       // token -> Set(titleIndex)
+    const titleHasBrand = titles.map(t=> hasBrand(t));
 
-    const kept = [];
-    for(const [k,c] of entries){
-      // 若已存在一个更长且频次≥当前的关键词包含了k，则丢弃k
-      const overshadowed = kept.some(([kk,cc])=> cc>=c && kk.includes(k));
-      if(!overshadowed) kept.push([k,c]);
+    titles.forEach((t, idx)=>{
+      // 单字 DF
+      const charSet = new Set((t.match(/[\u4e00-\u9fa5]/g) || []));
+      charSet.forEach(ch=> charDf.set(ch, (charDf.get(ch)||0)+1));
+
+      // 候选 token + 左右邻统计（仅中文块内部生成2-8gram）
+      const segs = chineseSegments(t);
+      const seenThisTitle = new Set(); // DF控制：同标题只+1
+      for(const seg of segs){
+        const L = seg.length;
+        for(let n=2;n<=Math.min(8,L);n++){
+          for(let i=0;i<=L-n;i++){
+            const token = seg.slice(i,i+n);
+            // 左/右邻字符（熵）
+            const lch = i>0 ? seg[i-1] : '^';
+            const rch = (i+n<L) ? seg[i+n] : '$';
+            if(!leftCtx.has(token)) leftCtx.set(token, new Map());
+            if(!rightCtx.has(token)) rightCtx.set(token, new Map());
+            const lm = leftCtx.get(token); lm.set(lch, (lm.get(lch)||0)+1);
+            const rm = rightCtx.get(token); rm.set(rch, (rm.get(rch)||0)+1);
+            // DF
+            if(!seenThisTitle.has(token)){
+              tokenDf.set(token, (tokenDf.get(token)||0)+1);
+              seenThisTitle.add(token);
+              if(!tokenTitles.has(token)) tokenTitles.set(token, new Set());
+              tokenTitles.get(token).add(idx);
+            }
+          }
+        }
+      }
+    });
+    return { N, tokenDf, charDf, leftCtx, rightCtx, tokenTitles, titleHasBrand };
+  }
+
+  function entropy(map){
+    const total = Array.from(map.values()).reduce((a,b)=>a+b,0) || 1;
+    let H = 0;
+    map.forEach(c=>{ const p=c/total; H += -p*Math.log2(p); });
+    return H;
+  }
+
+  // 最小二切PMI（用DF近似概率）
+  function minPMI(token, dfMap, charDf, N){
+    const len = token.length;
+    let best = 0;
+    for(let k=1;k<len;k++){
+      const L = token.slice(0,k), R = token.slice(k);
+      const dfT = dfMap.get(token)||0;
+      const dfL = (L.length===1? charDf.get(L): dfMap.get(L)) || 0;
+      const dfR = (R.length===1? charDf.get(R): dfMap.get(R)) || 0;
+      if(dfT>0 && dfL>0 && dfR>0){
+        const val = Math.log2((dfT * N) / (dfL * dfR));
+        if(k===1) best = val; else best = Math.min(best, val);
+      }
     }
-    // 最终按频次降序输出，最多Top100
-    kept.sort((a,b)=> b[1]-a[1]);
-    return kept.slice(0,100);
+    return best; // 越大越好
+  }
+
+  function rankKeywords(stats, opts={ minDF:2 }){
+    const {N, tokenDf, charDf, leftCtx, rightCtx, tokenTitles, titleHasBrand} = stats;
+    const rows = [];
+    tokenDf.forEach((df, token)=>{
+      if(df < opts.minDF) return;
+      const HL = entropy(leftCtx.get(token) || new Map());
+      const HR = entropy(rightCtx.get(token) || new Map());
+      const sepScore = Math.min(HL, HR);   // 分隔自由度
+      const pmi = minPMI(token, tokenDf, charDf, N);
+      // 品牌协同
+      const tset = tokenTitles.get(token) || new Set();
+      let brandCo = 0; tset.forEach(i=>{ if(titleHasBrand[i]) brandCo++; });
+      const brandBoost = Math.min(2, brandCo / 3);
+      // 组合评分：DF主导，PMI/熵/品牌为辅
+      const score = df + 0.75*pmi + 0.5*sepScore + 0.5*brandBoost;
+      rows.push({ token, df, pmi, sep: sepScore, brand: brandBoost, score });
+    });
+    // 长词覆盖短词
+    rows.sort((a,b)=> (b.token.length - a.token.length) || (b.df - a.df));
+    const kept = [];
+    for(const r of rows){
+      const overshadowed = kept.some(x=> x.df>=r.df && x.token.includes(r.token));
+      if(!overshadowed) kept.push(r);
+    }
+    kept.sort((a,b)=> (b.score - a.score) || (b.df - a.df) || (b.token.length - a.token.length));
+    return kept.slice(0,100).map(r=> [r.token, r.df]);
   }
 
   function renderKeywordTable(pairs){
@@ -754,8 +830,8 @@
   });
 
   genFreqBtn.addEventListener('click', ()=>{
-    const df = buildKeywordDF(lastTitles);
-    const top = pruneKeywords(df);
+    const stats = buildKeywordStats(lastTitles);
+    const top = rankKeywords(stats, {minDF:2});
     renderKeywordTable(top);
   });
 })();
