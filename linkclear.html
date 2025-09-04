@@ -577,6 +577,7 @@
       return `<button class="chip" data-pg="${b.pageNo||''}" title="${pg} 共${cnt}条">${pg}（${cnt}）<span class="del" data-del="${b.pageNo||''}">×</span></button>`;
     }).join('');
     batchChips.innerHTML = html;
+    batchChips.classList.toggle('hidden', (batches||[]).length===0);
     // 查看某页
     batchChips.querySelectorAll('.chip').forEach(ch=>{
       ch.addEventListener('click', (e)=>{
@@ -628,15 +629,18 @@
     sessions.push(closed); saveSessions();
     // 清空当前批次与界面
     currentSession = null; localStorage.removeItem(LS_CUR);
-    batches = []; poolTitles = []; 
+    // 彻底清空集合与批次缓存，防止刷新后残留
+    localStorage.removeItem(LS_KEY);
+    currentView = 'batch';
+    if(poolInfoEl) poolInfoEl.classList.remove('active');
+    batches = []; poolTitles = [];
     // 先隐藏关键词分析模块，再清空标题列表
     freqWrap.classList.add('hidden');
     selectedTerms.clear();
-    renderTitles([]); 
-    // 强制清空批次列表
-    if(batchChips) batchChips.innerHTML = '';
-    renderBatchChips(); 
-    updatePoolUI(); 
+    renderTitles([]);
+    // 强制清空批次列表并隐藏
+    if(batchChips){ batchChips.innerHTML = ''; batchChips.classList.add('hidden'); }
+    updatePoolUI();
     updateBatchButtons();
     updateSessionBanner();
     setCloseSessionButtonsDisabled(true);
@@ -652,6 +656,7 @@
     }else{
       sessionNamePill.textContent = '未开启批次';
       sessionPageCountEl.textContent = '0';
+      if(poolInfoEl) poolInfoEl.classList.remove('active');
     }
   }
 
@@ -1453,6 +1458,35 @@
     freqTable.querySelectorAll('tr.clickable.active').forEach(r=> r.classList.remove('active'));
     renderTitles(lastTitles);
   });
+
+  // —— 关键词多选 chips 统计与展示（每词命中条数，基于 lastTitles） ——
+  const selectedTermsChips = document.getElementById('selectedTermsChips');
+  function renderSelectedTermChips(){
+    if(!selectedTermsChips) return;
+    const terms = Array.from(selectedTerms);
+    if(terms.length===0){ selectedTermsChips.classList.add('hidden'); selectedTermsChips.innerHTML=''; return; }
+    selectedTermsChips.classList.remove('hidden');
+    // 统计每个已选词在当前标题集合中的命中条数（基于 lastTitles，不受“仅显示命中”开关影响）
+    const chipsHtml = terms.map(t=>{
+      const cnt = lastTitles.reduce((acc, title)=> acc + (title.includes(t)?1:0), 0);
+      const label = `${t}（${cnt}）`;
+      return `<button class="chip sm" data-term="${escapeHtml(t)}" title="命中 ${cnt} 条">${escapeHtml(label)}<span class="del" data-del="${escapeHtml(t)}">×</span></button>`;
+    }).join('');
+    selectedTermsChips.innerHTML = chipsHtml;
+    // 删除 handlers
+    selectedTermsChips.querySelectorAll('[data-del]').forEach(b=>{
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const w = b.getAttribute('data-del');
+        if(selectedTerms.has(w)) selectedTerms.delete(w);
+        // 取消表格里对应行的选中态
+        freqTable.querySelectorAll('tr.clickable.active').forEach(r=>{ if(r.getAttribute('data-term')===w) r.classList.remove('active'); });
+        clearTermsBtn.disabled = selectedTerms.size===0;
+        renderSelectedTermChips();
+        renderTitles(lastTitles);
+      });
+    });
+  }
 
   // 开始批次按钮事件
   startSessionBtn?.addEventListener('click', ()=>{
