@@ -89,6 +89,19 @@
     .switch input::after{ content:""; position:absolute; width:18px; height:18px; border-radius:50%; left:2px; top:2px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); transition: transform .2s ease; }
     .switch input:checked::after{ transform: translateX(16px); }
     .switch label{ font-size:13px; color: var(--muted); cursor:pointer; }
+    /* 文本识别工具 */
+    .tool-card{ margin-top: 22px; }
+    .area{ width:100%; min-height: 160px; padding:16px 18px; border-radius:16px; border:1px solid rgba(120,120,128,.16); background: transparent; color:var(--ink); font-size:14px; line-height:1.6; outline:none; }
+    .area:focus{ border-color: var(--accent); box-shadow: 0 0 0 6px var(--ring); }
+    .result-wrap{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    .result-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .capsule{ font-size:12px; color:var(--muted); background: rgba(120,120,128,.10); border-radius:999px; padding:6px 10px; }
+    .list{ list-style:none; padding:0; margin:0; }
+    .list li{ padding:8px 10px; border-radius:10px; border:1px solid rgba(120,120,128,.12); margin-bottom:8px; font-size:14px; }
+    .tools-row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .btn.small{ padding:10px 14px; font-size:13px; border-radius:12px; }
+    .tbl{ width:100%; border-collapse:collapse; margin-top:8px; }
+    .tbl th, .tbl td{ border-bottom:1px solid rgba(120,120,128,.12); text-align:left; padding:8px 6px; font-size:13px; }
   </style>
 </head>
 <body>
@@ -136,6 +149,37 @@
           </div>
         </details>
       </div>
+    </section>
+
+    <section class="card tool-card">
+      <details>
+        <summary>文本识别工具（从网页复制的纯文本中提取商品标题）</summary>
+        <div class="stack" style="margin-top:10px">
+          <div>
+            <label for="bulkInput">粘贴原始文本</label>
+            <textarea id="bulkInput" class="area" placeholder="在这里粘贴搜索结果页复制下来的整段文字…"></textarea>
+          </div>
+          <div class="tools-row">
+            <button class="btn small primary" id="extractBtn">识别标题</button>
+            <button class="btn small ghost" id="copyTitlesBtn" disabled>复制标题</button>
+            <button class="btn small ghost" id="exportCsvBtn" disabled>导出 CSV</button>
+            <button class="btn small ghost" id="genFreqBtn" disabled>生成词频</button>
+          </div>
+          <div class="result-wrap">
+            <div class="result-head">
+              <div class="capsule"><span id="titleCount">0</span> 条标题</div>
+            </div>
+            <ul class="list" id="titleList"></ul>
+            <div id="freqWrap" class="hidden">
+              <div class="capsule">词频 Top 50（去停用词，中文≥2字）</div>
+              <table class="tbl" id="freqTable">
+                <thead><tr><th>词</th><th>频次</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </details>
     </section>
 
     <footer>
@@ -414,6 +458,185 @@
   });
 
   keepSkuEl.addEventListener('change', () => run());
+
+  // —— 文本识别工具：从纯文本中提取商品标题 ——
+  const bulkInput = document.getElementById('bulkInput');
+  const extractBtn = document.getElementById('extractBtn');
+  const copyTitlesBtn = document.getElementById('copyTitlesBtn');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const genFreqBtn = document.getElementById('genFreqBtn');
+  const titleList = document.getElementById('titleList');
+  const titleCount = document.getElementById('titleCount');
+  const freqWrap = document.getElementById('freqWrap');
+  const freqTable = document.querySelector('#freqTable tbody');
+
+  // 规则：去领域词依赖，改为“通用打分”抽取标题
+  // 仅保留与价格、销量、店铺信息等明显噪声无关且像“商品名”的行
+  const NOISE_PATTERNS = [
+    /[¥￥]\s*\d/,                 // 价格
+    /券后价|补贴|立减|直降|秒杀|抢购|折扣|返现|返\d+元|预售|预定|到手价|神券|神价/, // 营销
+    /人付款|人看过|付款|看过|回头客/,   // 成交/浏览
+    /包邮|退货宝|公益宝贝|运费险/,       // 服务
+    /关注的店|品牌直销店/,               // 引导
+    /(旗舰店|官方店|品牌店|自营店|总店|专卖店|专营店|店$)/, // 店铺
+    /江苏|浙江|广东|上海|北京|天津|重庆|四川|福建|山东|河南|河北|湖南|湖北|安徽|江西|山西|陕西|黑龙江|吉林|辽宁|云南|贵州|甘肃|内蒙古|宁夏|青海|广西|新疆|西藏|香港|澳门|台湾/, // 地名
+    /https?:\/\//i,                 // URL
+    /^\s*\d+\s*\/\s*\d+\s*$/,    // 分页指示 1/100
+    /^\s*\d+[，,\. ]*\+?人?$/,      // 纯数字/人数
+  ];
+  const SECTION_NOISE = [
+    /^\s*品牌[:：]/, /^\s*工艺[:：]/, /^\s*厚度[:：]/, /^\s*材质[:：]?/,
+    /^\s*筛选条件[:：]?/, /^\s*大家都在搜/, /^\s*综合|销量|价格|新品|包邮|百亿补贴|全球购/
+  ];
+
+  // 长度阈值：标题一般最多30个中文（约60字符），低于20个中文可忽略
+  const MIN_ZH = 20;         // 最少中文字符数
+  const MAX_CHARS = 60;      // 展示时的最大字符数（不截断导出原文）
+
+  function zhCount(s){
+    const m = String(s).match(/[\u4e00-\u9fa5]/g); return m ? m.length : 0;
+  }
+  function truncateByChars(s, n){
+    if(!s) return s;
+    if(s.length <= n) return s;
+    return s.slice(0, n) + '…';
+  }
+  function looksLikeTitleLine(lines, idx){
+    const s = (lines[idx]||'').trim();
+    if(!s) return {ok:false,score:-9};
+    if(SECTION_NOISE.some(re=>re.test(s))) return {ok:false,score:-8};
+    if(/[:：]$/.test(s)) return {ok:false,score:-7};
+    if (NOISE_PATTERNS.some(re=>re.test(s))) return {ok:false,score:-6};
+
+    const L = s.length;
+    const Z = zhCount(s);
+    // 硬性规则：中文少于阈值直接忽略
+    if (Z < MIN_ZH) return {ok:false,score:-5};
+
+    let score = 0;
+    if (Z >= MIN_ZH) score += 2.5;       // 满足中文阈值
+    if (L >= 12 && L <= 120) score += 2; // 合理长度
+    if (/[A-Za-z0-9]/.test(s)) score += 0.5; // 型号/品牌字母
+
+    // 惩罚：疑似店铺或服务信息
+    if (/(旗舰店|官方店|品牌店|自营店|总店|店$)/.test(s)) score -= 3;
+    if (/[¥￥]/.test(s)) score -= 3;
+
+    // 上下文加分：下一行价格/销量/发货地
+    const next = (lines[idx+1]||'').trim();
+    if(next){
+      if(/[¥￥]\s*\d/.test(next)) score += 2;
+      if(/人付款|券后价|补贴|包邮/.test(next)) score += 1.5;
+      if(/江苏|浙江|广东|上海|北京|天津|重庆|四川|福建/.test(next)) score += 1;
+    }
+
+    // 前一行若像属性标签，加一点分
+    const prev = (lines[idx-1]||'').trim();
+    if(prev && /^(男|女|男女通用|A类|B类|长袖|短袖|春秋|秋冬|冬季|夏季)\b/.test(prev)) score += 0.5;
+
+    return {ok: score >= 3, score};
+  }
+
+  function dedupe(arr){
+    const seen = new Set();
+    const out = [];
+    for(const t of arr){
+      const norm = t.replace(/\s+/g,' ').trim();
+      if(!seen.has(norm)) { seen.add(norm); out.push(norm); }
+    }
+    return out;
+  }
+
+  function extractTitlesFromText(text){
+    const lines = String(text).split(/\r?\n/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
+    const picked = [];
+    for(let i=0;i<lines.length;i++){
+      const {ok} = looksLikeTitleLine(lines, i);
+      if(ok) picked.push(lines[i]);
+    }
+    return dedupe(picked);
+  }
+
+  let lastTitles = [];
+  function renderTitles(titles){
+    lastTitles = titles.slice(); // 保存原文用于复制/导出/词频
+    const items = titles.map(t=>`<li title="${escapeHtml(t)}">${escapeHtml(truncateByChars(t, MAX_CHARS))}</li>`).join('');
+    titleList.innerHTML = items;
+    titleCount.textContent = String(titles.length);
+    const has = titles.length>0;
+    copyTitlesBtn.disabled = !has;
+    exportCsvBtn.disabled = !has;
+    genFreqBtn.disabled = !has;
+    if(!has){ freqWrap.classList.add('hidden'); freqTable.innerHTML=''; }
+  }
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function toCSV(titles){
+    const header = 'title';
+    const rows = titles.map(t => '"' + t.replace(/"/g,'""') + '"');
+    return [header, ...rows].join('\n');
+  }
+
+  function download(name, text, type='text/plain'){
+    const blob = new Blob([text], {type});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  }
+
+  // 简单词频：中文按连续汉字分词，过滤长度<2；英文/数字按 \w+ 提取；常见停用词剔除
+  const STOPWORDS = new Set(['儿童','男童','女童','中大童','青少年','男','女','套装','内衣','秋衣','秋裤','睡衣','保暖','打底','纯棉','薄款','加厚','新款','官方','旗舰','品牌','店','总店','自营','正品']);
+
+  function tokenize(t){
+    const tokens = [];
+    // 中文词块
+    const zh = t.match(/[\u4e00-\u9fa5]{2,}/g) || [];
+    zh.forEach(w=>tokens.push(w));
+    // 英文/数字
+    const en = t.match(/[A-Za-z0-9][A-Za-z0-9\-+\/]{1,}/g) || [];
+    en.forEach(w=>tokens.push(w.toLowerCase()));
+    return tokens;
+  }
+
+  function makeFreq(titles){
+    const freq = new Map();
+    for(const t of titles){
+      for(const tok of tokenize(t)){
+        if(STOPWORDS.has(tok)) continue;
+        if(tok.length < 2) continue;
+        freq.set(tok, (freq.get(tok)||0)+1);
+      }
+    }
+    return Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,50);
+  }
+
+  function renderFreq(pairs){
+    freqTable.innerHTML = pairs.map(([w,c])=>`<tr><td>${escapeHtml(w)}</td><td>${c}</td></tr>`).join('');
+    freqWrap.classList.remove('hidden');
+  }
+
+  extractBtn.addEventListener('click', ()=>{
+    const titles = extractTitlesFromText(bulkInput.value);
+    renderTitles(titles);
+  });
+
+  copyTitlesBtn.addEventListener('click', async ()=>{
+    const text = lastTitles.join('\n');
+    try{ await navigator.clipboard.writeText(text); }catch{ /* ignore */ }
+  });
+
+  exportCsvBtn.addEventListener('click', ()=>{
+    const csv = toCSV(lastTitles);
+    download('titles.csv', csv, 'text/csv;charset=utf-8');
+  });
+
+  genFreqBtn.addEventListener('click', ()=>{
+    renderFreq(makeFreq(lastTitles));
+  });
 })();
 </script>
 </body>
