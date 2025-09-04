@@ -211,7 +211,7 @@
             <button class="btn small primary" id="extractBtn">识别标题</button>
             <button class="btn small ghost" id="copyTitlesBtn" disabled>复制标题</button>
             <button class="btn small ghost" id="exportCsvBtn" disabled>导出 CSV</button>
-            <button class="btn small ghost" id="genFreqBtn" disabled>生成词频</button>
+            <button class="btn small ghost" id="genFreqBtn" disabled>关键词统计</button>
           </div>
           <div class="result-wrap">
             <div class="result-head">
@@ -219,9 +219,9 @@
             </div>
             <ul class="list" id="titleList"></ul>
             <div id="freqWrap" class="hidden">
-              <div class="capsule">词频 Top 50（去停用词，中文≥2字）</div>
+              <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
               <table class="tbl" id="freqTable">
-                <thead><tr><th>词</th><th>频次</th></tr></thead>
+                <thead><tr><th>关键词</th><th>频次</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
@@ -668,33 +668,72 @@
     setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
   }
 
-  // 简单词频：中文按连续汉字分词，过滤长度<2；英文/数字按 \w+ 提取；常见停用词剔除
-  const STOPWORDS = new Set(['儿童','男童','女童','中大童','青少年','男','女','套装','内衣','秋衣','秋裤','睡衣','保暖','打底','纯棉','薄款','加厚','新款','官方','旗舰','品牌','店','总店','自营','正品']);
+  // —— 关键词识别与统计（中文2–8字，按“有该关键词的标题条数”计数）——
+  // 停用词（整词匹配），用于过滤过泛概念；可随时扩展
+  const STOPWORDS = new Set([
+    '男童','女童','儿童','中大童','宝宝','青少年','男孩','女孩',
+    '套装','内衣','睡衣','秋衣','秋裤','打底','保暖','加厚','薄款','新款',
+    '纯棉','全棉','棉质','棉毛衫','德绒','羊毛','蚕丝','莱卡',
+    '官方','旗舰','品牌','正品','直销','自营',
+    '居家','百搭','韩版','简约','休闲','清新','卡通',
+    '秋冬','春秋','冬季','夏季','薄','厚',
+    '男','女','A类','B类'
+  ]);
 
-  function tokenize(t){
-    const tokens = [];
-    // 中文词块
-    const zh = t.match(/[\u4e00-\u9fa5]{2,}/g) || [];
-    zh.forEach(w=>tokens.push(w));
-    // 英文/数字
-    const en = t.match(/[A-Za-z0-9][A-Za-z0-9\-+\/]{1,}/g) || [];
-    en.forEach(w=>tokens.push(w.toLowerCase()));
-    return tokens;
+  // 仅提取连续中文片段中的n-gram（2–8字）。英文/数字不计入关键词（如需可扩展规则）。
+  function chineseSegments(s){
+    return (s.match(/[\u4e00-\u9fa5]+/g) || []);
   }
-
-  function makeFreq(titles){
-    const freq = new Map();
-    for(const t of titles){
-      for(const tok of tokenize(t)){
-        if(STOPWORDS.has(tok)) continue;
-        if(tok.length < 2) continue;
-        freq.set(tok, (freq.get(tok)||0)+1);
+  function ngrams2to8(seg){
+    const out = [];
+    const nmax = Math.min(8, seg.length);
+    for(let n=2;n<=nmax;n++){
+      for(let i=0;i<=seg.length-n;i++){
+        out.push(seg.slice(i,i+n));
       }
     }
-    return Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,50);
+    return out;
+  }
+  function genCandidatesFromTitle(title){
+    const segs = chineseSegments(title);
+    const set = new Set();
+    for(const seg of segs){ for(const ng of ngrams2to8(seg)){ set.add(ng); } }
+    // 过滤：纯停用词、过短（<2）或>8的已被约束，无需再判
+    return Array.from(set).filter(k=>!STOPWORDS.has(k));
   }
 
-  function renderFreq(pairs){
+  // 构建“按标题计数”的频次（Document Frequency）：一个标题里同一关键词只记一次
+  function buildKeywordDF(titles){
+    const df = new Map();
+    for(const t of titles){
+      const cands = genCandidatesFromTitle(t);
+      const uniq = new Set(cands);
+      uniq.forEach(k=> df.set(k, (df.get(k)||0)+1));
+    }
+    return df;
+  }
+
+  // 质量提升：
+  // 1) 去除被更长且不低频的关键词完全包含的短词（保持更具信息量的“最大短语”）
+  // 2) 严格阈值：至少出现在2个不同标题中（可按需改）
+  function pruneKeywords(df){
+    const minDF = 2; // 阈值：至少2个标题出现
+    const entries = Array.from(df.entries()).filter(([k,c])=> c>=minDF);
+    // 构建按长度降序，频次降序排序，便于优先保留长高频
+    entries.sort((a,b)=> (b[0].length - a[0].length) || (b[1]-a[1]));
+
+    const kept = [];
+    for(const [k,c] of entries){
+      // 若已存在一个更长且频次≥当前的关键词包含了k，则丢弃k
+      const overshadowed = kept.some(([kk,cc])=> cc>=c && kk.includes(k));
+      if(!overshadowed) kept.push([k,c]);
+    }
+    // 最终按频次降序输出，最多Top100
+    kept.sort((a,b)=> b[1]-a[1]);
+    return kept.slice(0,100);
+  }
+
+  function renderKeywordTable(pairs){
     freqTable.innerHTML = pairs.map(([w,c])=>`<tr><td>${escapeHtml(w)}</td><td>${c}</td></tr>`).join('');
     freqWrap.classList.remove('hidden');
   }
@@ -715,7 +754,9 @@
   });
 
   genFreqBtn.addEventListener('click', ()=>{
-    renderFreq(makeFreq(lastTitles));
+    const df = buildKeywordDF(lastTitles);
+    const top = pruneKeywords(df);
+    renderKeywordTable(top);
   });
 })();
 </script>
