@@ -1712,6 +1712,10 @@
   let validateResult = null;
   let minRatioInput = null;
   let minDfInfo = null;
+  let compareModeEl = null;
+  let compareInputWrap = null;
+  let compareInput = null;
+  let compareBtn = null;
 
   function getTitleUniverseCount(){
     // 使用当前可分析集合（lastTitles）的总条数
@@ -1801,33 +1805,111 @@
     return {hits, misses, usedUniverse:cand.length, minDf};
   }
 
-  function renderValidateResult(res){
+  function renderValidateResult(res, compareRes = null){
     if(!validateResult) return;
     const {hits, misses, usedUniverse, minDf} = res || {hits:[],misses:[],usedUniverse:0,minDf:0};
     const totalTitles = getTitleUniverseCount();
     const sumHits = hits.length;
-    const html = `
-      <div class="mini-controls" style="justify-content:space-between;align-items:center;flex-wrap:wrap">
-        <div>
-          <span class="badge hit">命中 ${sumHits}</span>
-          <span class="badge miss">遗漏 ${misses.length}</span>
-          <span class="capsule">参与验证关键词：${usedUniverse} 个（DF≥${minDf}，样本 ${totalTitles}）</span>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
-        <div>
-          <div class="capsule">命中关键词（按DF）</div>
+    
+    let html = '';
+    
+    if(compareRes){
+      // 对比模式
+      const {hits: compareHits, misses: compareMisses} = compareRes;
+      const compareSumHits = compareHits.length;
+      
+      // 计算新标题比原标题多命中的关键词
+      const originalHitWords = new Set(hits.map(([w]) => w));
+      const compareHitWords = new Set(compareHits.map(([w]) => w));
+      const newHits = compareHits.filter(([w]) => !originalHitWords.has(w));
+      const lostHits = hits.filter(([w]) => !compareHitWords.has(w));
+      
+      html = `
+        <div class="mini-controls" style="justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px">
           <div>
-            ${hits.length? hits.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无命中</div>'}
+            <span class="capsule">参与验证关键词：${usedUniverse} 个（DF≥${minDf}，样本 ${totalTitles}）</span>
           </div>
         </div>
-        <div>
-          <div class="capsule">遗漏的高频关键词（按DF）</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
           <div>
-            ${misses.length? misses.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无明显遗漏</div>'}
+            <div class="capsule">原标题命中情况</div>
+            <div class="mini-controls" style="margin-bottom:8px">
+              <span class="badge hit">命中 ${sumHits}</span>
+              <span class="badge miss">遗漏 ${misses.length}</span>
+            </div>
+            <div>
+              ${hits.length? hits.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无命中</div>'}
+            </div>
+          </div>
+          <div>
+            <div class="capsule">新标题命中情况</div>
+            <div class="mini-controls" style="margin-bottom:8px">
+              <span class="badge hit">命中 ${compareSumHits}</span>
+              <span class="badge miss">遗漏 ${compareMisses.length}</span>
+            </div>
+            <div>
+              ${compareHits.length? compareHits.map(([w,df])=>{
+                const isNewHit = !originalHitWords.has(w);
+                const isLostHit = !compareHitWords.has(w);
+                const style = isNewHit ? 'background:rgba(52,199,89,.25);border:1px solid rgba(52,199,89,.4);color:#34c759;' : '';
+                return `<span class="kvpill" title="DF=${df}" style="${style}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`;
+              }).join('') : '<div class="muted" style="margin-top:6px">无命中</div>'}
+            </div>
           </div>
         </div>
-      </div>`;
+        <div style="margin-top:12px;padding:8px;background:rgba(120,120,128,.08);border-radius:8px">
+          <div class="capsule">对比分析</div>
+          <div style="font-size:13px;margin-top:6px">
+            ${compareSumHits > sumHits ? 
+              `<span class="badge hit">新标题命中更多关键词（+${compareSumHits - sumHits}）</span>` : 
+              compareSumHits < sumHits ? 
+              `<span class="badge miss">新标题命中更少关键词（-${sumHits - compareSumHits}）</span>` :
+              `<span class="capsule">命中关键词数量相同</span>`
+            }
+          </div>
+          ${newHits.length > 0 ? `
+            <div style="margin-top:8px">
+              <div class="capsule" style="font-size:12px;margin-bottom:4px">新增命中关键词：</div>
+              <div>
+                ${newHits.map(([w,df])=>`<span class="kvpill" style="background:rgba(52,199,89,.25);border:1px solid rgba(52,199,89,.4);color:#34c759;" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${lostHits.length > 0 ? `
+            <div style="margin-top:8px">
+              <div class="capsule" style="font-size:12px;margin-bottom:4px">丢失的关键词：</div>
+              <div>
+                ${lostHits.map(([w,df])=>`<span class="kvpill" style="background:rgba(255,149,0,.15);border:1px solid rgba(255,149,0,.3);color:#ff9f0a;" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>`;
+    } else {
+      // 单标题模式
+      html = `
+        <div class="mini-controls" style="justify-content:space-between;align-items:center;flex-wrap:wrap">
+          <div>
+            <span class="badge hit">命中 ${sumHits}</span>
+            <span class="badge miss">遗漏 ${misses.length}</span>
+            <span class="capsule">参与验证关键词：${usedUniverse} 个（DF≥${minDf}，样本 ${totalTitles}）</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+          <div>
+            <div class="capsule">命中关键词（按DF）</div>
+            <div>
+              ${hits.length? hits.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无命中</div>'}
+            </div>
+          </div>
+          <div>
+            <div class="capsule">遗漏的高频关键词（按DF）</div>
+            <div>
+              ${misses.length? misses.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无明显遗漏</div>'}
+            </div>
+          </div>
+        </div>`;
+    }
+    
     validateResult.innerHTML = html;
   }
 
@@ -1835,6 +1917,20 @@
     const t = validateInput?.value || '';
     const res = validateCustomTitle(t);
     renderValidateResult(res);
+  }
+
+  function runCompare(){
+    const originalTitle = validateInput?.value || '';
+    const newTitle = compareInput?.value || '';
+    
+    if(!originalTitle || !newTitle) {
+      alert('请先输入原标题和新标题');
+      return;
+    }
+    
+    const originalRes = validateCustomTitle(originalTitle);
+    const newRes = validateCustomTitle(newTitle);
+    renderValidateResult(originalRes, newRes);
   }
   // 验证弹窗绑定（在 DOMContentLoaded 后，确保弹窗已插入）
   document.addEventListener('DOMContentLoaded', ()=>{
@@ -1844,10 +1940,31 @@
     validateResult = document.getElementById('validateResult');
     minRatioInput = document.getElementById('minRatio');
     minDfInfo = document.getElementById('minDfInfo');
+    compareModeEl = document.getElementById('compareMode');
+    compareInputWrap = document.getElementById('compareInputWrap');
+    compareInput = document.getElementById('compareInput');
+    compareBtn = document.getElementById('compareBtn');
+    
     // 绑定事件
     if (validateBtn) validateBtn.addEventListener('click', runValidate);
     if (validateInput) validateInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runValidate(); }});
     if (minRatioInput) minRatioInput.addEventListener('input', updateMinDfInfo);
+    
+    // 对比模式开关
+    if (compareModeEl) {
+      compareModeEl.addEventListener('change', ()=>{
+        if (compareInputWrap) {
+          compareInputWrap.style.display = compareModeEl.checked ? 'flex' : 'none';
+        }
+        // 切换模式时清空结果
+        if (validateResult) validateResult.innerHTML = '';
+      });
+    }
+    
+    // 对比按钮
+    if (compareBtn) compareBtn.addEventListener('click', runCompare);
+    if (compareInput) compareInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runCompare(); }});
+    
     // 弹窗开关按钮
     const toggleValidateDlgBtn = document.getElementById('toggleValidateDlgBtn');
     const validateDlg = document.getElementById('validateDlg');
@@ -2157,21 +2274,38 @@
 </html>
 </script>
 <!-- 验证标题弹窗 -->
-<dialog id="validateDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:24px 28px;max-width:600px;width:95%;">
+<dialog id="validateDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:24px 28px;max-width:700px;width:95%;">
   <form method="dialog" style="margin:0;padding:0;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <strong>验证标题</strong>
       <button id="validateDlgClose" class="btn tiny ghost" type="button">关闭</button>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <input id="validateInput" class="note" placeholder="粘贴/输入你要验证的标题…" style="flex:1;min-width:0;" />
-      <button class="btn tiny" id="validateBtn" type="button">验证</button>
-    </div>
-    <div class="mini-controls" style="gap:6px;margin-bottom:10px;">
+    
+    <!-- 对比模式开关 -->
+    <div class="mini-controls" style="gap:6px;margin-bottom:12px;">
+      <div class="switch">
+        <input type="checkbox" id="compareMode" aria-label="对比模式" />
+        <label for="compareMode">对比模式</label>
+      </div>
       <label class="capsule" title="低于该比例的词将被忽略">忽略低频阈值</label>
       <input id="minRatio" type="number" class="note" step="0.01" min="0" max="0.50" value="0.10" style="width:70px" />
       <span class="capsule" id="minDfInfo">—</span>
     </div>
+    
+    <!-- 原标题输入 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <label class="capsule" style="min-width:60px;">原标题</label>
+      <input id="validateInput" class="note" placeholder="粘贴/输入你要验证的标题…" style="flex:1;min-width:0;" />
+      <button class="btn tiny" id="validateBtn" type="button">验证</button>
+    </div>
+    
+    <!-- 新标题输入（对比模式时显示） -->
+    <div id="compareInputWrap" style="display:none;align-items:center;gap:8px;margin-bottom:12px;">
+      <label class="capsule" style="min-width:60px;">新标题</label>
+      <input id="compareInput" class="note" placeholder="输入修改后的标题进行对比…" style="flex:1;min-width:0;" />
+      <button class="btn tiny" id="compareBtn" type="button">对比</button>
+    </div>
+    
     <div id="validateResult" class="result-wrap"></div>
   </form>
 </dialog>
