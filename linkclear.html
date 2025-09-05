@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>链接净化器 · 极简</title>
-  <meta name="description" content="输入原始链接，一键生成干净链接，支持复制与跳转。" />
+  <title>电商小工具</title>
+  <meta name="description" content="电商运营必备小工具集合，包含链接净化、标题识别等多种实用功能。" />
   <style>
     :root{
       --bg: #fbfbfd;
@@ -131,7 +131,7 @@
     .switch input:checked::after{ transform: translateX(16px); }
     .switch label{ font-size:13px; color: var(--muted); cursor:pointer; }
     
-    /* 文本识别工具样式 */
+    /* 小工具样式 */
     .area{ width:100%; min-height: 160px; padding:16px 18px; border-radius:16px; border:1px solid rgba(120,120,128,.16); background: transparent; color:var(--ink); font-size:14px; line-height:1.6; outline:none; }
     .area:focus{ border-color: var(--accent); box-shadow: 0 0 0 6px var(--ring); }
     .result-wrap{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
@@ -263,15 +263,15 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>链接净化器</h1>
-      <div class="sub">输入原始链接 → 一键生成干净链接。无杂乱参数，重点信息更清晰。</div>
+      <h1>电商小工具</h1>
+      <div class="sub">电商运营必备小工具集合，包含链接净化、标题识别等多种实用功能。</div>
     </header>
 
     <section class="card">
       <!-- Tab 导航 -->
       <div class="tab-nav">
         <button class="tab-btn active" data-tab="link-cleaner">🔗 链接净化</button>
-        <button class="tab-btn" data-tab="text-extractor">📝 文本识别</button>
+        <button class="tab-btn" data-tab="text-extractor">📝 标题识别</button>
       </div>
 
       <!-- 链接净化 Tab -->
@@ -315,7 +315,7 @@
         </div>
       </div>
 
-      <!-- 文本识别 Tab -->
+      <!-- 标题识别 Tab -->
       <div class="tab-content" id="text-extractor">
         <div class="stack">
           <div>
@@ -419,6 +419,13 @@
     if (targetBtn && targetContent) {
       targetBtn.classList.add('active');
       targetContent.classList.add('active');
+      
+      // 保存当前选择的tab到localStorage
+      try {
+        localStorage.setItem('linkclear_active_tab', tabId);
+      } catch (e) {
+        // 忽略存储错误
+      }
     }
   }
 
@@ -429,6 +436,25 @@
       switchTab(tabId);
     });
   });
+
+  // 页面加载时恢复上次选择的tab
+  function restoreActiveTab() {
+    try {
+      const savedTab = localStorage.getItem('linkclear_active_tab');
+      if (savedTab && document.querySelector(`[data-tab="${savedTab}"]`)) {
+        switchTab(savedTab);
+      }
+    } catch (e) {
+      // 忽略存储错误，使用默认tab
+    }
+  }
+
+  // 页面加载完成后恢复tab状态
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restoreActiveTab);
+  } else {
+    restoreActiveTab();
+  }
 
   // 链接净化功能相关元素
   const rawEl   = document.getElementById('raw');
@@ -446,7 +472,7 @@
   const pageTitleEl = document.getElementById('pageTitle');
   const retryTitleBtn = document.getElementById('retryTitle');
 
-  // 文本识别功能相关元素
+  // 标题识别小工具相关元素
   const bulkInput = document.getElementById('bulkInput');
   const extractBtn = document.getElementById('extractBtn');
   const copyTitlesBtn = document.getElementById('copyTitlesBtn');
@@ -1080,7 +1106,7 @@
 
   keepSkuEl.addEventListener('change', () => run());
 
-  // —— 文本识别工具：从纯文本中提取商品标题 ——
+  // —— 标题识别小工具：从纯文本中提取商品标题 ——
   
   // 规则：去领域词依赖，改为"通用打分"抽取标题
   // 仅保留与价格、销量、店铺信息等明显噪声无关且像"商品名"的行
