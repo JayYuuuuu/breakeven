@@ -1747,6 +1747,40 @@
     });
   }
 
+  // 智能关键词匹配函数：支持词序变化和词间隔
+  function smartKeywordMatch(title, keyword){
+    const titleText = String(title||'').trim();
+    const keywordText = String(keyword||'').trim();
+    
+    if(!titleText || !keywordText) return false;
+    
+    // 1. 直接包含匹配（原有逻辑）
+    if(titleText.includes(keywordText)) return true;
+    
+    // 2. 分词匹配：将关键词拆分为单个字符，检查是否都存在于标题中
+    const keywordChars = keywordText.split('').filter(c => /[\u4e00-\u9fa5]/.test(c));
+    if(keywordChars.length >= 2){
+      const titleChars = titleText.split('').filter(c => /[\u4e00-\u9fa5]/.test(c));
+      const hasAllChars = keywordChars.every(char => titleChars.includes(char));
+      if(hasAllChars){
+        // 3. 检查字符的相对位置关系（允许间隔但保持大致顺序）
+        let lastIndex = -1;
+        let matchedCount = 0;
+        for(const char of keywordChars){
+          const index = titleText.indexOf(char, lastIndex + 1);
+          if(index > lastIndex){
+            lastIndex = index;
+            matchedCount++;
+          }
+        }
+        // 如果匹配的字符数超过关键词长度的一半，且字符顺序基本保持，则认为匹配
+        return matchedCount >= Math.ceil(keywordChars.length * 0.7);
+      }
+    }
+    
+    return false;
+  }
+
   // 验证逻辑函数移到全局作用域，供弹窗用
   function validateCustomTitle(title){
     const text = String(title||'').trim();
@@ -1759,7 +1793,7 @@
     const cand = top.filter(([,df])=> df >= (minDf||0));
     const hits = [], misses = [];
     cand.forEach(([w,df])=>{
-      if(text.includes(w)) hits.push([w,df]); else misses.push([w,df]);
+      if(smartKeywordMatch(text, w)) hits.push([w,df]); else misses.push([w,df]);
     });
     // 命中按 DF 降序，遗漏也按 DF 降序
     hits.sort((a,b)=> b[1]-a[1]);
