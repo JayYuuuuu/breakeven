@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>电商运营工具箱｜导航中心</title>
+  <style>
+    :root {
+      --bg: #fbfbfd;
+      --card: #ffffff;
+      --ink: #111114;
+      --muted: #6b7280;
+      --accent: #0a84ff;
+      --ok: #34c759;
+      --warn: #ff9f0a;
+      --bad: #ff3b30;
+      --radius: 28px;
+      --shadow: 0 30px 60px rgba(0,0,0,.08), 0 8px 20px rgba(0,0,0,.06);
+      --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, Segoe UI, Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0b0c;
+        --card: #121214;
+        --ink: #f5f7fa;
+        --muted: #9aa1aa;
+        --accent: #0a84ff;
+        --ok: #30d158;
+        --warn: #ff9f0a;
+        --bad: #ff3b30;
+        --shadow: 0 30px 60px rgba(0,0,0,.55), 0 8px 20px rgba(0,0,0,.35);
+      }
+    }
+    
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: radial-gradient(1200px 800px at 50% -20%, rgba(10,132,255,.06), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0));
+      color: var(--ink);
+      letter-spacing: .1px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* 头部区域 */
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    
+    .header h1 {
+      font-weight: 700;
+      font-size: clamp(32px, 5vw, 56px);
+      letter-spacing: -.2px;
+      line-height: 1.08;
+      margin: .2em 0 .1em;
+      background: linear-gradient(135deg, var(--accent), #5ac8fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .header .subtitle {
+      color: var(--muted);
+      font-size: clamp(16px, 2.2vw, 18px);
+      letter-spacing: .1px;
+      margin-bottom: 20px;
+    }
+    
+    .header .description {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    
+    /* 工具卡片网格 */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    
+    .tool-card {
+      background: color-mix(in oklab, var(--card) 86%, transparent);
+      backdrop-filter: saturate(160%) blur(16px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px;
+      border: 1px solid rgba(120,120,128,.12);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), #5ac8fa);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .tool-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 40px 80px rgba(0,0,0,.12), 0 12px 24px rgba(0,0,0,.08);
+    }
+    
+    .tool-card:hover::before {
+      opacity: 1;
+    }
+    
+    .tool-card:active {
+      transform: translateY(-2px);
+    }
+    
+    .tool-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    
+    .tool-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+    
+    .tool-description {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    
+    .tool-features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .tool-features li {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 4px 0;
+      position: relative;
+      padding-left: 16px;
+    }
+    
+    .tool-features li::before {
+      content: '•';
+      color: var(--accent);
+      position: absolute;
+      left: 0;
+    }
+    
+    .tool-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      background: rgba(52,199,89,.15);
+      color: var(--ok);
+      border: 1px solid rgba(52,199,89,.25);
+      margin-top: 12px;
+    }
+    
+    .tool-status::before {
+      content: '●';
+      font-size: 8px;
+    }
+    
+    /* 特色功能区域 */
+    .feature-section {
+      background: color-mix(in oklab, var(--card) 86%, transparent);
+      backdrop-filter: saturate(160%) blur(16px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 40px;
+      border: 1px solid rgba(120,120,128,.12);
+      margin-bottom: 40px;
+    }
+    
+    .feature-section h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-align: center;
+      color: var(--ink);
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .feature-item {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .feature-item .icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+    }
+    
+    .feature-item h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+    
+    .feature-item p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    
+    /* 页脚 */
+    .footer {
+      text-align: center;
+      margin-top: auto;
+      padding-top: 40px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px 16px;
+      }
+      
+      .tools-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      
+      .tool-card {
+        padding: 24px;
+      }
+      
+      .feature-section {
+        padding: 24px;
+      }
+      
+      .feature-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+    
+    /* 加载动画 */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .tool-card {
+      animation: fadeInUp 0.6s ease forwards;
+    }
+    
+    .tool-card:nth-child(1) { animation-delay: 0.1s; }
+    .tool-card:nth-child(2) { animation-delay: 0.2s; }
+    .tool-card:nth-child(3) { animation-delay: 0.3s; }
+    .tool-card:nth-child(4) { animation-delay: 0.4s; }
+    .tool-card:nth-child(5) { animation-delay: 0.5s; }
+    
+    /* 工具卡片初始状态 */
+    .tool-card {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部区域 -->
+    <header class="header">
+      <h1>电商运营工具箱</h1>
+      <div class="subtitle">专业的电商运营决策支持平台</div>
+      <div class="description">
+        集成财务分析、价格策略、商品管理、运营工具于一体的综合性平台，为电商运营者提供全方位的决策支持。
+      </div>
+    </header>
+    
+    <!-- 工具卡片网格 -->
+    <main class="tools-grid">
+      <!-- 费用可视化墙 -->
+      <a href="metro.html" class="tool-card">
+        <span class="tool-icon">📊</span>
+        <h3 class="tool-title">费用可视化墙</h3>
+        <p class="tool-description">实时展示电商费用结构和利润分析，支持多维度参数调整和可视化展示。</p>
+        <ul class="tool-features">
+          <li>实时费用计算与可视化</li>
+          <li>多Tab切换分析模式</li>
+          <li>投放决策支持</li>
+          <li>利润推演分析</li>
+        </ul>
+        <div class="tool-status">默认首页</div>
+      </a>
+      
+      <!-- 商品分析 -->
+      <a href="product_analysis.html" class="tool-card">
+        <span class="tool-icon">📦</span>
+        <h3 class="tool-title">商品分析</h3>
+        <p class="tool-description">批量商品管理和分析，支持Excel导入导出，多价格模式分析。</p>
+        <ul class="tool-features">
+          <li>批量商品管理</li>
+          <li>Excel导入导出</li>
+          <li>多价格模式支持</li>
+          <li>智能筛选排序</li>
+        </ul>
+        <div class="tool-status">企业级功能</div>
+      </a>
+      
+      <!-- 标价计算 -->
+      <a href="list_price.html" class="tool-card">
+        <span class="tool-icon">💰</span>
+        <h3 class="tool-title">标价计算</h3>
+        <p class="tool-description">到手价与页面标价的双向计算，支持优惠设置和毛利率换算。</p>
+        <ul class="tool-features">
+          <li>到手价↔标价转换</li>
+          <li>优惠方案设置</li>
+          <li>毛利率换算分析</li>
+          <li>本地数据存储</li>
+        </ul>
+        <div class="tool-status">实用工具</div>
+      </a>
+      
+      <!-- 到手价计算 -->
+      <a href="listprice.html" class="tool-card">
+        <span class="tool-icon">🎯</span>
+        <h3 class="tool-title">到手价计算</h3>
+        <p class="tool-description">恒源祥售价计算工具，基于成本与系统参数推算合理到手价。</p>
+        <ul class="tool-features">
+          <li>税务合规计算</li>
+          <li>品类参数预设</li>
+          <li>目标利润率设置</li>
+          <li>建议价生成</li>
+        </ul>
+        <div class="tool-status">专业版</div>
+      </a>
+      
+      <!-- 电商小工具 -->
+      <a href="linkclear.html" class="tool-card">
+        <span class="tool-icon">🔧</span>
+        <h3 class="tool-title">电商小工具</h3>
+        <p class="tool-description">链接净化和标题识别工具，电商运营必备的实用小工具集合。</p>
+        <ul class="tool-features">
+          <li>链接参数净化</li>
+          <li>标题智能识别</li>
+          <li>关键词分析</li>
+          <li>批量数据处理</li>
+        </ul>
+        <div class="tool-status">实用工具</div>
+      </a>
+    </main>
+    
+    <!-- 特色功能区域 -->
+    <section class="feature-section">
+      <h2>平台优势</h2>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <span class="icon">🧮</span>
+          <h3>专业计算引擎</h3>
+          <p>纯函数架构，支持复杂财务计算和税务处理</p>
+        </div>
+        <div class="feature-item">
+          <span class="icon">📈</span>
+          <h3>多维度分析</h3>
+          <p>财务分析、价格策略、商品管理、运营工具全覆盖</p>
+        </div>
+        <div class="feature-item">
+          <span class="icon">🏛️</span>
+          <h3>税务合规</h3>
+          <p>考虑进项税、销项税、服务费税率等复杂税务场景</p>
+        </div>
+        <div class="feature-item">
+          <span class="icon">📊</span>
+          <h3>数据可视化</h3>
+          <p>实时图表展示，直观呈现费用结构和利润分析</p>
+        </div>
+        <div class="feature-item">
+          <span class="icon">🔄</span>
+          <h3>批量处理</h3>
+          <p>支持Excel导入导出，高效处理大量商品数据</p>
+        </div>
+        <div class="feature-item">
+          <span class="icon">🎯</span>
+          <h3>决策支持</h3>
+          <p>提供投放分析、ROI计算、价格策略等决策工具</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 页脚 -->
+    <footer class="footer">
+      <p>
+        电商运营工具箱 v2.0 | 
+        <a href="README.md" target="_blank">使用说明</a> | 
+        计算结果仅供参考，实际经营决策请结合具体业务情况和专业财务建议
+      </p>
+    </footer>
+  </div>
+  
+  <script>
+    // 页面加载完成后的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 添加页面加载动画
+      const cards = document.querySelectorAll('.tool-card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+      
+      // 添加点击统计（可选）
+      cards.forEach(card => {
+        card.addEventListener('click', function(e) {
+          const toolName = this.querySelector('.tool-title').textContent;
+          console.log(`用户点击了工具: ${toolName}`);
+          
+          // 可以在这里添加统计代码
+          // analytics.track('tool_clicked', { tool: toolName });
+        });
+      });
+      
+      // 添加键盘导航支持
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          // ESC键返回首页（如果从其他页面跳转过来）
+          if (document.referrer && document.referrer.includes(window.location.hostname)) {
+            window.history.back();
+          }
+        }
+      });
+    });
+    
+    // 添加工具卡片悬停效果增强
+    document.querySelectorAll('.tool-card').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-4px) scale(1.02)';
+      });
+      
+      card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+      });
+    });
+  </script>
+</body>
+</html>
