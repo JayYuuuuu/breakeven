@@ -1463,51 +1463,115 @@
     };
   }
   
-  // 显示产品标题重复度检查结果
-  function showProductDuplicateCheckResult(report, totalProducts) {
+  // 显示产品标题重复度检查结果（富展示版）
+  function showProductDuplicateCheckResult(report, totalProducts, rawGroups) {
     const dlg = document.getElementById('idDuplicateCheckDlg');
     const content = document.getElementById('idDuplicateCheckContent');
     const exportBtn = document.getElementById('idDuplicateCheckExportBtn');
-    
     if (!dlg || !content) return;
-    
-    let contentText = '';
-    contentText += `📊 产品标题重复度检查报告\n`;
-    contentText += `检查时间: ${new Date().toLocaleString()}\n`;
-    contentText += `检查产品数量: ${totalProducts} 个\n`;
-    contentText += `相似度阈值: 80%\n\n`;
-    contentText += `📋 检查结果:\n`;
-    contentText += `${report.message}\n\n`;
-    
-    if (report.hasDuplicates) {
-      contentText += `📈 统计信息:\n`;
-      contentText += `${report.summary}\n`;
-      contentText += `重复率: ${report.statistics.duplicateRate}%\n\n`;
-      contentText += `📝 详细信息:\n`;
-      contentText += `${report.details}\n\n`;
-      contentText += `💡 建议:\n`;
-      contentText += `• 检查重复标题是否来自同一店铺\n`;
-      contentText += `• 考虑合并相似度很高的产品\n`;
-      contentText += `• 保留最具代表性的产品版本\n`;
-      contentText += `• 优化产品标题以提高差异化\n`;
-      
-      // 显示导出按钮
-      if (exportBtn) {
-        exportBtn.style.display = 'inline-block';
-        exportBtn.onclick = () => exportProductDuplicateReport(report, totalProducts);
+
+    const plat = (idPlatformSel?.value==='auto') ? pickPlatformFromText(idRaw?.value||'') : (idPlatformSel?.value||'taobao');
+    const makeLink = (id)=>{
+      const href = linkForId(id, plat);
+      return `<a href="${href}" target="_blank" rel="noopener">${id}</a>`;
+    };
+
+    // 将分组拆分为“完全重复(100%)”与“高度相似(阈值-99%)”两类
+    const exactGroups = [];
+    const nearGroups = [];
+    (rawGroups||[]).forEach(g=>{
+      const exact = [];
+      const near = [];
+      g.similarProducts.forEach(p=>{ (p.similarity>=100 ? exact : near).push(p); });
+      if (g.originalTitle && g.originalTitle.trim()){
+        // 原始本身若存在完全重复，归入 exact；否则落入 near 分组的“头部”
+        const base = { index:g.originalIndex, product:g.originalProduct, title:g.originalTitle, similarity:100 };
+        if (exact.length>0) exact.unshift(base); else if (near.length>0) near.unshift(base);
       }
-    } else {
-      contentText += `🎉 恭喜！所有产品标题都是唯一的，没有发现重复。\n`;
-      contentText += `这表示您的产品标题具有良好的差异化。\n`;
-      contentText += `建议继续保持这种差异化策略。\n`;
-      
-      // 隐藏导出按钮
-      if (exportBtn) {
-        exportBtn.style.display = 'none';
-      }
+      if (exact.length>=2) exactGroups.push({ title:g.originalTitle, items:exact });
+      if (near.length>=2) nearGroups.push({ title:g.originalTitle, items:near });
+    });
+
+    // 头部统计
+    let html = '';
+    html += `<div style="margin-bottom:8px"><strong>📊 产品标题重复度检查报告</strong></div>`;
+    html += `<div class="muted" style="font-size:12px;margin-bottom:8px">检查时间：${new Date().toLocaleString()} · 数量：${totalProducts} · 阈值：80%</div>`;
+
+    if (!report.hasDuplicates){
+      html += `<div class="pill" style="display:inline-block">🎉 所有产品标题唯一</div>`;
+      content.innerHTML = html;
+      exportBtn && (exportBtn.style.display = 'none');
+      safeOpenDialog(dlg);
+      return;
     }
-    
-    content.textContent = contentText;
+
+    html += `<div class="capsule" style="display:inline-block;margin-bottom:10px">${report.summary} · 重复率 ${report.statistics.duplicateRate}%</div>`;
+
+    // 完全重复
+    html += `<div style="margin-top:6px;margin-bottom:4px"><strong>① 完全重复（标题100%一致）</strong></div>`;
+    if (exactGroups.length===0){
+      html += `<div class="muted" style="font-size:13px;margin-bottom:8px">未发现完全重复的标题</div>`;
+    }else{
+      html += exactGroups.map((grp, i)=>{
+        const ids = grp.items.map(it=> makeLink(it.product.id)).join('、');
+        const safeTitle = escapeHtml(grp.title||'');
+        return `<div style="border:1px solid rgba(120,120,128,.12);border-radius:10px;padding:8px 10px;margin-bottom:8px">
+          <div style="font-weight:600;margin-bottom:4px">${i+1}. ${safeTitle}</div>
+          <div class="muted" style="font-size:12px">产品ID：${ids}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // 高度相似
+    html += `<div style="margin-top:12px;margin-bottom:4px"><strong>② 高度相似（相似度 ≥80% 且 <100%）</strong></div>`;
+    if (nearGroups.length===0){
+      html += `<div class="muted" style="font-size:13px;margin-bottom:8px">未发现高度相似的标题</div>`;
+    }else{
+      // 使用 LCS 对齐并高亮差异字符，去掉分组标题，仅展示“原标题 vs 相似项”对比
+      const esc = s=> (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      function lcsMatrix(a,b){
+        const m=a.length,n=b.length; const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+        for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+        return dp;
+      }
+      function highlightDiff(a,b){
+        const A=[...a],B=[...b]; const dp=lcsMatrix(A,B);
+        let i=A.length,j=B.length; const keepA=Array(i).fill(false), keepB=Array(j).fill(false);
+        while(i>0&&j>0){ if(A[i-1]===B[j-1]){keepA[i-1]=true;keepB[j-1]=true;i--;j--;} else if(dp[i-1][j]>=dp[i][j-1]) i--; else j--; }
+        const aHtml=A.map((ch,k)=> keepA[k]? esc(ch):`<mark class="hl">${esc(ch)}</mark>`).join('');
+        const bHtml=B.map((ch,k)=> keepB[k]? esc(ch):`<mark class="hl">${esc(ch)}</mark>`).join('');
+        return {aHtml,bHtml};
+      }
+      html += nearGroups.map((grp)=>{
+        const base = grp.items[0];
+        const baseTitle = base?.title || '';
+        const blocks = grp.items.slice(1).map(sim=>{
+          const {aHtml,bHtml} = highlightDiff(baseTitle, sim.title||'');
+          const idLink = makeLink(sim.product.id);
+          return `<div style="border-top:1px dashed rgba(120,120,128,.25);padding-top:6px;margin-top:6px">
+            <div style="font-size:13px;color:var(--muted)">原标题：</div>
+            <div style="margin:2px 0">${aHtml}</div>
+            <div style="font-size:13px;color:var(--muted)">相似项：</div>
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
+              <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${bHtml}</div>
+              <div class="muted" style="white-space:nowrap;font-size:12px">${idLink} · ${Math.round(sim.similarity)}%</div>
+            </div>
+          </div>`;
+        }).join('');
+        return `<div style="border:1px solid rgba(120,120,128,.12);border-radius:10px;padding:8px 10px;margin-bottom:10px">${blocks}</div>`;
+      }).join('');
+    }
+
+    // 建议
+    html += `<div style="margin-top:10px" class="muted">
+      <div style="font-size:12px">建议：优先保留代表性商品，合并完全重复，优化高度相似标题以提高差异化。</div>
+    </div>`;
+
+    content.innerHTML = html;
+    if (exportBtn) {
+      exportBtn.style.display = 'inline-block';
+      exportBtn.onclick = () => exportProductDuplicateReport(report, totalProducts);
+    }
     safeOpenDialog(dlg);
   }
   
@@ -3536,8 +3600,8 @@
           const duplicates = checkProductTitleDuplicates(products, 80);
           const report = generateProductDuplicateReport(duplicates, products.length);
           
-          // 显示结果
-          showProductDuplicateCheckResult(report, products.length);
+          // 显示结果（富展示，含跳转链接）
+          showProductDuplicateCheckResult(report, products.length, duplicates);
         });
       }
     });
@@ -4424,18 +4488,20 @@
   startSessionCloseBtn?.addEventListener('click', ()=> startSessionDlg.close());
   startSessionCancelBtn?.addEventListener('click', ()=> startSessionDlg.close());
   
-  // 产品标题重复度检查弹窗事件处理
-  const idDuplicateCheckCloseBtn = document.getElementById('idDuplicateCheckCloseBtn');
-  const idDuplicateCheckCloseBtn2 = document.getElementById('idDuplicateCheckCloseBtn2');
-  
-  idDuplicateCheckCloseBtn?.addEventListener('click', ()=> {
-    const dlg = document.getElementById('idDuplicateCheckDlg');
-    if (dlg) safeCloseDialog(dlg);
-  });
-  idDuplicateCheckCloseBtn2?.addEventListener('click', ()=> {
-    const dlg = document.getElementById('idDuplicateCheckDlg');
-    if (dlg) safeCloseDialog(dlg);
-  });
+  // 产品标题重复度检查弹窗事件处理（延迟绑定，确保DOM已加载）
+  setTimeout(() => {
+    const idDuplicateCheckCloseBtn = document.getElementById('idDuplicateCheckCloseBtn');
+    const idDuplicateCheckCloseBtn2 = document.getElementById('idDuplicateCheckCloseBtn2');
+    
+    idDuplicateCheckCloseBtn?.addEventListener('click', ()=> {
+      const dlg = document.getElementById('idDuplicateCheckDlg');
+      if (dlg) safeCloseDialog(dlg);
+    });
+    idDuplicateCheckCloseBtn2?.addEventListener('click', ()=> {
+      const dlg = document.getElementById('idDuplicateCheckDlg');
+      if (dlg) safeCloseDialog(dlg);
+    });
+  }, 100);
   
   startSessionConfirmBtn?.addEventListener('click', ()=>{
     const finalName = (sessionNameInput?.value || '').trim();
@@ -4660,7 +4726,7 @@
     <strong>产品标题重复度检查结果</strong>
     <button id="idDuplicateCheckCloseBtn" class="btn tiny ghost">关闭</button>
   </div>
-  <div id="idDuplicateCheckContent" style="max-height:60vh;overflow:auto;padding:12px;background:#f8f9fa;border-radius:8px;font-family:monospace;white-space:pre-wrap;line-height:1.4"></div>
+  <div id="idDuplicateCheckContent" style="max-height:60vh;overflow:auto;padding:12px;background:#f8f9fa;border-radius:8px;line-height:1.5"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
     <button id="idDuplicateCheckExportBtn" class="btn small ghost" style="display:none">导出报告</button>
     <button id="idDuplicateCheckCloseBtn2" class="btn small primary">确定</button>
