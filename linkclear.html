@@ -370,6 +370,21 @@
       </div>
       <div id="sessionsList" style="max-height:50vh;overflow:auto"></div>
     </dialog>
+    
+    <dialog id="startSessionDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;max-width:760px;width:90%">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong>开始新批次</strong>
+        <button id="startSessionCloseBtn" class="btn tiny ghost">关闭</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <label for="sessionNameInput" style="display:block;margin-bottom:8px;font-weight:600;">批次名称（搜索关键词）</label>
+        <input id="sessionNameInput" type="text" placeholder="输入本批次搜索关键词..." style="width:100%;padding:12px 16px;border:1px solid rgba(120,120,128,.16);border-radius:12px;font-size:16px;outline:none;" />
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button id="startSessionCancelBtn" class="btn ghost">取消</button>
+        <button id="startSessionConfirmBtn" class="btn primary">开始批次</button>
+      </div>
+    </dialog>
             <div class="split">
               <div class="col">
                 <ul class="list" id="titleList"></ul>
@@ -529,6 +544,13 @@
   const sessionsCloseBtn = document.getElementById('sessionsCloseBtn');
   const exitViewBtn = document.getElementById('exitViewBtn');
   const resumeCollectionBtn = document.getElementById('resumeCollectionBtn');
+  
+  // 开始批次弹窗相关元素
+  const startSessionDlg = document.getElementById('startSessionDlg');
+  const sessionNameInput = document.getElementById('sessionNameInput');
+  const startSessionCloseBtn = document.getElementById('startSessionCloseBtn');
+  const startSessionCancelBtn = document.getElementById('startSessionCancelBtn');
+  const startSessionConfirmBtn = document.getElementById('startSessionConfirmBtn');
 
   // Helper to set enabled/disabled state for all close session buttons
   function setCloseSessionButtonsDisabled(disabled){
@@ -2212,12 +2234,20 @@
   // 开始批次按钮事件
   startSessionBtn?.addEventListener('click', ()=>{
     if (currentSession) return;
+    
+    // 自动检测搜索词并预填充
     const detectedQ = detectQueryFromText(bulkInput.value || '') || '';
     const prefill = detectedQ.trim();
-    const name = prompt('输入本批次搜索关键词（将作为批次名）', prefill || '');
-    const finalName = (name || prefill || '').trim();
-    if (!finalName) { alert('请先输入搜索词'); return; }
-    startSession(finalName);
+    if (sessionNameInput) {
+      sessionNameInput.value = prefill;
+      sessionNameInput.focus();
+      sessionNameInput.select(); // 选中文本，方便用户修改
+    }
+    
+    // 显示弹窗
+    if (startSessionDlg) {
+      startSessionDlg.showModal();
+    }
   });
 
   // —— 批次相关按钮事件与集合操作 ——
@@ -2234,6 +2264,27 @@
   sessionsCloseBtn?.addEventListener('click', ()=> sessionsDlg.close());
   exitViewBtn?.addEventListener('click', exitHistoryView);
   resumeCollectionBtn?.addEventListener('click', resumeCollectionFromHistory);
+  
+  // 开始批次弹窗事件处理
+  startSessionCloseBtn?.addEventListener('click', ()=> startSessionDlg.close());
+  startSessionCancelBtn?.addEventListener('click', ()=> startSessionDlg.close());
+  startSessionConfirmBtn?.addEventListener('click', ()=>{
+    const finalName = (sessionNameInput?.value || '').trim();
+    if (!finalName) { 
+      alert('请先输入搜索词'); 
+      return; 
+    }
+    startSession(finalName);
+    startSessionDlg.close();
+  });
+  
+  // 支持回车键确认
+  sessionNameInput?.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      startSessionConfirmBtn?.click();
+    }
+  });
 
   function renderSessionsDlg(){
     if(!sessionsList) return;
