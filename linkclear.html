@@ -389,6 +389,10 @@
                         <label for="strictMode">剔除短碎片</label>
                       </div>
                     </div>
+                    <div class="switch" title="包含儿童/男童/女童/中大童/宝宝/青少年等人群词进入统计（默认开启）">
+                      <input type="checkbox" id="includeDemographic" aria-label="包含人群词" checked />
+                      <label for="includeDemographic">包含人群词</label>
+                    </div>
                   </div>
                   <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
                   <table class="tbl" id="freqTable">
@@ -507,6 +511,7 @@
   const modeInterBtn = document.getElementById('modeInter');
   const clearTermsBtn = document.getElementById('clearTermsBtn');
   const strictModeEl = document.getElementById('strictMode');
+  const includeDemographicEl = document.getElementById('includeDemographic');
   // —— 批次(会话)持久化 ——
   const LS_SESS = 'linkclear_sessions_v1';        // 历史已关闭批次
   const LS_CUR  = 'linkclear_current_session_v1'; // 当前开启的批次
@@ -1446,6 +1451,9 @@
   }
 
   // —— 关键词识别与统计（中文2–8字，按“有该关键词的标题条数”计数）——
+  // 人群词（可通过开关放行）
+  const DEMOS = new Set(['儿童','男童','女童','中大童','宝宝','青少年','男孩','女孩']);
+  window.DEMOS = DEMOS;
   // 停用词（整词匹配），用于过滤过泛概念；可随时扩展
   const STOPWORDS = new Set([
     '男童','女童','儿童','中大童','宝宝','青少年','男孩','女孩',
@@ -1514,8 +1522,14 @@
     const segs = chineseSegments(title);
     const set = new Set();
     for(const seg of segs){ for(const ng of ngrams2to8(seg)){ set.add(ng); } }
-    // 过滤：纯停用词、词汇片段黑名单、过短（<2）或>8的已被约束，无需再判
-    return Array.from(set).filter(k=>!STOPWORDS.has(k) && !FRAGMENT_BLACKLIST.has(k));
+    // 依据开关动态生成停用集：默认排除 STOPWORDS；若未开启包含人群词，则将 DEMOS 加入排除集
+    const exclude = new Set(STOPWORDS);
+    if (!(includeDemographicEl && includeDemographicEl.checked)) {
+      DEMOS.forEach(w => exclude.add(w));
+    } else {
+      DEMOS.forEach(w => exclude.delete(w));
+    }
+    return Array.from(set).filter(k => !exclude.has(k) && !FRAGMENT_BLACKLIST.has(k));
   }
 
   // —— 语意短语增强：PMI + 左右熵 + 品牌协同 ——
@@ -1555,14 +1569,20 @@
       const charSet = new Set((t.match(/[\u4e00-\u9fa5]/g) || []));
       charSet.forEach(ch=> charDf.set(ch, (charDf.get(ch)||0)+1));
 
-      // 候选 token + 左右邻统计（仅中文块内部生成2-8gram）
-      const segs = chineseSegments(t);
+      // 候选 token + 左右邻统计（使用过滤后的候选词）
+      const candidates = genCandidatesFromTitle(t);
       const seenThisTitle = new Set(); // DF控制：同标题只+1
+      
+      // 为每个候选词计算左右邻字符（需要从原始文本中获取）
+      const segs = chineseSegments(t);
       for(const seg of segs){
         const L = seg.length;
         for(let n=2;n<=Math.min(8,L);n++){
           for(let i=0;i<=L-n;i++){
             const token = seg.slice(i,i+n);
+            // 只处理通过过滤的候选词
+            if(!candidates.includes(token)) continue;
+            
             // 左/右邻字符（熵）
             const lch = i>0 ? seg[i-1] : '^';
             const rch = (i+n<L) ? seg[i+n] : '$';
@@ -1692,7 +1712,9 @@
       const brandBoost = Math.min(2, brandCo / 3);
       // 对边缘PMI过低的短语进行惩罚（阈值可调，默认 0.5）
       const edgePenalty = (leftPMI < 0.5 ? 0.8 : 0) + (rightPMI < 0.5 ? 0.8 : 0); // 每侧-0.8 分
-      const score = df + 0.75*pmi + 0.5*sepScore + 0.5*brandBoost - edgePenalty;
+      const isDemo = DEMOS.has(token);
+      const demoPenalty = isDemo ? 1.5 : 0; // 人群词整体降权，数值可再调
+      const score = df + 0.75*pmi + 0.5*sepScore + 0.5*brandBoost - edgePenalty - demoPenalty;
       rows.push({ token, df, pmi, sep: sepScore, brand: brandBoost, score });
     });
     // 二次过滤：被更长高频短语“覆盖”的前后缀（如“保暖内” < “保暖内衣”）
@@ -1708,7 +1730,7 @@
         }
       }
       // 严格模式：对于长度<=3的前/后缀碎片，只要存在更长包含它的词就直接丢弃
-      if(!covered && opts && opts.strictChunks && t.length <= 3){
+      if(!covered && opts && opts.strictChunks && t.length <= 3 && !DEMOS.has(t)){
         for(const x of rows){ if(x.token.length>t.length && (x.token.startsWith(t) || x.token.endsWith(t))){ covered = true; break; } }
       }
       return !covered;
@@ -1730,13 +1752,20 @@
     // 重新根据严格模式计算关键词表
     renderTitles(lastTitles);
   });
+  // —— 人群词开关切换事件 ——
+  includeDemographicEl?.addEventListener('change', ()=>{
+    // 切换后重算统计并刷新表
+    renderTitles(lastTitles);
+  });
 
   function renderKeywordTable(pairs){
     // 保留已选中状态：为已选词添加 active 类
     freqTable.innerHTML = pairs.map(([w,c])=>{
       const term = escapeHtml(w);
       const isActive = selectedTerms && selectedTerms.has(w);
-      return `<tr class="clickable${isActive? ' active':''}" data-term="${term}"><td><span class="kw">${term}</span></td><td>${c}</td></tr>`;
+      const isDemo = window.DEMOS ? window.DEMOS.has(w) : false;
+      const demoDot = isDemo ? ' <span class="capsule" title="人群词">人群</span>' : '';
+      return `<tr class="clickable${isActive? ' active':''}" data-term="${term}"><td><span class="kw">${term}</span>${demoDot}</td><td>${c}</td></tr>`;
     }).join('');
     freqWrap.classList.remove('hidden');
     // 同步清空按钮可用态
