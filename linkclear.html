@@ -308,8 +308,9 @@
             </select>
             <button class="btn small primary" id="idParseBtn">解析并生成</button>
             <button class="btn small ghost" id="idExportBtn" disabled>导出 CSV</button>
-            <button class="btn small ghost" id="idSaveBtn" disabled>保存记录</button>
-            <button class="btn small ghost" id="idHistoryBtn">查看历史</button>
+                          <button class="btn small ghost" id="idSaveBtn" disabled>保存记录</button>
+              <button class="btn small ghost" id="idHistoryBtn">查看历史</button>
+              <button class="btn small ghost" id="idCleanupBtn">清理存储</button>
           </div>
           <div class="result-wrap">
             <div class="result-head">
@@ -573,6 +574,7 @@
   const idClearBtn = document.getElementById('idClearBtn');
   const idSaveBtn = document.getElementById('idSaveBtn');
   const idHistoryBtn = document.getElementById('idHistoryBtn');
+  const idCleanupBtn = document.getElementById('idCleanupBtn');
   const idResultTbody = document.querySelector('#idResultTable tbody');
   const idCountEl = document.getElementById('idCount');
   const idPlatformSel = document.getElementById('idPlatform');
@@ -1749,9 +1751,97 @@
     }
   }
   
+  // —— 数据压缩和存储管理工具函数 ——
+  
+  // 压缩产品记录数据，减少存储空间
+  function compressProductRecord(record) {
+    try {
+      // 只保留必要字段，移除冗余数据
+      const compressed = {
+        id: record.id,
+        storeName: record.storeName,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+        count: record.count,
+        // 压缩records数组，只保留关键字段
+        records: record.records.map(r => ({
+          id: r.id,
+          title: r.title,
+          price: r.price,
+          stock: r.stock,
+          cum: r.cum,
+          m30: r.m30,
+          created: r.created
+        }))
+      };
+      return compressed;
+    } catch (e) {
+      console.error('压缩记录失败:', e);
+      return record; // 压缩失败时返回原记录
+    }
+  }
+  
+  // 检查localStorage剩余空间
+  function checkStorageQuota() {
+    try {
+      const testKey = 'storage_test_' + Date.now();
+      const testData = 'x'.repeat(1024); // 1KB测试数据
+      localStorage.setItem(testKey, testData);
+      localStorage.removeItem(testKey);
+      return true; // 有足够空间
+    } catch (e) {
+      return false; // 空间不足
+    }
+  }
+  
+  // 清理旧记录，释放存储空间
+  function cleanupOldRecords(maxRecords = 50) {
+    try {
+      const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+      if (history.length <= maxRecords) return true;
+      
+      // 按创建时间排序，保留最新的记录
+      history.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      
+      // 删除超出限制的旧记录
+      const recordsToKeep = history.slice(0, maxRecords);
+      const recordsToDelete = history.slice(maxRecords);
+      
+      console.log(`清理存储空间: 删除 ${recordsToDelete.length} 条旧记录，保留 ${recordsToKeep.length} 条记录`);
+      
+      // 压缩保留的记录
+      const compressedRecords = recordsToKeep.map(compressProductRecord);
+      
+      localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(compressedRecords));
+      return true;
+    } catch (e) {
+      console.error('清理旧记录失败:', e);
+      return false;
+    }
+  }
+  
   // 保存产品记录到本地存储
   function saveProductRecords(records, storeName) {
     try {
+      // 数据验证
+      if (!Array.isArray(records) || records.length === 0) {
+        console.error('无效的记录数据');
+        return false;
+      }
+      
+      if (!storeName || !storeName.trim()) {
+        console.error('店铺名称不能为空');
+        return false;
+      }
+      
+      // 检查存储空间
+      if (!checkStorageQuota()) {
+        console.log('存储空间不足，尝试清理旧记录...');
+        if (!cleanupOldRecords(30)) { // 清理到30条记录
+          throw new Error('存储空间不足，无法保存记录');
+        }
+      }
+      
       const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
       const newRecord = {
         id: Date.now().toString(36),
@@ -1760,11 +1850,49 @@
         createdAt: Date.now(),
         count: records.length
       };
-      history.unshift(newRecord); // 新记录放在前面
-      localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(history));
+      
+      // 压缩新记录
+      const compressedRecord = compressProductRecord(newRecord);
+      history.unshift(compressedRecord); // 新记录放在前面
+      
+      // 如果记录过多，自动清理
+      if (history.length > 50) {
+        cleanupOldRecords(50);
+      }
+      
+      const historyStr = JSON.stringify(history);
+      localStorage.setItem(PRODUCT_HISTORY_KEY, historyStr);
+      
+      console.log(`成功保存 ${records.length} 条记录，当前历史记录总数: ${history.length}`);
       return true;
     } catch (e) {
       console.error('保存产品记录失败:', e);
+      
+      // 根据错误类型提供不同的处理建议
+      if (e.name === 'QuotaExceededError') {
+        console.log('存储空间超限，尝试清理更多旧记录...');
+        try {
+          cleanupOldRecords(20); // 清理到20条记录
+          // 重试保存
+          const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+          const newRecord = {
+            id: Date.now().toString(36),
+            storeName: storeName.trim(),
+            records: records,
+            createdAt: Date.now(),
+            count: records.length
+          };
+          const compressedRecord = compressProductRecord(newRecord);
+          history.unshift(compressedRecord);
+          localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(history));
+          console.log('重试保存成功');
+          return true;
+        } catch (retryError) {
+          console.error('重试保存也失败:', retryError);
+          return false;
+        }
+      }
+      
       return false;
     }
   }
@@ -1772,21 +1900,75 @@
   // 更新已有记录（按 id 覆盖 records/count/storeName）
   function updateProductRecord(recordId, records, storeName){
     try{
+      // 数据验证
+      if (!recordId) {
+        console.error('记录ID不能为空');
+        return false;
+      }
+      
+      if (!Array.isArray(records) || records.length === 0) {
+        console.error('无效的记录数据');
+        return false;
+      }
+      
       const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
       const idx = history.findIndex(r=> r.id===recordId);
-      if(idx===-1) return false;
+      if(idx===-1) {
+        console.error('未找到要更新的记录:', recordId);
+        return false;
+      }
+      
       const old = history[idx];
-      history[idx] = {
+      const updatedRecord = {
         ...old,
         storeName: (storeName || old.storeName || '').trim(),
         records: records,
         count: records.length,
         updatedAt: Date.now()
       };
-      localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(history));
+      
+      // 压缩更新后的记录
+      const compressedRecord = compressProductRecord(updatedRecord);
+      history[idx] = compressedRecord;
+      
+      const historyStr = JSON.stringify(history);
+      localStorage.setItem(PRODUCT_HISTORY_KEY, historyStr);
+      
+      console.log(`成功更新记录 ${recordId}，包含 ${records.length} 条产品数据`);
       return true;
     }catch(e){
       console.error('更新产品记录失败:', e);
+      
+      // 处理存储空间超限
+      if (e.name === 'QuotaExceededError') {
+        console.log('更新时存储空间超限，尝试清理旧记录...');
+        try {
+          cleanupOldRecords(30);
+          // 重试更新
+          const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+          const idx = history.findIndex(r=> r.id===recordId);
+          if(idx===-1) return false;
+          
+          const old = history[idx];
+          const updatedRecord = {
+            ...old,
+            storeName: (storeName || old.storeName || '').trim(),
+            records: records,
+            count: records.length,
+            updatedAt: Date.now()
+          };
+          
+          const compressedRecord = compressProductRecord(updatedRecord);
+          history[idx] = compressedRecord;
+          localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(history));
+          console.log('重试更新成功');
+          return true;
+        } catch (retryError) {
+          console.error('重试更新也失败:', retryError);
+          return false;
+        }
+      }
+      
       return false;
     }
   }
@@ -2015,6 +2197,32 @@
       const historyDlg = document.getElementById('productHistoryDlg');
       const historyCloseBtn = document.getElementById('productHistoryCloseBtn');
       if (historyCloseBtn) historyCloseBtn.addEventListener('click', () => safeCloseDialog(historyDlg));
+      
+      // 清理存储按钮事件
+      if (idCleanupBtn) {
+        idCleanupBtn.addEventListener('click', () => {
+          const confirmed = confirm('确定要清理存储空间吗？\n\n这将删除所有历史记录，只保留最新的20条记录。\n此操作不可撤销！');
+          if (confirmed) {
+            try {
+              const beforeCount = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]').length;
+              const success = cleanupOldRecords(20);
+              if (success) {
+                const afterCount = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]').length;
+                alert(`清理完成！\n\n清理前: ${beforeCount} 条记录\n清理后: ${afterCount} 条记录\n\n已释放存储空间，现在可以正常保存新记录了。`);
+                // 刷新历史记录显示
+                if (productHistoryDlg && productHistoryDlg.hasAttribute('open')) {
+                  renderProductHistory();
+                }
+              } else {
+                alert('清理失败，请重试');
+              }
+            } catch (e) {
+              console.error('清理存储失败:', e);
+              alert('清理存储时出错: ' + e.message);
+            }
+          }
+        });
+      }
     });
   }
   
