@@ -346,7 +346,10 @@
                 <span class="pill" id="sessionNamePill">未开启批次</span>
                 <span class="capsule">已采集 <span id="sessionPageCount">0</span> 页</span>
               </div>
-              <div class="muted" style="font-size:12px">点击下方页码可以查看该页标题；× 可删除该页</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="muted" style="font-size:12px">点击下方页码可以查看该页标题；× 可删除该页</div>
+                <button class="btn tiny ghost" id="exitViewBtn" style="display:none;">退出查看</button>
+              </div>
             </div>
             <div id="batchChips" class="tabchips"></div>
     <dialog id="sessionsDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;max-width:760px;width:90%">
@@ -473,10 +476,41 @@
   const sessionsDlg = document.getElementById('sessionsDlg');
   const sessionsList = document.getElementById('sessionsList');
   const sessionsCloseBtn = document.getElementById('sessionsCloseBtn');
+  const exitViewBtn = document.getElementById('exitViewBtn');
 
   // Helper to set enabled/disabled state for all close session buttons
   function setCloseSessionButtonsDisabled(disabled){
     closeSessionBtns.forEach(btn=> btn.disabled = !!disabled);
+  }
+
+  // 退出历史批次查看状态
+  function exitHistoryView(){
+    // 清空当前显示的历史批次数据
+    batches = []; 
+    poolTitles = []; 
+    selectedTerms.clear();
+    
+    // 清空界面显示
+    renderTitles([]);
+    renderBatchChips();
+    updatePoolUI();
+    updateBatchButtons();
+    
+    // 隐藏关键词分析模块
+    freqWrap.classList.add('hidden');
+    
+    // 隐藏批次横幅
+    sessionBanner.classList.add('hidden');
+    
+    // 隐藏退出查看按钮
+    if(exitViewBtn) exitViewBtn.style.display = 'none';
+    
+    // 重置批次横幅文本
+    sessionNamePill.textContent = '未开启批次';
+    sessionPageCountEl.textContent = '0';
+    
+    // 禁用关闭批次按钮（因为没有活跃批次）
+    setCloseSessionButtonsDisabled(true);
   }
 
   // 批次数组：每批为对象 { titles: string[], note: string, ts: number }
@@ -610,6 +644,9 @@
     batches = []; poolTitles = []; renderTitles([]); updatePoolUI(); updateBatchButtons();
     updateSessionBanner(); saveCurrentSession();
     setCloseSessionButtonsDisabled(false);
+    
+    // 隐藏退出查看按钮（开始新批次时）
+    if(exitViewBtn) exitViewBtn.style.display = 'none';
   }
   function closeSession(){
     if(!currentSession) return;
@@ -634,10 +671,11 @@
     currentView = 'batch';
     if(poolInfoEl) poolInfoEl.classList.remove('active');
     batches = []; poolTitles = [];
-    // 先隐藏关键词分析模块，再清空标题列表
-    freqWrap.classList.add('hidden');
+    // 清空选中的关键词和标题列表
     selectedTerms.clear();
     renderTitles([]);
+    // 强制隐藏关键词分析模块（在renderTitles之后执行，确保不会被重新显示）
+    freqWrap.classList.add('hidden');
     // 强制清空批次列表并隐藏
     if(batchChips){ batchChips.innerHTML = ''; batchChips.classList.add('hidden'); }
     updatePoolUI();
@@ -1514,6 +1552,7 @@
   closeSessionBtns.forEach(btn=> btn.addEventListener('click', closeSession));
   sessionsBtn?.addEventListener('click', ()=>{ renderSessionsDlg(); sessionsDlg.showModal(); });
   sessionsCloseBtn?.addEventListener('click', ()=> sessionsDlg.close());
+  exitViewBtn?.addEventListener('click', exitHistoryView);
 
   function renderSessionsDlg(){
     if(!sessionsList) return;
@@ -1544,6 +1583,9 @@
         sessionNamePill.textContent = `历史批次：${ss.name||''}`;
         sessionPageCountEl.textContent = String((ss.pages||[]).length);
         setCloseSessionButtonsDisabled(true); // 历史批次只读
+        
+        // 显示退出查看按钮
+        if(exitViewBtn) exitViewBtn.style.display = 'inline-block';
       });
     });
     sessionsList.querySelectorAll('[data-del]').forEach(b=>{
