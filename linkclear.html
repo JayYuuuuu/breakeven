@@ -1501,12 +1501,23 @@
     '夏男', '夏女', '夏童', '夏宝', '夏孩', // 从"夏季男"等截取
     '薄男', '薄女', '薄童', '薄宝', '薄孩', // 从"薄款男"等截取
     '厚男', '厚女', '厚童', '厚宝', '厚孩', // 从"厚款男"等截取
-    '类男', '类女', '类童', '类宝', '类孩'  // 从"A类男"等截取
+    '类男', '类女', '类童', '类宝', '类孩', // 从"A类男"等截取
+    '恤男', '恤女', '恤童', '恤宝', '恤孩'  // 从"T恤男"、"T恤女"等截取
   ]);
 
-  // 仅提取连续中文片段中的n-gram（2–8字）。英文/数字不计入关键词（如需可扩展规则）。
+  // 提取连续中文片段和包含英文字母的常见词汇（如T恤、A类等）
   function chineseSegments(s){
-    return (s.match(/[\u4e00-\u9fa5]+/g) || []);
+    const segments = [];
+    
+    // 1. 提取纯中文片段
+    const chineseOnly = s.match(/[\u4e00-\u9fa5]+/g) || [];
+    segments.push(...chineseOnly);
+    
+    // 2. 提取包含英文字母的常见词汇
+    const mixedWords = s.match(/[A-Za-z][\u4e00-\u9fa5]+|[\u4e00-\u9fa5]+[A-Za-z]/g) || [];
+    segments.push(...mixedWords);
+    
+    return segments;
   }
   function ngrams2to8(seg){
     const out = [];
@@ -2092,15 +2103,6 @@
     batches = [];
     poolTitles = [];
     
-    // 清空标题列表显示
-    renderTitles([]);
-    
-    // 重新渲染页码标签（清空页码标签）
-    renderBatchChips();
-    
-    // 更新集合UI
-    updatePoolUI();
-    
     // 清空选中的关键词
     selectedTerms.clear();
     currentTerm = null;
@@ -2108,8 +2110,31 @@
     window.__topKw = null;
     window.__kwWeight = null;
     
+    // 清空界面显示
+    renderTitles([]);
+    renderBatchChips();
+    updatePoolUI();
+    updateBatchButtons();
+    
     // 隐藏关键词分析模块
     freqWrap.classList.add('hidden');
+    
+    // 隐藏批次横幅
+    sessionBanner.classList.add('hidden');
+    
+    // 隐藏退出查看和重新开启采集按钮
+    if(exitViewBtn) exitViewBtn.style.display = 'none';
+    if(resumeCollectionBtn) resumeCollectionBtn.style.display = 'none';
+    
+    // 重置批次横幅文本
+    sessionNamePill.textContent = '未开启批次';
+    sessionPageCountEl.textContent = '0';
+    
+    // 清空查看历史状态
+    viewingHistorySession = null;
+    
+    // 禁用关闭批次按钮（因为没有活跃批次）
+    setCloseSessionButtonsDisabled(true);
     
     // 隐藏清空按钮
     clearCurrentBtn.style.display = 'none';
