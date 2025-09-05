@@ -258,6 +258,10 @@
       font-weight: 700;
     }
     .hl{ background: rgb(255, 225, 0); padding: 0 2px; border-radius: 4px; }
+    .badge{display:inline-block;border-radius:999px;padding:2px 8px;font-size:12px;margin-right:6px}
+    .badge.hit{background:rgba(52,199,89,.15);color:#34c759;border:1px solid rgba(52,199,89,.25)}
+    .badge.miss{background:rgba(255,149,0,.12);color:#ff9f0a;border:1px solid rgba(255,149,0,.25)}
+    .kvpill{display:inline-block;background:rgba(120,120,128,.10);border:1px solid rgba(120,120,128,.16);padding:3px 8px;border-radius:9px;margin:3px;font-size:12px}
   </style>
 </head>
 <body>
@@ -377,10 +381,13 @@
                       <button class="chip active" id="modeUnion">并集</button>
                       <button class="chip" id="modeInter">交集</button>
                     </div>
-                    <button class="btn tiny ghost" id="clearTermsBtn" disabled>清空选择</button>
-                    <div class="switch" title="开启后更严格地移除被更长短语覆盖的短碎片，如‘保暖内’ < ‘保暖内衣’">
-                      <input type="checkbox" id="strictMode" aria-label="剔除短碎片" />
-                      <label for="strictMode">剔除短碎片</label>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <button class="btn tiny ghost" id="toggleValidateDlgBtn">验证标题</button>
+                      <button class="btn tiny ghost" id="clearTermsBtn" disabled>清空选择</button>
+                      <div class="switch" title="开启后更严格地移除被更长短语覆盖的短碎片，如'保暖内' < '保暖内衣'">
+                        <input type="checkbox" id="strictMode" aria-label="剔除短碎片" />
+                        <label for="strictMode">剔除短碎片</label>
+                      </div>
                     </div>
                   </div>
                   <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
@@ -1327,10 +1334,15 @@
     // 自动触发关键词统计（当有标题时）
     if(total > 0){
       const stats = buildKeywordStats(lastTitles);
+      window.__lastStats = stats;
       const top = rankKeywords(stats, { minDF: 2, strictChunks: !!(strictModeEl && strictModeEl.checked) });
+      window.__topKw = top;                      // [[word, df], ...]
+      window.__kwWeight = new Map(top.map(([w,c])=>[w,c]));
       renderKeywordTable(top);
+      updateMinDfInfo();
     } else {
       freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */
+      window.__lastStats = null; window.__topKw = null; window.__kwWeight = null; updateMinDfInfo();
     }
     
     // 控制清空按钮的显示/隐藏（仅在单独识别模式下）
@@ -1667,6 +1679,28 @@
     bindKeywordRowClicks();
   }
 
+  // —— 标题验证：对自拟标题检测命中与遗漏 ——
+  // 弹窗验证相关元素（弹窗 DOM 在后面注入）
+  let validateInput = null;
+  let validateBtn = null;
+  let validateResult = null;
+  let minRatioInput = null;
+  let minDfInfo = null;
+
+  function getTitleUniverseCount(){
+    // 使用当前可分析集合（lastTitles）的总条数
+    return Array.isArray(lastTitles) ? lastTitles.length : 0;
+  }
+  
+  // 将updateMinDfInfo函数移到全局作用域，以便renderTitles函数可以访问
+  function updateMinDfInfo(){
+    if (!minRatioInput || !minDfInfo) return;
+    const n = getTitleUniverseCount();
+    const r = Math.max(0, Math.min(0.5, parseFloat(minRatioInput?.value||'0.10')));
+    const minDf = Math.ceil(n * r);
+    if(minDfInfo) minDfInfo.textContent = n>0 ? `当前阈值：DF ≥ ${minDf}（样本 ${n}）` : '—';
+  }
+
   function bindKeywordRowClicks(){
     const rows = freqTable.querySelectorAll('tr.clickable');
     rows.forEach(tr=>{
@@ -1686,6 +1720,82 @@
       });
     });
   }
+
+  // 验证逻辑函数移到全局作用域，供弹窗用
+  function validateCustomTitle(title){
+    const text = String(title||'').trim();
+    if(!text){ return {hits:[], misses:[], usedUniverse:0, minDf:0}; }
+    const top = window.__topKw || [];
+    const n = getTitleUniverseCount();
+    const r = Math.max(0, Math.min(0.5, parseFloat(minRatioInput?.value||'0.10')));
+    const minDf = Math.ceil(n * r);
+    // 过滤低频：仅保留 DF >= minDf 的关键词参与验证
+    const cand = top.filter(([,df])=> df >= (minDf||0));
+    const hits = [], misses = [];
+    cand.forEach(([w,df])=>{
+      if(text.includes(w)) hits.push([w,df]); else misses.push([w,df]);
+    });
+    // 命中按 DF 降序，遗漏也按 DF 降序
+    hits.sort((a,b)=> b[1]-a[1]);
+    misses.sort((a,b)=> b[1]-a[1]);
+    return {hits, misses, usedUniverse:cand.length, minDf};
+  }
+
+  function renderValidateResult(res){
+    if(!validateResult) return;
+    const {hits, misses, usedUniverse, minDf} = res || {hits:[],misses:[],usedUniverse:0,minDf:0};
+    const totalTitles = getTitleUniverseCount();
+    const sumHits = hits.length;
+    const html = `
+      <div class="mini-controls" style="justify-content:space-between;align-items:center;flex-wrap:wrap">
+        <div>
+          <span class="badge hit">命中 ${sumHits}</span>
+          <span class="badge miss">遗漏 ${misses.length}</span>
+          <span class="capsule">参与验证关键词：${usedUniverse} 个（DF≥${minDf}，样本 ${totalTitles}）</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+        <div>
+          <div class="capsule">命中关键词（按DF）</div>
+          <div>
+            ${hits.length? hits.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无命中</div>'}
+          </div>
+        </div>
+        <div>
+          <div class="capsule">遗漏的高频关键词（按DF）</div>
+          <div>
+            ${misses.length? misses.map(([w,df])=>`<span class="kvpill" title="DF=${df}">${escapeHtml(w)}<small class="muted">·${df}</small></span>`).join('') : '<div class="muted" style="margin-top:6px">无明显遗漏</div>'}
+          </div>
+        </div>
+      </div>`;
+    validateResult.innerHTML = html;
+  }
+
+  function runValidate(){
+    const t = validateInput?.value || '';
+    const res = validateCustomTitle(t);
+    renderValidateResult(res);
+  }
+  // 验证弹窗绑定（在 DOMContentLoaded 后，确保弹窗已插入）
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // 只在弹窗存在时绑定
+    validateInput = document.getElementById('validateInput');
+    validateBtn = document.getElementById('validateBtn');
+    validateResult = document.getElementById('validateResult');
+    minRatioInput = document.getElementById('minRatio');
+    minDfInfo = document.getElementById('minDfInfo');
+    // 绑定事件
+    if (validateBtn) validateBtn.addEventListener('click', runValidate);
+    if (validateInput) validateInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runValidate(); }});
+    if (minRatioInput) minRatioInput.addEventListener('input', updateMinDfInfo);
+    // 弹窗开关按钮
+    const toggleValidateDlgBtn = document.getElementById('toggleValidateDlgBtn');
+    const validateDlg = document.getElementById('validateDlg');
+    if (toggleValidateDlgBtn && validateDlg) {
+      toggleValidateDlgBtn.addEventListener('click', ()=> validateDlg.showModal());
+      document.getElementById('validateDlgClose')?.addEventListener('click', ()=> validateDlg.close());
+    }
+  });
 
   extractBtn.addEventListener('click', ()=>{
     const detectedQ = tryAutoFillQueryFrom(bulkInput.value);
@@ -1977,7 +2087,28 @@
   updateSessionBanner();
   updatePoolUI();
   updateBatchButtons();
+  if (typeof updateMinDfInfo === 'function') updateMinDfInfo();
 })();
 </script>
 </body>
 </html>
+</script>
+<!-- 验证标题弹窗 -->
+<dialog id="validateDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:24px 28px;max-width:600px;width:95%;">
+  <form method="dialog" style="margin:0;padding:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <strong>验证标题</strong>
+      <button id="validateDlgClose" class="btn tiny ghost" type="button">关闭</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <input id="validateInput" class="note" placeholder="粘贴/输入你要验证的标题…" style="min-width:240px;max-width:380px;width:40ch" />
+      <button class="btn tiny" id="validateBtn" type="button">验证</button>
+    </div>
+    <div class="mini-controls" style="gap:6px;margin-bottom:10px;">
+      <label class="capsule" title="低于该比例的词将被忽略">忽略低频阈值</label>
+      <input id="minRatio" type="number" class="note" step="0.01" min="0" max="0.50" value="0.10" style="width:70px" />
+      <span class="capsule" id="minDfInfo">—</span>
+    </div>
+    <div id="validateResult" class="result-wrap"></div>
+  </form>
+</dialog>

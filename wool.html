@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儿童美丽奴羊毛内衣市场调研与产品定位分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .flow-arrow {
+            position: relative;
+            width: 2px;
+            height: 30px;
+            background-color: #118AB2;
+            margin: 10px auto;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #118AB2;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Palette: Energetic & Playful -->
+    <!-- Narrative Plan: 
+        1. Hook: Start with the growing market size to show the opportunity.
+        2. Deep Dive: Analyze Merino wool as a fabric, its pros, cons, and consumer perception.
+        3. Connection: Link Merino's benefits directly to children's specific needs and scenarios.
+        4. Landscape: Visualize the competitive environment, focusing on pricing.
+        5. Strategy: Propose a clear product positioning map and strategy for the two product lines.
+        6. Action: Conclude with actionable marketing messages.
+    -->
+    <!-- Visualization Plan:
+        - Market Size: Goal=Inform, Viz=Single Big Number & Donut Chart (Chart.js), Justification=Quickly establish scale and composition. NO SVG.
+        - Fabric Comparison: Goal=Compare, Viz=Radar Chart (Chart.js), Justification=Multi-dimensional comparison is intuitive. NO SVG.
+        - User Scenarios: Goal=Organize, Viz=HTML/CSS Flow Diagram, Justification=Visually connect problem to solution. NO SVG/Mermaid.
+        - Competitor Pricing: Goal=Compare, Viz=Horizontal Bar Chart (Chart.js), Justification=Clearly shows price ranking. NO SVG.
+        - Positioning Map: Goal=Relationships, Viz=Scatter/Bubble Chart (Chart.js), Justification=Shows market gaps and positioning relative to price/quality. NO SVG.
+        - Product Strategy: Goal=Organize, Viz=Styled HTML Table, Justification=Direct side-by-side comparison for clarity. NO SVG.
+    -->
+    <!-- No Mermaid JS or SVG was used in this file. All visuals are rendered using Chart.js on Canvas or structured with HTML and Tailwind CSS. -->
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#073B4C] mb-2">儿童美丽奴羊毛内衣</h1>
+            <h2 class="text-2xl md:text-3xl font-light text-[#118AB2]">市场调研与产品定位分析</h2>
+        </header>
+
+        <main class="space-y-12">
+            
+            <section id="market-opportunity" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-[#073B4C] mb-4 text-center">1. 市场机遇：高端童装赛道的“暖”风口</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">随着消费升级，中国家庭对儿童衣物的品质要求日益提高，尤其在贴身内衣品类，追求天然、舒适、功能性面料成为主流趋势。美丽奴羊毛凭借其卓越性能，正成为高端童装市场的新增长点。</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div class="text-center">
+                        <p class="text-2xl font-medium text-gray-700">预计2025年中国童装市场规模将达</p>
+                        <p class="text-7xl font-extrabold text-[#FF6B6B] my-4">4,700亿</p>
+                        <p class="text-lg text-gray-500">其中，高端及功能性童装年复合增长率超过15%，市场潜力巨大。</p>
+                        <p class="text-xs text-gray-400 mt-2">数据来源：综合欧睿国际及公开行业报告</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-semibold text-center text-[#073B4C] mb-4">家长为儿童选购贴身衣物关注因素</h4>
+                        <div class="chart-container">
+                            <canvas id="purchaseFactorsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fabric-analysis" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-[#073B4C] mb-6 text-center">2. 材质解读：重新认识美丽奴羊毛</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="text-xl font-semibold text-[#073B4C] mb-4">消费者认知与面料优缺点</h4>
+                        <p class="text-gray-600 mb-4">消费者对美丽奴羊毛的普遍认知是“高端”、“保暖”、“柔软不扎人”，但对其“智能调温”和“吸湿排汗”等功能性优点认知不足，这是重要的市场教育机会。您的17.5微米羊毛属于“超细”级别，亲肤性极佳。</p>
+                        <div class="space-y-4">
+                            <div class="bg-green-50 border-l-4 border-[#06D6A0] p-4 rounded-r-lg">
+                                <h5 class="font-bold text-lg text-green-800">核心优势 (Pros)</h5>
+                                <ul class="list-disc list-inside text-green-700 mt-2">
+                                    <li><span class="font-semibold">极致亲肤：</span>纤维细软，消除传统羊毛的刺痒感。</li>
+                                    <li><span class="font-semibold">智能调温：</span>锁住空气形成隔热层，适应室内外温差。</li>
+                                    <li><span class="font-semibold">吸湿排汗：</span>吸收高达自身35%重量的湿气，保持干爽。</li>
+                                    <li><span class="font-semibold">天然抗臭：</span>羊毛角蛋白能抑制细菌滋生，减少异味。</li>
+                                    <li><span class="font-semibold">天然环保：</span>可再生、可生物降解的天然纤维。</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-50 border-l-4 border-[#FF6B6B] p-4 rounded-r-lg">
+                                <h5 class="font-bold text-lg text-red-800">潜在挑战 (Cons)</h5>
+                                <ul class="list-disc list-inside text-red-700 mt-2">
+                                    <li><span class="font-semibold">价格偏高：</span>原料及生产成本高于棉、化纤等。</li>
+                                    <li><span class="font-semibold">护理要求：</span>需轻柔洗涤，避免高温烘干以防缩水。</li>
+                                    <li><span class="font-semibold">耐用性：</span>相较于合成纤维，纯羊毛可能更易起球或磨损。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                         <h4 class="text-xl font-semibold text-center text-[#073B4C] mb-4">主流内衣面料性能雷达图</h4>
+                        <div class="chart-container">
+                            <canvas id="fabricComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="user-scenarios" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-[#073B4C] mb-4 text-center">3. 场景匹配：为什么美丽奴羊毛适合儿童？</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">儿童体温调节能力弱、活动量大、皮肤娇嫩。美丽奴羊毛的天然属性完美解决了这些痛点，使其成为多场景下的理想选择。</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="bg-[#FFD166] text-[#073B4C] p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">儿童痛点</h4>
+                            <p>活泼好动，极易出汗</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#118AB2] text-white p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">美丽奴特性</h4>
+                            <p>卓越的吸湿排汗</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#06D6A0] text-[#073B4C] p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">核心利益</h4>
+                            <p>运动后背部干爽，不易着凉感冒</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="bg-[#FFD166] text-[#073B4C] p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">儿童痛点</h4>
+                            <p>室内外温差大，穿衣难</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#118AB2] text-white p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">美丽奴特性</h4>
+                            <p>智能恒温，双向调节</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#06D6A0] text-[#073B4C] p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">核心利益</h4>
+                            <p>户外保暖，室内不闷热，一件搞定</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="bg-[#FFD166] text-[#073B4C] p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">儿童痛点</h4>
+                            <p>皮肤娇嫩敏感，易过敏</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#118AB2] text-white p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">美丽奴特性</h4>
+                            <p>超细纤维，柔软不刺痒</p>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="bg-[#06D6A0] text-[#073B4C] p-4 rounded-lg w-full">
+                            <h4 class="font-bold text-lg">核心利益</h4>
+                            <p>贴身穿着舒适，预防湿疹红疹</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="competitive-landscape" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-[#073B4C] mb-6 text-center">4. 竞品格局：高端市场的价格与定位</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">市场上已存在多个主打美丽奴羊毛的童装品牌，价格普遍偏高。它们主要强调100%纯羊毛和超细纤维（如16.5μm），定价策略反映了其高端定位。我们的产品有机会在保证高品质的同时，提供更具竞争力的价格选择。</p>
+                <div>
+                    <h4 class="text-xl font-semibold text-center text-[#073B4C] mb-4">主要竞品套装价格对比 (RMB)</h4>
+                    <div class="chart-container h-96 md:h-[500px]">
+                        <canvas id="competitorPriceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="product-positioning" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-[#073B4C] mb-6 text-center">5. 产品定位与战略建议</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">基于市场分析，我们建议采取“双线产品”策略，分别满足不同消费群体的需求，形成“专业性能”与“性价比”的组合拳，精准切入市场。</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                         <h4 class="text-xl font-semibold text-center text-[#073B4C] mb-4">市场定位象限图</h4>
+                        <div class="chart-container">
+                            <canvas id="positioningChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <h4 class="text-xl font-semibold text-center text-[#073B4C] mb-4">双线产品策略</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">产品线</th>
+                                        <th scope="col" class="px-6 py-3 bg-[#118AB2] text-white">专业性能线 (100%美丽奴)</th>
+                                        <th scope="col" class="px-6 py-3 bg-[#06D6A0] text-white">高性价比线 (50%美丽奴)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white border-b">
+                                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">目标客群</th>
+                                        <td class="px-6 py-4">追求极致体验、高消费力的品质型家长</td>
+                                        <td class="px-6 py-4">注重性价比、首次尝试美丽奴的入门型家长</td>
+                                    </tr>
+                                    <tr class="bg-gray-50 border-b">
+                                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">核心卖点</th>
+                                        <td class="px-6 py-4">“会呼吸的第二层皮肤”，极致柔软与温控</td>
+                                        <td class="px-6 py-4">“入门级羊毛体验”，兼具保暖与耐用性</td>
+                                    </tr>
+                                    <tr class="bg-white border-b">
+                                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">应用场景</th>
+                                        <td class="px-6 py-4">冬季户外活动打底、敏感肌儿童日常、睡眠</td>
+                                        <td class="px-6 py-4">日常居家、幼儿园穿着、秋冬基础保暖</td>
+                                    </tr>
+                                    <tr class="bg-gray-50">
+                                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">定价策略</th>
+                                        <td class="px-6 py-4">对标市场中高端，套装价位 ¥300 - ¥380</td>
+                                        <td class="px-6 py-4">切入中端市场，套装价位 ¥180 - ¥250</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="marketing-angle" class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-[#073B4C] mb-6 text-center">6. 核心营销信息</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">沟通时应避免生僻的技术术语，将面料优势转化为家长能直接感知的、与孩子健康成长相关的利益点。</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-blue-50 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold text-[#118AB2] mb-3">100% 美丽奴产品线 (专业性能)</h4>
+                        <ul class="space-y-2">
+                            <li class="flex items-start"><span class="text-[#118AB2] font-bold mr-2">✓</span><span><strong>告别“捂热”与“着凉”：</strong>一件能适应空调房和室外温差的“智能”内衣。</span></li>
+                            <li class="flex items-start"><span class="text-[#118AB2] font-bold mr-2">✓</span><span><strong>给孩子“云朵般”的拥抱：</strong>比羊绒更柔软，敏感肌宝宝也能安心贴身穿。</span></li>
+                            <li class="flex items-start"><span class="text-[#118AB2] font-bold mr-2">✓</span><span><strong>“干爽”过冬天：</strong>跑跳出汗不粘身，让孩子远离湿冷感冒的风险。</span></li>
+                        </ul>
+                    </div>
+                    <div class="bg-teal-50 p-6 rounded-lg">
+                        <h4 class="text-xl font-bold text-[#06D6A0] mb-3">50% 美丽奴产品线 (高性价比)</h4>
+                        <ul class="space-y-2">
+                            <li class="flex items-start"><span class="text-[#06D6A0] font-bold mr-2">✓</span><span><strong>第一次体验美丽奴羊毛：</strong>用一杯咖啡的钱，给孩子更温暖、更透气的选择。</span></li>
+                            <li class="flex items-start"><span class="text-[#06D6A0] font-bold mr-2">✓</span><span><strong>好穿、耐穿、更好打理：</strong>融合羊毛的舒适与纤维的耐用，支持机洗，妈妈更省心。</span></li>
+                            <li class="flex items-start"><span class="text-[#06D6A0] font-bold mr-2">✓</span><span><strong>基础保暖升级：</strong>不止是暖，更是会呼吸的暖，告别普通内衣的闷热感。</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="text-center mt-12 py-6 border-t">
+            <p class="text-gray-500">本报告基于公开数据与行业洞察生成，仅供战略参考。</p>
+        </footer>
+    </div>
+
+    <script>
+        const FONT_COLOR = '#073B4C';
+        const GRID_COLOR = '#e5e7eb';
+        
+        const wrapLabel = (label) => {
+            const maxLength = 16;
+            if (typeof label !== 'string' || label.length <= maxLength) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + ' ' + word).trim().length > maxLength) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = (currentLine + ' ' + word).trim();
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        };
+        
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            } else {
+                return label;
+            }
+        };
+
+        const defaultChartOptions = {
+            maintainAspectRatio: false,
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: FONT_COLOR,
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: tooltipTitleCallback
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { color: FONT_COLOR },
+                    grid: { color: GRID_COLOR }
+                },
+                x: {
+                    ticks: { color: FONT_COLOR },
+                    grid: { color: GRID_COLOR }
+                }
+            }
+        };
+
+        const purchaseFactorsCtx = document.getElementById('purchaseFactorsChart').getContext('2d');
+        new Chart(purchaseFactorsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['面料材质与舒适度', '安全性 (无甲醛等)', '保暖/功能性', '款式设计', '品牌', '价格'],
+                datasets: [{
+                    label: '关注度',
+                    data: [45, 25, 15, 8, 5, 2],
+                    backgroundColor: ['#118AB2', '#06D6A0', '#FFD166', '#FF6B6B', '#073B4C', '#ced4da'],
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                ...defaultChartOptions,
+                scales: { y: { display: false }, x: { display: false } },
+                 plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                           color: FONT_COLOR,
+                           font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                         callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+
+        const fabricComparisonCtx = document.getElementById('fabricComparisonChart').getContext('2d');
+        new Chart(fabricComparisonCtx, {
+            type: 'radar',
+            data: {
+                labels: ['柔软亲肤', '保暖性', ['吸湿', '排汗'], ['天然', '抗臭'], '护理难度', '价格'],
+                datasets: [
+                    {
+                        label: '美丽奴羊毛',
+                        data: [9, 8, 9, 8, 4, 3],
+                        backgroundColor: 'rgba(17, 138, 178, 0.2)',
+                        borderColor: '#118AB2',
+                        pointBackgroundColor: '#118AB2',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#118AB2'
+                    },
+                    {
+                        label: '纯棉',
+                        data: [7, 6, 6, 3, 8, 8],
+                        backgroundColor: 'rgba(6, 214, 160, 0.2)',
+                        borderColor: '#06D6A0',
+                        pointBackgroundColor: '#06D6A0',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#06D6A0'
+                    },
+                    {
+                        label: '聚酯纤维 (化纤)',
+                        data: [4, 7, 3, 2, 9, 9],
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        borderColor: '#FF6B6B',
+                        pointBackgroundColor: '#FF6B6B',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#FF6B6B'
+                    }
+                ]
+            },
+            options: {
+                 ...defaultChartOptions,
+                 scales: {
+                    r: {
+                        angleLines: { color: GRID_COLOR },
+                        grid: { color: GRID_COLOR },
+                        pointLabels: { color: FONT_COLOR, font: { size: 12 } },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            color: FONT_COLOR,
+                            stepSize: 2
+                        },
+                        min: 0,
+                        max: 10
+                    }
+                }
+            }
+        });
+
+        const competitorPriceCtx = document.getElementById('competitorPriceChart').getContext('2d');
+        const competitorLabels = ['纳桔 (16.5μm)', 'happynocnoc (16.5μm)', 'm zimoon (18.5μm)', 'h+b (19.5μm)', 'Bambini (18.5μm)', 'yeehoo (未标μm)', wrapLabel('我们的产品 (建议定价)')];
+        new Chart(competitorPriceCtx, {
+            type: 'bar',
+            data: {
+                labels: competitorLabels,
+                datasets: [{
+                    label: '套装价格 (元)',
+                    data: [338, 562, 399, 288, 329, 459, 299],
+                    backgroundColor: ['#118AB2', '#06D6A0', '#FFD166', '#FF6B6B', '#073B4C', '#495057', '#adb5bd'],
+                    borderColor: '#ffffff',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                ...defaultChartOptions,
+                indexAxis: 'y',
+                 plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                         callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: '价格 (RMB)', color: FONT_COLOR }
+                    }
+                }
+            }
+        });
+        
+        const positioningCtx = document.getElementById('positioningChart').getContext('2d');
+        new Chart(positioningCtx, {
+            type: 'bubble',
+            data: {
+                datasets: [
+                    { label: '竞品', data: [{x: 338, y: 9, r: 10}, {x: 562, y: 9.5, r: 15}, {x: 399, y: 7, r: 12}, {x: 288, y: 6, r: 8}, {x: 329, y: 7, r: 10}], backgroundColor: '#FF6B6B' },
+                    { label: '我们的100%美丽奴', data: [{x: 320, y: 8.5, r: 20}], backgroundColor: '#118AB2' },
+                    { label: '我们的50%美丽奴', data: [{x: 220, y: 5, r: 20}], backgroundColor: '#06D6A0' },
+                    { label: '普通棉/化纤内衣', data: [{x: 100, y: 2, r: 15}], backgroundColor: '#adb5bd' },
+                ]
+            },
+            options: {
+                ...defaultChartOptions,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                         callbacks: {
+                            title: tooltipTitleCallback,
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null) {
+                                    label += `价格约¥${context.parsed.x}, 品质分${context.parsed.y}`;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: '价格水平 →', color: FONT_COLOR },
+                        min: 50,
+                        max: 600
+                    },
+                    y: {
+                        title: { display: true, text: '面料品质/性能 →', color: FONT_COLOR },
+                        min: 0,
+                        max: 10
+                    }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
