@@ -326,7 +326,6 @@
             <button class="btn small primary" id="extractBtn">识别标题</button>
             <button class="btn small ghost" id="copyTitlesBtn" disabled>复制标题</button>
             <button class="btn small ghost" id="exportCsvBtn" disabled>导出 CSV</button>
-            <button class="btn small ghost" id="addToPoolBtn" disabled>加入集合</button>
             <button class="btn small ghost" id="undoLastBatchBtn" disabled>撤销上一批</button>
             <button class="btn small ghost" id="exportProjectBtn">导出项目</button>
             <button class="btn small ghost" id="importProjectBtn">导入项目</button>
@@ -461,7 +460,6 @@
   const showHitsOnlyEl = document.getElementById('showHitsOnly');
 
   // 采集/集合
-  const addToPoolBtn = document.getElementById('addToPoolBtn');
   // const viewPoolBtn = document.getElementById('viewPoolBtn'); // removed
 
   // const clearPoolBtn = document.getElementById('clearPoolBtn'); // removed
@@ -1191,28 +1189,51 @@
 
   // —— 搜索词自动识别（从“... 高级 搜索”模式中提取） ——
   function detectQueryFromText(text){
-    const s = String(text);
-    // 直接跨行匹配：捕获到“高级 搜索”前的片段
-    const re = /([\u4e00-\u9fa5A-Za-z0-9\-_.·（）()\s]{2,40})\s*高\s*级\s*搜\s*索/;
-    let m = s.match(re);
-    if(m){
-      const cand = m[1].trim();
-      if(zhCount(cand) >= 2) return cand;
-    }
-    // 按行保守匹配：同一行里含“高级”且（同行或下一小段）出现“搜索”
+    const s = String(text || '');
+    // 规则0：直接尝试常见“…… 高级 搜索”整段（搜索词在左侧）
+    let m = s.match(/([\u4e00-\u9fa5A-Za-z0-9\-_.·（）()\s]{2,40})\s*高\s*级\s*搜\s*索/);
+    if(m){ const cand = m[1].trim(); if(zhCount(cand) >= 3 && zhCount(cand) <= 10) return cand; }
+
+    // 规则1：逐行扫描，在含“高级/搜索”的附近（前后2行内）找 3–10 个中文的候选
     const lines = s.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const idxs = [];
     for(let i=0;i<lines.length;i++){
-      const line = lines[i];
-      if(/高\s*级/.test(line)){
-        const idx = line.indexOf('高');
-        const left = line.slice(0, Math.max(0, idx)).trim();
-        // 同行出现“搜索”或下一行紧跟“搜索”
-        const hasSearch = /搜\s*索/.test(line) || /搜\s*索/.test(lines[i+1]||'');
-        if(hasSearch && left && zhCount(left) >= 2){
-          return left.replace(/[\s]+$/,'');
-        }
-      }
+      if(/高\s*级/.test(lines[i]) || /搜\s*索/.test(lines[i])) idxs.push(i);
     }
+    const candScores = [];
+    function extractZhSlices(str){
+      const zs = (str.match(/[\u4e00-\u9fa5]{3,10}/g) || []).map(t=>t.trim());
+      return zs;
+    }
+    idxs.forEach(i=>{
+      for(let d=-2; d<=2; d++){
+        const j = i + d; if(j<0 || j>=lines.length) continue;
+        const zs = extractZhSlices(lines[j]);
+        zs.forEach(z=>{
+          const zlen = zhCount(z);
+          if(zlen>=3 && zlen<=10){
+            // 打分：距离越近、越长越好；若所在行同时出现“高级/搜索”，再加分
+            let score = 10 - Math.abs(d)*3 + zlen*0.8;
+            if(/高\s*级/.test(lines[j])) score += 1.2;
+            if(/搜\s*索/.test(lines[j])) score += 1.2;
+            candScores.push({z, score});
+          }
+        });
+      }
+    });
+    if(candScores.length){
+      // 合并同词，取最高分
+      const bestMap = new Map();
+      candScores.forEach(({z,score})=>{ bestMap.set(z, Math.max(bestMap.get(z)||0, score)); });
+      const best = Array.from(bestMap.entries()).sort((a,b)=> b[1]-a[1])[0];
+      if(best) return best[0];
+    }
+
+    // 规则2：兜底——取全文中靠近“高级/搜索”两词之间（或其最近邻）的 3–10 中文片段
+    const near = s.replace(/.*高\s*级/,'').split(/搜\s*索/)[0] || '';
+    const z2 = (near.match(/[\u4e00-\u9fa5]{3,10}/) || [null])[0];
+    if(z2) return z2;
+
     return '';
   }
   function tryAutoFillQueryFrom(text){
@@ -1276,8 +1297,6 @@
     const has = visible.length>0;
     copyTitlesBtn.disabled = total===0;    // 复制/导出基于 lastTitles，不受过滤影响
     exportCsvBtn.disabled = total===0;
-    // 控制集合相关按钮
-    addToPoolBtn.disabled = (batchTitles.length===0);
     updatePoolUI();
     // 自动触发关键词统计（当有标题时）
     if(total > 0){
@@ -1656,9 +1675,22 @@
       bulkInput.value = '';
       renderBatchChips();
     }
-    
-    // 单独识别模式：显示清空按钮
+
+    // 单独识别模式：自动创建一条复盘记录（基于智能识别到的搜索词）
     if (!currentSession && titles.length > 0) {
+      const q = tryAutoFillQueryFrom(bulkInput.value);
+      const zc = zhCount(q);
+      if (zc >= 3 && zc <= 10) {
+        const pno = tryAutoFillPageFrom(bulkInput.value) || 1;
+        const rec = {
+          id: Date.now().toString(36),
+          name: q,
+          createdAt: Date.now(),
+          closedAt: Date.now(),
+          pages: [{ pageNo: pno, titles: titles.slice(), ts: Date.now() }]
+        };
+        sessions.push(rec); saveSessions();
+      }
       clearCurrentBtn.style.display = 'inline-block';
       clearCurrentBtn.disabled = false;
     }
@@ -1675,8 +1707,18 @@
     batchTitles = [];
     lastTitles = [];
     
+    // 清空批次数据（页码标签）
+    batches = [];
+    poolTitles = [];
+    
     // 清空标题列表显示
     renderTitles([]);
+    
+    // 重新渲染页码标签（清空页码标签）
+    renderBatchChips();
+    
+    // 更新集合UI
+    updatePoolUI();
     
     // 清空选中的关键词
     selectedTerms.clear();
@@ -1770,9 +1812,6 @@
   });
 
   // —— 批次相关按钮事件与集合操作 ——
-  addToPoolBtn.addEventListener('click', ()=>{
-    if(batchTitles.length){ addBatchToPool(batchTitles, null); renderBatchChips(); }
-  });
   // viewPoolBtn.addEventListener('click', ()=>{ if(poolTitles.length){ renderTitles(poolTitles); } });
 
   poolInfoEl?.addEventListener('click', ()=>{ if(poolTitles.length){ renderTitles(poolTitles); } });
