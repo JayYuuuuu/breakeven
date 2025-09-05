@@ -251,6 +251,12 @@
     .col{ min-width:0; }
     .tbl tr.clickable{ cursor: pointer; }
     .tbl tr.active{ background: rgba(10,132,255,.08); }
+    .tbl tr.active td:first-child .kw{
+      background: rgba(255, 225, 0, .35);
+      border-radius: 6px;
+      padding: 0 6px;
+      font-weight: 700;
+    }
     .hl{ background: rgb(255, 225, 0); padding: 0 2px; border-radius: 4px; }
   </style>
 </head>
@@ -332,7 +338,7 @@
             <div class="result-head">
               <div class="capsule"><span id="titleCount">0</span> 条标题</div>
               <div class="switch">
-                <input type="checkbox" id="showHitsOnly" aria-label="仅显示命中" />
+                <input type="checkbox" id="showHitsOnly" aria-label="仅显示命中" checked />
                 <label for="showHitsOnly">仅显示命中</label>
               </div>
               <div class="mini-controls">
@@ -348,6 +354,7 @@
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
                 <div class="muted" style="font-size:12px">点击下方页码可以查看该页标题；× 可删除该页</div>
+                <button class="btn tiny ghost" id="resumeCollectionBtn" style="display:none;">重新开启采集</button>
                 <button class="btn tiny ghost" id="exitViewBtn" style="display:none;">退出查看</button>
               </div>
             </div>
@@ -371,6 +378,10 @@
                       <button class="chip" id="modeInter">交集</button>
                     </div>
                     <button class="btn tiny ghost" id="clearTermsBtn" disabled>清空选择</button>
+                    <div class="switch" title="开启后更严格地移除被更长短语覆盖的短碎片，如‘保暖内’ < ‘保暖内衣’">
+                      <input type="checkbox" id="strictMode" aria-label="剔除短碎片" />
+                      <label for="strictMode">剔除短碎片</label>
+                    </div>
                   </div>
                   <div class="capsule">关键词 Top 100（中文2–8字，按标题出现次数）</div>
                   <table class="tbl" id="freqTable">
@@ -462,11 +473,13 @@
   const modeUnionBtn = document.getElementById('modeUnion');
   const modeInterBtn = document.getElementById('modeInter');
   const clearTermsBtn = document.getElementById('clearTermsBtn');
+  const strictModeEl = document.getElementById('strictMode');
   // —— 批次(会话)持久化 ——
   const LS_SESS = 'linkclear_sessions_v1';        // 历史已关闭批次
   const LS_CUR  = 'linkclear_current_session_v1'; // 当前开启的批次
   let sessions = [];           // 历史批次 [{id,name,createdAt,closedAt?,pages:[{pageNo,titles,ts}]}]
   let currentSession = null;   // 正在采集的批次
+  let viewingHistorySession = null; // 当前查看的历史批次
   // DOM refs for session features
   const sessionBanner = document.getElementById('sessionBanner');
   const sessionNamePill = document.getElementById('sessionNamePill');
@@ -477,10 +490,30 @@
   const sessionsList = document.getElementById('sessionsList');
   const sessionsCloseBtn = document.getElementById('sessionsCloseBtn');
   const exitViewBtn = document.getElementById('exitViewBtn');
+  const resumeCollectionBtn = document.getElementById('resumeCollectionBtn');
 
   // Helper to set enabled/disabled state for all close session buttons
   function setCloseSessionButtonsDisabled(disabled){
     closeSessionBtns.forEach(btn=> btn.disabled = !!disabled);
+  }
+
+  // 检测并过滤重复标题
+  function filterDuplicateTitles(newTitles, existingTitles) {
+    const existingSet = new Set(existingTitles.map(t => t.replace(/\s+/g, ' ').trim().toLowerCase()));
+    const filtered = [];
+    const duplicates = [];
+    
+    for (const title of newTitles) {
+      const normalized = title.replace(/\s+/g, ' ').trim().toLowerCase();
+      if (existingSet.has(normalized)) {
+        duplicates.push(title);
+      } else {
+        filtered.push(title);
+        existingSet.add(normalized);
+      }
+    }
+    
+    return { filtered, duplicates };
   }
 
   // 退出历史批次查看状态
@@ -502,15 +535,66 @@
     // 隐藏批次横幅
     sessionBanner.classList.add('hidden');
     
-    // 隐藏退出查看按钮
+    // 隐藏退出查看和重新开启采集按钮
     if(exitViewBtn) exitViewBtn.style.display = 'none';
+    if(resumeCollectionBtn) resumeCollectionBtn.style.display = 'none';
     
     // 重置批次横幅文本
     sessionNamePill.textContent = '未开启批次';
     sessionPageCountEl.textContent = '0';
     
+    // 清空查看历史状态
+    viewingHistorySession = null;
+    
     // 禁用关闭批次按钮（因为没有活跃批次）
     setCloseSessionButtonsDisabled(true);
+  }
+
+  // 重新开启采集功能
+  function resumeCollectionFromHistory() {
+    if (!viewingHistorySession) return;
+    
+    // 确认操作
+    const confirmMsg = `确定要基于历史批次"${viewingHistorySession.name}"重新开启采集吗？\n\n这将：\n• 保留所有历史数据\n• 继续添加新数据\n• 自动跳过重复标题`;
+    if (!confirm(confirmMsg)) return;
+    
+    // 创建新的当前批次，基于历史批次
+    currentSession = {
+      id: Date.now().toString(36), // 新的批次ID
+      name: `${viewingHistorySession.name} (续)`, // 添加续集标识
+      createdAt: Date.now(),
+      pages: [...(viewingHistorySession.pages || [])] // 复制历史页面数据
+    };
+    
+    // 恢复批次数据到当前状态
+    batches = (viewingHistorySession.pages || []).map(p => ({
+      titles: p.titles || [],
+      note: `第${p.pageNo}页`,
+      ts: p.ts || Date.now(),
+      pageNo: p.pageNo
+    }));
+    
+    // 重新计算集合
+    recomputePoolFromBatches();
+    renderBatchChips();
+    
+    // 更新界面状态
+    sessionNamePill.textContent = `当前批次：${currentSession.name}`;
+    sessionPageCountEl.textContent = String((currentSession.pages || []).length);
+    
+    // 隐藏退出查看按钮，显示关闭批次按钮
+    if (exitViewBtn) exitViewBtn.style.display = 'none';
+    if (resumeCollectionBtn) resumeCollectionBtn.style.display = 'none';
+    setCloseSessionButtonsDisabled(false);
+    
+    // 清空查看历史状态
+    viewingHistorySession = null;
+    
+    // 保存当前批次
+    saveCurrentSession();
+    
+    // 显示成功提示
+    alert(`已重新开启采集！\n\n批次名称：${currentSession.name}\n历史页面：${(currentSession.pages || []).length} 页\n\n现在可以继续添加新数据，重复标题将自动跳过。`);
   }
 
   // 批次数组：每批为对象 { titles: string[], note: string, ts: number }
@@ -579,6 +663,32 @@
   function addBatchToPool(batch, pageNo){
     if(!batch || !batch.length) return;
 
+    // 如果有当前批次，检测重复标题
+    if (currentSession) {
+      const allExistingTitles = poolTitles; // 获取所有已存在的标题
+      const { filtered, duplicates } = filterDuplicateTitles(batch, allExistingTitles);
+      
+      // 如果有重复标题，显示提示
+      if (duplicates.length > 0) {
+        const duplicateMsg = `检测到 ${duplicates.length} 个重复标题，已自动跳过：\n\n${duplicates.slice(0, 5).join('\n')}${duplicates.length > 5 ? `\n... 等 ${duplicates.length} 个` : ''}`;
+        console.log(duplicateMsg); // 在控制台显示详细信息
+        
+        // 如果所有标题都是重复的，显示警告
+        if (filtered.length === 0) {
+          alert(`所有 ${batch.length} 个标题都已存在，没有新数据添加。`);
+          return;
+        }
+        
+        // 如果有新标题，显示跳过信息
+        if (filtered.length < batch.length) {
+          alert(`已跳过 ${duplicates.length} 个重复标题，添加了 ${filtered.length} 个新标题。`);
+        }
+        
+        // 使用过滤后的标题
+        batch = filtered;
+      }
+    }
+
     if (currentSession && pageNo) {
       if(!currentSession.pages) currentSession.pages = [];
       const idx = currentSession.pages.findIndex(p=> p.pageNo === pageNo);
@@ -645,8 +755,9 @@
     updateSessionBanner(); saveCurrentSession();
     setCloseSessionButtonsDisabled(false);
     
-    // 隐藏退出查看按钮（开始新批次时）
+    // 隐藏退出查看和重新开启采集按钮（开始新批次时）
     if(exitViewBtn) exitViewBtn.style.display = 'none';
+    if(resumeCollectionBtn) resumeCollectionBtn.style.display = 'none';
   }
   function closeSession(){
     if(!currentSession) return;
@@ -1155,7 +1266,7 @@
     // 自动触发关键词统计（当有标题时）
     if(total > 0){
       const stats = buildKeywordStats(lastTitles);
-      const top = rankKeywords(stats, {minDF:2});
+      const top = rankKeywords(stats, { minDF: 2, strictChunks: !!(strictModeEl && strictModeEl.checked) });
       renderKeywordTable(top);
     } else {
       freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */
@@ -1257,6 +1368,17 @@
   const BRANDS = [
     '恒源祥','巴拉巴拉','迪士尼','蕉内','红豆','英博伦','久岁伴','MQD','HODO','BANANAIN','DAVE＆BELLA','英氏','YEEHOO','PAW PATROL','JOYNCLEON','THREEGUN','拉比','棉花堂','棉小蟹','BOBDOG','Schiesser','舒雅','浪莎','MINI BALA','红豆居家'
   ];
+  // 品牌切片（用于禁止从品牌中间起始的短语，如“源祥儿童…”）
+  const BRAND_SLICES = new Set();
+  BRANDS.forEach(b=>{
+    const name = b.replace(/\s+/g,'');
+    for(let i=1;i<name.length;i++){
+      const suf = name.slice(i);   // 去头保留尾：源祥、祥…
+      const pre = name.slice(0,i); // 恒、恒源…（用于禁止以品牌前缀结尾的拼接）
+      if(suf.length>=2) BRAND_SLICES.add(suf);
+      if(pre.length>=2) BRAND_SLICES.add(pre+'#PRE'); // 特标记：前缀
+    }
+  });
   const BRAND_RE_ROMAN = /\b[A-Z][A-Z0-9&.+-]{1,}\b/;
 
   function hasBrand(title){
@@ -1384,6 +1506,22 @@
     const rows = [];
     tokenDf.forEach((df, token)=>{
       if(df < opts.minDF) return;
+      // 规则A：品牌边界保护——禁止从品牌中间起始（如“源祥儿童…”）或以品牌前缀结尾的拼接
+      const banByBrandSlice = (()=>{
+        // 起始为品牌后缀（例如“源祥…”，“氏…”），直接跳过
+        for(const suf of BRAND_SLICES){
+          if(suf.endsWith('#PRE')) continue;
+          if(token.startsWith(suf)) return true;
+        }
+        // 以品牌前缀作为结尾（例如“…恒源”），也跳过（防切断）
+        for(const item of BRAND_SLICES){
+          if(!item.endsWith('#PRE')) continue;
+          const pre = item.slice(0, -4);
+          if(token.endsWith(pre)) return true;
+        }
+        return false;
+      })();
+      if(banByBrandSlice) return; // 不允许跨品牌内部边界
       // 先过滤明显的尾随/前缀碎片
       if (isTailOrHeadFragment(token, tokenDf, leftCtx, rightCtx)) return;
 
@@ -1403,20 +1541,52 @@
       const score = df + 0.75*pmi + 0.5*sepScore + 0.5*brandBoost - edgePenalty;
       rows.push({ token, df, pmi, sep: sepScore, brand: brandBoost, score });
     });
-    // 长词覆盖短词
-    rows.sort((a,b)=> (b.token.length - a.token.length) || (b.df - a.df));
-    const kept = [];
-    for(const r of rows){
-      const overshadowed = kept.some(x=> x.df>=r.df && x.token.includes(r.token));
-      if(!overshadowed) kept.push(r);
+    // 二次过滤：被更长高频短语“覆盖”的前后缀（如“保暖内” < “保暖内衣”）
+    const coverRatio = (opts && opts.strictChunks) ? 0.95 : 0.85; // 严格模式更苛刻
+    const rows2 = rows.filter(r=>{
+      const t = r.token, df = r.df;
+      let covered = false;
+      for(const x of rows){
+        if(x.token.length <= t.length) continue;
+        // 更长并以 t 为前/后缀
+        if(x.token.startsWith(t) || x.token.endsWith(t)){
+          if((x.df || 0) >= coverRatio * df){ covered = true; break; }
+        }
+      }
+      // 严格模式：对于长度<=3的前/后缀碎片，只要存在更长包含它的词就直接丢弃
+      if(!covered && opts && opts.strictChunks && t.length <= 3){
+        for(const x of rows){ if(x.token.length>t.length && (x.token.startsWith(t) || x.token.endsWith(t))){ covered = true; break; } }
+      }
+      return !covered;
+    });
+
+    // 长词优先覆盖短词的原逻辑（避免“源祥”类短碎片）
+    rows2.sort((a,b)=> (b.token.length - a.token.length) || (b.df - a.df));
+    const kept2 = [];
+    for(const r of rows2){
+      const overshadowed = kept2.some(x=> x.df>=r.df && x.token.includes(r.token));
+      if(!overshadowed) kept2.push(r);
     }
-    kept.sort((a,b)=> (b.score - a.score) || (b.df - a.df) || (b.token.length - a.token.length));
-    return kept.slice(0,100).map(r=> [r.token, r.df]);
+    kept2.sort((a,b)=> (b.score - a.score) || (b.df - a.df) || (b.token.length - a.token.length));
+    return kept2.slice(0,100).map(r=> [r.token, r.df]);
   }
 
+  // —— 严格模式切换事件 —— 
+  strictModeEl?.addEventListener('change', ()=>{
+    // 重新根据严格模式计算关键词表
+    renderTitles(lastTitles);
+  });
+
   function renderKeywordTable(pairs){
-    freqTable.innerHTML = pairs.map(([w,c])=>`<tr class="clickable" data-term="${escapeHtml(w)}"><td>${escapeHtml(w)}</td><td>${c}</td></tr>`).join('');
+    // 保留已选中状态：为已选词添加 active 类
+    freqTable.innerHTML = pairs.map(([w,c])=>{
+      const term = escapeHtml(w);
+      const isActive = selectedTerms && selectedTerms.has(w);
+      return `<tr class="clickable${isActive? ' active':''}" data-term="${term}"><td><span class="kw">${term}</span></td><td>${c}</td></tr>`;
+    }).join('');
     freqWrap.classList.remove('hidden');
+    // 同步清空按钮可用态
+    if(clearTermsBtn) clearTermsBtn.disabled = !(selectedTerms && selectedTerms.size>0);
     bindKeywordRowClicks();
   }
 
@@ -1553,6 +1723,7 @@
   sessionsBtn?.addEventListener('click', ()=>{ renderSessionsDlg(); sessionsDlg.showModal(); });
   sessionsCloseBtn?.addEventListener('click', ()=> sessionsDlg.close());
   exitViewBtn?.addEventListener('click', exitHistoryView);
+  resumeCollectionBtn?.addEventListener('click', resumeCollectionFromHistory);
 
   function renderSessionsDlg(){
     if(!sessionsList) return;
@@ -1584,7 +1755,11 @@
         sessionPageCountEl.textContent = String((ss.pages||[]).length);
         setCloseSessionButtonsDisabled(true); // 历史批次只读
         
-        // 显示退出查看按钮
+        // 保存当前查看的历史批次信息
+        viewingHistorySession = ss;
+        
+        // 显示重新开启采集和退出查看按钮
+        if(resumeCollectionBtn) resumeCollectionBtn.style.display = 'inline-block';
         if(exitViewBtn) exitViewBtn.style.display = 'inline-block';
       });
     });
