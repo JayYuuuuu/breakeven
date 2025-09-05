@@ -332,6 +332,7 @@
             <button class="btn small ghost" id="importProjectBtn">导入项目</button>
             <button class="btn small ghost close-session-btn" disabled>关闭批次</button>
             <button class="btn small ghost" id="sessionsBtn">批次查询</button>
+            <button class="btn small ghost" id="clearCurrentBtn" disabled style="display:none;">清空当前</button>
             <input id="importFile" type="file" accept="application/json" style="display:none" />
           </div>
           <div class="result-wrap">
@@ -451,6 +452,7 @@
   const extractBtn = document.getElementById('extractBtn');
   const copyTitlesBtn = document.getElementById('copyTitlesBtn');
   const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const clearCurrentBtn = document.getElementById('clearCurrentBtn');
 
   const titleList = document.getElementById('titleList');
   const titleCount = document.getElementById('titleCount');
@@ -548,6 +550,10 @@
     
     // 禁用关闭批次按钮（因为没有活跃批次）
     setCloseSessionButtonsDisabled(true);
+    
+    // 隐藏清空按钮（退出历史查看时）
+    clearCurrentBtn.style.display = 'none';
+    clearCurrentBtn.disabled = true;
   }
 
   // 重新开启采集功能
@@ -734,8 +740,10 @@
     batchChips.querySelectorAll('[data-del]').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
-        const pg = parseInt(btn.getAttribute('data-del')||'0',10) || null;
-        if(pg==null) return;
+        const delValue = btn.getAttribute('data-del');
+        // 处理空字符串的情况（对应pageNo为null的"本页"）
+        const pg = (delValue === '' || delValue === null) ? null : parseInt(delValue, 10);
+        
         // 删当前批次页
         const i1 = batches.findIndex(x=> (x.pageNo||null)===pg);
         if(i1>=0) batches.splice(i1,1);
@@ -758,6 +766,10 @@
     // 隐藏退出查看和重新开启采集按钮（开始新批次时）
     if(exitViewBtn) exitViewBtn.style.display = 'none';
     if(resumeCollectionBtn) resumeCollectionBtn.style.display = 'none';
+    
+    // 隐藏清空按钮（开始批次时）
+    clearCurrentBtn.style.display = 'none';
+    clearCurrentBtn.disabled = true;
   }
   function closeSession(){
     if(!currentSession) return;
@@ -793,6 +805,10 @@
     updateBatchButtons();
     updateSessionBanner();
     setCloseSessionButtonsDisabled(true);
+    
+    // 隐藏清空按钮（关闭批次时）
+    clearCurrentBtn.style.display = 'none';
+    clearCurrentBtn.disabled = true;
   }
   function updateSessionBanner(){
     const opened = !!currentSession;
@@ -1271,6 +1287,22 @@
     } else {
       freqWrap.classList.remove('hidden'); /* 保持关键词面板可见以便切换 */
     }
+    
+    // 控制清空按钮的显示/隐藏（仅在单独识别模式下）
+    if (!currentSession) {
+      if (total > 0) {
+        clearCurrentBtn.style.display = 'inline-block';
+        clearCurrentBtn.disabled = false;
+      } else {
+        clearCurrentBtn.style.display = 'none';
+        clearCurrentBtn.disabled = true;
+      }
+    } else {
+      // 批次模式下隐藏清空按钮
+      clearCurrentBtn.style.display = 'none';
+      clearCurrentBtn.disabled = true;
+    }
+    
     updateBatchButtons();
   }
 
@@ -1624,11 +1656,41 @@
       bulkInput.value = '';
       renderBatchChips();
     }
+    
+    // 单独识别模式：显示清空按钮
+    if (!currentSession && titles.length > 0) {
+      clearCurrentBtn.style.display = 'inline-block';
+      clearCurrentBtn.disabled = false;
+    }
   });
 
   copyTitlesBtn.addEventListener('click', async ()=>{
     const text = lastTitles.join('\n');
     try{ await navigator.clipboard.writeText(text); }catch{ /* ignore */ }
+  });
+
+  // 清空当前识别内容的事件处理
+  clearCurrentBtn.addEventListener('click', ()=>{
+    // 清空当前识别的标题
+    batchTitles = [];
+    lastTitles = [];
+    
+    // 清空标题列表显示
+    renderTitles([]);
+    
+    // 清空选中的关键词
+    selectedTerms.clear();
+    currentTerm = null;
+    
+    // 隐藏关键词分析模块
+    freqWrap.classList.add('hidden');
+    
+    // 隐藏清空按钮
+    clearCurrentBtn.style.display = 'none';
+    clearCurrentBtn.disabled = true;
+    
+    // 清空输入框
+    bulkInput.value = '';
   });
 
   exportCsvBtn.addEventListener('click', ()=>{
