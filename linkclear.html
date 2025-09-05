@@ -224,6 +224,7 @@
     .btn.small{ padding:10px 14px; font-size:13px; border-radius:12px; }
     .tbl{ width:100%; border-collapse:collapse; margin-top:8px; }
     .tbl th, .tbl td{ border-bottom:1px solid rgba(120,120,128,.12); text-align:left; padding:8px 6px; font-size:13px; }
+    .tbl th{ white-space: nowrap; }
     /* 采集/集合样式 */
     .mini-controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     .pill.clickable{ cursor:pointer; user-select:none; transition: all 0.2s ease; }
@@ -262,6 +263,20 @@
     .badge.hit{background:rgba(52,199,89,.15);color:#34c759;border:1px solid rgba(52,199,89,.25)}
     .badge.miss{background:rgba(255,149,0,.12);color:#ff9f0a;border:1px solid rgba(255,149,0,.25)}
     .kvpill{display:inline-block;background:rgba(120,120,128,.10);border:1px solid rgba(120,120,128,.16);padding:3px 8px;border-radius:9px;margin:3px;font-size:12px}
+    
+    /* dialog backdrops */
+    dialog::backdrop{
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(2px);
+    }
+    dialog[open]{ animation: dlgIn .12s ease-out; }
+    @keyframes dlgIn{ from{ transform: translateY(6px); opacity:.7 } to{ transform:none; opacity:1 } }
+    /* Polyfill overlay（当浏览器不支持 dialog.showModal 时使用） */
+    .modal-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      backdrop-filter: blur(2px);
+      display:flex; align-items:center; justify-content:center; z-index:9999;
+    }
   </style>
 </head>
 <body>
@@ -276,6 +291,49 @@
       <div class="tab-nav">
         <button class="tab-btn active" data-tab="link-cleaner">🔗 链接净化</button>
         <button class="tab-btn" data-tab="text-extractor">📝 标题识别</button>
+        <button class="tab-btn" data-tab="id-extractor">📦 产品ID获取</button>
+      </div>
+      <!-- 产品ID获取 Tab -->
+      <div class="tab-content" id="id-extractor">
+        <div class="stack">
+          <div>
+            <label for="idRaw">从【出售中商品列表】复制整段文本粘贴到这里</label>
+            <textarea id="idRaw" class="area" placeholder="在淘宝/天猫后台【出售中】列表复制整段文本粘贴到这里…&#10;示例：&#10;恒源祥男女士…&#10;ID:9720336333106&#10;累计销量 0   30日销量 0&#10;发布时间 2025-09-04 11:17"></textarea>
+          </div>
+          <div class="tools-row">
+            <select id="idPlatform" class="pill" title="生成链接的平台">
+              <option value="auto">平台自动识别</option>
+              <option value="tmall">天猫 detail.tmall.com</option>
+              <option value="taobao">淘宝 item.taobao.com</option>
+            </select>
+            <button class="btn small primary" id="idParseBtn">解析并生成</button>
+            <button class="btn small ghost" id="idExportBtn" disabled>导出 CSV</button>
+            <button class="btn small ghost" id="idSaveBtn" disabled>保存记录</button>
+            <button class="btn small ghost" id="idHistoryBtn">查看历史</button>
+          </div>
+          <div class="result-wrap">
+            <div class="result-head">
+              <div class="capsule">共 <span id="idCount">0</span> 条</div>
+              <div id="idEditStatus" class="capsule hidden" title="当前从历史记录加载，可追加并保存更新">
+                正在编辑：<span id="idEditStore">—</span>（<span id="idEditShort">—</span>）
+                <button class="btn tiny ghost" id="idExitEditBtn" style="margin-left:6px">退出编辑</button>
+              </div>
+            </div>
+            <table class="tbl" id="idResultTable">
+              <thead>
+                <tr>
+                  <th style="width:40%">商品名称</th>
+                  <th>ID</th>
+                  <th>产品链接</th>
+                  <th>累计销量</th>
+                  <th>30日销量</th>
+                  <th>创建时间</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- 链接净化 Tab -->
@@ -385,6 +443,9 @@
         <button id="startSessionConfirmBtn" class="btn primary">开始批次</button>
       </div>
     </dialog>
+    
+    <!-- 保存产品记录弹窗：已移动至卡片外部，避免被隐藏 Tab 影响 -->
+    <!-- 占位：原位置移除，实际节点见文末 -->
             <div class="split">
               <div class="col">
                 <ul class="list" id="titleList"></ul>
@@ -426,8 +487,8 @@
       小提示：对 <strong>Tmall/Taobao</strong> 商品页仅保留 <code class="kv">id</code>（可选保留 <code class="kv">skuId</code>）；已屏蔽阿里系常见冗余字段（<code class="kv">spm</code>、<code class="kv">scm</code>、<code class="kv">tbpm</code>、<code class="kv">u_channel</code>、<code class="kv">algo*</code> 等）。
     </footer>
   </div>
-
-<script>
+  
+  <script>
 ;(function(){
   // Tab 切换功能
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -504,6 +565,47 @@
   const copyTitlesBtn = document.getElementById('copyTitlesBtn');
   const exportCsvBtn = document.getElementById('exportCsvBtn');
   const clearCurrentBtn = document.getElementById('clearCurrentBtn');
+
+  // —— 产品ID获取 ——
+  const idRaw = document.getElementById('idRaw');
+  const idParseBtn = document.getElementById('idParseBtn');
+  const idExportBtn = document.getElementById('idExportBtn');
+  const idClearBtn = document.getElementById('idClearBtn');
+  const idSaveBtn = document.getElementById('idSaveBtn');
+  const idHistoryBtn = document.getElementById('idHistoryBtn');
+  const idResultTbody = document.querySelector('#idResultTable tbody');
+  const idCountEl = document.getElementById('idCount');
+  const idPlatformSel = document.getElementById('idPlatform');
+  const idEditStatus = document.getElementById('idEditStatus');
+  const idEditStore = document.getElementById('idEditStore');
+  const idEditShort = document.getElementById('idEditShort');
+  const idExitEditBtn = document.getElementById('idExitEditBtn');
+  
+  // 产品记录保存相关元素
+  const saveProductDlg = document.getElementById('saveProductDlg');
+  const storeNameInput = document.getElementById('storeNameInput');
+  const saveProductCount = document.getElementById('saveProductCount');
+  const saveProductCloseBtn = document.getElementById('saveProductCloseBtn');
+  const saveProductCancelBtn = document.getElementById('saveProductCancelBtn');
+  const saveProductConfirmBtn = document.getElementById('saveProductConfirmBtn');
+  
+  // 历史记录相关元素（在本文件中，历史/保存弹窗被放到 body 末尾，
+  // 初次解析脚本时尚未出现在 DOM 中，因此此处不缓存，按需再取）
+  let productHistoryDlg = null;
+  let productHistoryList = null;
+  let productHistoryCloseBtn = null;
+  
+  // 产品记录存储键
+  const PRODUCT_HISTORY_KEY = 'product_records_history';
+  
+  // 调试：检查元素是否正确获取
+  console.log('元素获取状态:', {
+    idSaveBtn: !!idSaveBtn,
+    saveProductDlg: !!saveProductDlg,
+    storeNameInput: !!storeNameInput,
+    saveProductCount: !!saveProductCount,
+    productHistoryDlg: !!productHistoryDlg
+  });
 
   const titleList = document.getElementById('titleList');
   const titleCount = document.getElementById('titleCount');
@@ -1472,6 +1574,487 @@
     setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
   }
 
+  // —— 产品ID获取 Tab ——
+  function pickPlatformFromText(txt){
+    const s = (txt||'').toLowerCase();
+    if(/tmall|天猫/.test(s)) return 'tmall';
+    if(/taobao|淘宝/.test(s)) return 'taobao';
+    return 'taobao';
+  }
+  function linkForId(id, plat){
+    if(plat==='tmall') return `https://detail.tmall.com/item.htm?id=${id}`;
+    return `https://item.taobao.com/item.htm?id=${id}`;
+  }
+  // 解析"出售中"列表文案（新版更健壮的解析器）
+  function parseProductsFromClipboard(text){
+    // 将整段文本切成行，并保留空行用于段落判断
+    const lines = String(text||'').split(/\r?\n/).map(s=>s.trim());
+    const out = [];
+
+    // 纯数字（含千分位）
+    const isInt   = s => /^\d{1,}(?:,\d{3})*$/.test(s);
+    // 价格行（开头带货币符）
+    const isPrice = s => /^([¥￥]|\u00A5)\s*\d/.test(s);
+    // 时间戳
+    const timeRe  = /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/;
+
+    for (let i = 0; i < lines.length; i++){
+      const line = lines[i];
+      const mId = line.match(/^ID[:：]\s*(\d{6,})/i);
+      if(!mId) continue;
+
+      const id = mId[1];
+
+      // 标题一般在 ID 行的上一条非空行
+      let title = '';
+      for(let k=i-1; k>=0; k--){
+        const t = lines[k];
+        if(t && !/^ID[:：]/i.test(t)) { title = t; break; }
+      }
+
+      // 从 ID 行向后，先定位价格行
+      let j = i + 1;
+      while(j < lines.length && !isPrice(lines[j])) j++;
+      if(j < lines.length && isPrice(lines[j])) j++; // 跳过价格行
+
+      // 跳过价格后的空行
+      while(j < lines.length && !lines[j]) j++;
+
+      // 价格后按顺序抓 3 行纯数字：库存、累计销量、30日销量
+      let stock = '', cum = '', m30 = '';
+      if(j < lines.length && isInt(lines[j])) { stock = lines[j].replace(/,/g,''); j++; }
+      while(j < lines.length && !lines[j]) j++;
+      if(j < lines.length && isInt(lines[j])) { cum   = lines[j].replace(/,/g,''); j++; }
+      while(j < lines.length && !lines[j]) j++;
+      if(j < lines.length && isInt(lines[j])) { m30   = lines[j].replace(/,/g,''); j++; }
+
+      // 如果按顺序没找到销量，尝试从"基础分"前面找销量数据
+      if(cum === '' || m30 === '') {
+        // 向后扫描找到"基础分"行
+        let baseScoreIndex = -1;
+        for(let k = j; k < lines.length; k++) {
+          if(/基础分/.test(lines[k])) {
+            baseScoreIndex = k;
+            break;
+          }
+          if(/^ID[:：]\s*\d{6,}/i.test(lines[k])) break; // 下一条商品
+        }
+        
+        if(baseScoreIndex > 0) {
+          // 从基础分行向前找数字，第一个是30日销量，第二个是累计销量
+          const salesNumbers = [];
+          for(let k = baseScoreIndex - 1; k >= 0; k--) {
+            if(/^ID[:：]\s*\d{6,}/i.test(lines[k])) break; // 上一条商品
+            if(isInt(lines[k])) {
+              salesNumbers.unshift(lines[k].replace(/,/g,''));
+              if(salesNumbers.length >= 2) break; // 找到两个销量数字就够了
+            }
+          }
+          
+          // 更新销量数据
+          if(salesNumbers.length >= 2) {
+            cum = salesNumbers[0];  // 第一个是累计销量
+            m30 = salesNumbers[1];  // 第二个是30日销量
+          } else if(salesNumbers.length === 1) {
+            cum = salesNumbers[0];  // 只有一个数字时作为累计销量
+            m30 = '0';
+          }
+        }
+      }
+
+      // 向后扫描，取遇到的第一个时间戳作为【创建时间】；遇到下一条 ID 终止
+      let created = '';
+      for(; j < lines.length; j++){
+        const s = lines[j];
+        if(/^ID[:：]\s*\d{6,}/i.test(s)) { break; } // 下一条商品
+        const mt = s.match(timeRe);
+        if(mt){ created = `${mt[1]} ${mt[2]}`; break; }
+      }
+
+      out.push({
+        title,
+        id,
+        cum: (cum === '' ? '0' : cum),
+        m30: (m30 === '' ? '0' : m30),
+        created
+      });
+    }
+
+    // 按 ID 去重（后出现覆盖先出现）
+    const map = new Map();
+    out.forEach(r=>{ map.set(r.id, r); });
+    return Array.from(map.values());
+  }
+  function renderIdTable(rows){
+    const plat = (idPlatformSel?.value==='auto') ? pickPlatformFromText(idRaw?.value||'') : idPlatformSel.value;
+    idResultTbody.innerHTML = rows.map(r=>{
+      const link = linkForId(r.id, plat);
+      const safeTitle = String(r.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<tr>
+        <td title="${safeTitle}">${safeTitle}</td>
+        <td>${r.id}</td>
+        <td><a href="${link}" target="_blank" rel="noopener">${link}</a></td>
+        <td>${r.cum||''}</td>
+        <td>${r.m30||''}</td>
+        <td>${r.created||''}</td>
+      </tr>`;
+    }).join('');
+    idCountEl.textContent = rows.length;
+    idExportBtn.disabled = rows.length===0;
+    if (idClearBtn) idClearBtn.disabled = rows.length===0;
+    updateEditStatusUI();
+  }
+  function exportIdCsv(rows){
+    const plat = (idPlatformSel?.value==='auto') ? pickPlatformFromText(idRaw?.value||'') : idPlatformSel.value;
+    const head = ['商品名称','ID','产品链接','累计销量','30日销量','创建时间'];
+    const csv = [head.join(',')].concat(rows.map(r=>{
+      const link = linkForId(r.id, plat);
+      const esc = v=> '"'+String(v||'').replace(/"/g,'""')+'"';
+      return [esc(r.title), r.id, esc(link), r.cum||'', r.m30||'', esc(r.created||'')].join(',');
+    })).join('\n');
+    download('products.csv', csv, 'text/csv;charset=utf-8');
+  }
+  let lastIdRows = [];
+  // 如果从历史记录加载，保存该记录的 id，便于后续“追加并更新”
+  let currentHistoryRecordId = null;
+  let historyRowsSnapshot = null; // JSON 快照用于脏检查
+
+  function makeRowsSnapshot(rows){
+    try{ return JSON.stringify(rows); }catch{ return null; }
+  }
+
+  function updateEditStatusUI(){
+    if(!idEditStatus) return;
+    if(!currentHistoryRecordId){
+      idEditStatus.classList.add('hidden');
+      // 恢复保存按钮外观
+      if(idSaveBtn){ idSaveBtn.classList.remove('primary'); idSaveBtn.classList.add('ghost'); }
+      return;
+    }
+    // 读取存储以显示店铺名
+    let storeName = '';
+    try{
+      const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+      const rec = history.find(r=> r.id===currentHistoryRecordId);
+      storeName = rec?.storeName || '';
+    }catch{ /* ignore */ }
+    if(idEditStore) idEditStore.textContent = storeName || '未命名店铺';
+    if(idEditShort) idEditShort.textContent = (currentHistoryRecordId||'').slice(-6);
+    idEditStatus.classList.remove('hidden');
+    // 脏检查：如果当前表与快照不同，则高亮保存按钮
+    const dirty = historyRowsSnapshot && makeRowsSnapshot(lastIdRows) !== historyRowsSnapshot;
+    if(idSaveBtn){
+      if(dirty){ idSaveBtn.classList.add('primary'); idSaveBtn.classList.remove('ghost'); }
+      else { idSaveBtn.classList.remove('primary'); idSaveBtn.classList.add('ghost'); }
+    }
+  }
+  
+  // 保存产品记录到本地存储
+  function saveProductRecords(records, storeName) {
+    try {
+      const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+      const newRecord = {
+        id: Date.now().toString(36),
+        storeName: storeName.trim(),
+        records: records,
+        createdAt: Date.now(),
+        count: records.length
+      };
+      history.unshift(newRecord); // 新记录放在前面
+      localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(history));
+      return true;
+    } catch (e) {
+      console.error('保存产品记录失败:', e);
+      return false;
+    }
+  }
+  
+  // 更新已有记录（按 id 覆盖 records/count/storeName）
+  function updateProductRecord(recordId, records, storeName){
+    try{
+      const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+      const idx = history.findIndex(r=> r.id===recordId);
+      if(idx===-1) return false;
+      const old = history[idx];
+      history[idx] = {
+        ...old,
+        storeName: (storeName || old.storeName || '').trim(),
+        records: records,
+        count: records.length,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(history));
+      return true;
+    }catch(e){
+      console.error('更新产品记录失败:', e);
+      return false;
+    }
+  }
+  
+  // 加载产品记录历史
+  function loadProductHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+    } catch (e) {
+      console.error('加载产品记录历史失败:', e);
+      return [];
+    }
+  }
+  
+  // 渲染历史记录列表
+  function renderProductHistory() {
+    const history = loadProductHistory();
+    // 运行时获取列表容器，避免初次加载时为 null
+    const listEl = document.getElementById('productHistoryList');
+    if (!listEl) return;
+    
+    if (history.length === 0) {
+      listEl.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">暂无历史记录</div>';
+      return;
+    }
+    
+    const html = history.map(record => {
+      const date = new Date(record.createdAt).toLocaleString();
+      const safeStoreName = String(record.storeName || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `
+        <div class="list-item" style="display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(120,120,128,.12);border-radius:10px;padding:12px 16px;margin-bottom:12px">
+          <div style="flex:1">
+            <div style="font-weight:600;margin-bottom:4px">${safeStoreName}</div>
+            <div class="muted" style="font-size:12px">${date} · ${record.count} 条记录</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn tiny ghost" data-load="${record.id}">加载到表格</button>
+            <button class="btn tiny ghost" data-delete="${record.id}" style="color:#ff3b30">删除</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    listEl.innerHTML = html;
+    
+    // 绑定加载按钮事件
+    listEl.querySelectorAll('[data-load]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const recordId = btn.getAttribute('data-load');
+        const record = history.find(r => r.id === recordId);
+        if (record) {
+          lastIdRows = record.records;
+          renderIdTable(lastIdRows);
+          // 记录来源 ID，进入编辑模式
+          currentHistoryRecordId = record.id;
+          historyRowsSnapshot = makeRowsSnapshot(lastIdRows);
+          if (idEditStore) idEditStore.textContent = record.storeName || '未命名店铺';
+          if (idEditShort) idEditShort.textContent = (record.id||'').slice(-6);
+          if (idEditStatus) idEditStatus.classList.remove('hidden');
+          const dlg = document.getElementById('productHistoryDlg');
+          if (dlg) safeCloseDialog(dlg);
+        }
+      });
+    });
+    
+    // 绑定删除按钮事件
+    listEl.querySelectorAll('[data-delete]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const recordId = btn.getAttribute('data-delete');
+        const record = history.find(r => r.id === recordId);
+        if (record && confirm(`确定要删除店铺"${record.storeName}"的记录吗？`)) {
+          const newHistory = history.filter(r => r.id !== recordId);
+          localStorage.setItem(PRODUCT_HISTORY_KEY, JSON.stringify(newHistory));
+          renderProductHistory();
+          // 若删除的是当前编辑记录，则退出编辑模式
+          if(currentHistoryRecordId === recordId){ currentHistoryRecordId = null; }
+        }
+      });
+    });
+  }
+  
+  idParseBtn?.addEventListener('click', ()=>{
+    const txt = idRaw?.value||'';
+    const parsed = parseProductsFromClipboard(txt);
+    if(currentHistoryRecordId){
+      const map = new Map();
+      lastIdRows.forEach(r=> map.set(r.id, r));
+      parsed.forEach(r=> map.set(r.id, r));
+      lastIdRows = Array.from(map.values());
+    }else{
+      lastIdRows = parsed;
+    }
+    renderIdTable(lastIdRows);
+    // 更新按钮状态
+    if (idSaveBtn) idSaveBtn.disabled = lastIdRows.length === 0;
+    updateEditStatusUI();
+  });
+  idExportBtn?.addEventListener('click', ()=>{ if(lastIdRows.length) exportIdCsv(lastIdRows); });
+  // 清空显示（不影响缓存/历史）
+  idClearBtn?.addEventListener('click', ()=>{
+    lastIdRows = [];
+    currentHistoryRecordId = null; // 退出编辑模式
+    historyRowsSnapshot = null;
+    idResultTbody.innerHTML = '';
+    idCountEl.textContent = '0';
+    if (idExportBtn) idExportBtn.disabled = true;
+    if (idClearBtn) idClearBtn.disabled = true;
+    if (idSaveBtn) idSaveBtn.disabled = true;
+    updateEditStatusUI();
+  });
+  
+  // 绑定产品ID获取相关事件
+  function bindProductIdEvents() {
+    // 保存按钮事件（稳健版）
+    if (idSaveBtn) {
+      idSaveBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+
+        if (!lastIdRows || lastIdRows.length === 0){
+          alert('没有数据可保存');
+          return;
+        }
+        try{
+          // 运行时获取弹窗与控件
+          const dlg = document.getElementById('saveProductDlg');
+          const cntEl = document.getElementById('saveProductCount');
+          const storeInput = document.getElementById('storeNameInput');
+          if (cntEl) cntEl.textContent = lastIdRows.length;
+          // 处于历史编辑模式时预填店铺名，否则清空
+          if (storeInput){
+            if(currentHistoryRecordId){
+              try{
+                const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+                const rec = history.find(r=> r.id===currentHistoryRecordId);
+                storeInput.value = rec?.storeName || '';
+              }catch{ storeInput.value = ''; }
+            }else{
+              storeInput.value = '';
+            }
+          }
+          if (dlg) {
+            safeOpenDialog(dlg);
+          } else {
+            // 最兜底：没有对话框就直接 prompt 保存
+            const name = prompt('输入店铺名称以保存本次识别结果：') || '';
+            if(name.trim()){
+              const ok = saveProductRecords(lastIdRows, name.trim());
+              if(ok){
+                alert(`已保存 ${lastIdRows.length} 条记录`);
+                renderProductHistory(); // 立刻刷新历史缓存
+                idHistoryBtn && idHistoryBtn.removeAttribute('disabled');
+              }
+            }
+          }
+        }catch(err){
+          console.error('保存按钮点击出错:', err);
+          alert('保存功能出错，请刷新页面重试');
+        }
+      });
+    }
+
+    // 查看历史按钮事件
+    if (idHistoryBtn) {
+      idHistoryBtn.addEventListener('click', () => {
+        renderProductHistory();           // 打开前刷新历史
+        const dlg = document.getElementById('productHistoryDlg');
+        if (dlg) safeOpenDialog(dlg);
+      });
+    }
+
+    // 退出编辑状态但保留表格数据
+    if (idExitEditBtn) {
+      idExitEditBtn.addEventListener('click', () => {
+        currentHistoryRecordId = null;
+        historyRowsSnapshot = null;
+        updateEditStatusUI();
+      });
+    }
+
+    // 保存弹窗内按钮
+    // 由于弹窗在 body 末尾，这些按钮需要在 DOMContentLoaded 后绑定
+    document.addEventListener('DOMContentLoaded', () => {
+      const dlg = document.getElementById('saveProductDlg');
+      const closeBtn = document.getElementById('saveProductCloseBtn');
+      const cancelBtn = document.getElementById('saveProductCancelBtn');
+      const confirmBtn = document.getElementById('saveProductConfirmBtn');
+      const storeInput = document.getElementById('storeNameInput');
+      if (closeBtn) closeBtn.addEventListener('click', () => safeCloseDialog(dlg));
+      if (cancelBtn) cancelBtn.addEventListener('click', () => safeCloseDialog(dlg));
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+          const storeName = storeInput?.value?.trim();
+          if (!storeName) { alert('请输入店铺名称'); return; }
+          try{
+          confirmBtn.disabled = true;
+            let ok = false;
+            if(currentHistoryRecordId){
+              ok = updateProductRecord(currentHistoryRecordId, lastIdRows, storeName);
+            }else{
+              ok = saveProductRecords(lastIdRows, storeName);
+              if(ok){
+                // 将新建的记录设为当前编辑对象
+                const history = JSON.parse(localStorage.getItem(PRODUCT_HISTORY_KEY) || '[]');
+                currentHistoryRecordId = history?.[0]?.id || null;
+              }
+            }
+            if(ok){
+              alert(`已成功保存 ${lastIdRows.length} 条产品记录${currentHistoryRecordId?'（已更新）':''}`);
+              safeCloseDialog(dlg);
+              renderProductHistory();
+              idHistoryBtn && idHistoryBtn.removeAttribute('disabled');
+              historyRowsSnapshot = makeRowsSnapshot(lastIdRows); // 刷新快照，消除脏标记
+              updateEditStatusUI();
+            }else{
+              alert('保存失败，请重试');
+            }
+          }catch(e){
+            console.error(e);
+            alert('保存出错：' + e.message);
+          }finally{
+          confirmBtn.disabled = false;
+          }
+        });
+      }
+      // 历史记录弹窗关闭
+      const historyDlg = document.getElementById('productHistoryDlg');
+      const historyCloseBtn = document.getElementById('productHistoryCloseBtn');
+      if (historyCloseBtn) historyCloseBtn.addEventListener('click', () => safeCloseDialog(historyDlg));
+    });
+  }
+  
+  // —— dialog 安全打开/关闭（含 polyfill）——
+  function safeOpenDialog(dlg){
+    try{
+      if(dlg && typeof dlg.showModal === 'function'){
+        dlg.showModal();
+        return;
+      }
+    }catch(e){ /* 回退到 polyfill */ }
+    // polyfill：用遮罩把 dialog 包起来
+    if(!dlg) return;
+    if(dlg.__polyfill){ dlg.__overlay.style.display='flex'; dlg.setAttribute('open',''); return; }
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const holder = document.createElement('div');
+    holder.style.maxWidth = dlg.style.maxWidth || '760px';
+    holder.style.width = dlg.style.width || '90%';
+    holder.appendChild(dlg);
+    overlay.appendChild(holder);
+    document.body.appendChild(overlay);
+    dlg.__polyfill = true; dlg.__overlay = overlay;
+    overlay.addEventListener('click', (ev)=>{ if(ev.target===overlay) safeCloseDialog(dlg); });
+    dlg.setAttribute('open','');
+  }
+  function safeCloseDialog(dlg){
+    try{ if(dlg && typeof dlg.close === 'function'){ dlg.close(); } }catch(_){}
+    if(dlg && dlg.__polyfill && dlg.__overlay){
+      dlg.__overlay.style.display='none';
+      dlg.removeAttribute('open');
+    }
+  }
+
+  // 立即绑定事件
+  bindProductIdEvents();
+  
+  // 粘贴后自动尝试
+  idRaw?.addEventListener('paste', ()=> setTimeout(()=> idParseBtn?.click(), 0));
+
   // —— 关键词识别与统计（中文2–8字，按“有该关键词的标题条数”计数）——
   // 人群词（可通过开关放行）
   const DEMOS = new Set(['儿童','男童','女童','中大童','宝宝','青少年','男孩','女孩']);
@@ -2414,10 +2997,8 @@
   if (typeof updateMinDfInfo === 'function') updateMinDfInfo();
 })();
 </script>
-</body>
-</html>
-</script>
-<!-- 验证标题弹窗 -->
+
+<!-- 验证标题弹窗（移至全局，置于 body 末尾） -->
 <dialog id="validateDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:24px 28px;max-width:700px;width:95%;">
   <form method="dialog" style="margin:0;padding:0;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -2453,3 +3034,34 @@
     <div id="validateResult" class="result-wrap"></div>
   </form>
 </dialog>
+
+<!-- 保存产品记录弹窗（移至全局，避免被隐藏的 Tab 影响可见性） -->
+<dialog id="saveProductDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;max-width:500px;width:90%">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong>保存产品记录</strong>
+    <button id="saveProductCloseBtn" class="btn tiny ghost">关闭</button>
+  </div>
+  <div style="margin-bottom:16px">
+    <label for="storeNameInput" style="display:block;margin-bottom:8px;font-weight:600;">店铺名称</label>
+    <input id="storeNameInput" type="text" placeholder="请输入店铺名称..." style="width:100%;padding:12px 16px;border:1px solid rgba(120,120,128,.16);border-radius:12px;font-size:16px;outline:none;" />
+  </div>
+  <div style="margin-bottom:16px">
+    <div class="capsule">将保存 <span id="saveProductCount">0</span> 条产品记录</div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:flex-end">
+    <button id="saveProductCancelBtn" class="btn ghost">取消</button>
+    <button id="saveProductConfirmBtn" class="btn primary">保存</button>
+  </div>
+</dialog>
+
+<!-- 查看历史记录弹窗（移至全局，避免被隐藏的 Tab 影响可见性） -->
+<dialog id="productHistoryDlg" style="border:none;border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;max-width:900px;width:95%">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong>产品识别历史记录</strong>
+    <button id="productHistoryCloseBtn" class="btn tiny ghost">关闭</button>
+  </div>
+  <div id="productHistoryList" style="max-height:60vh;overflow:auto"></div>
+</dialog>
+
+</body>
+</html>
