@@ -1516,7 +1516,10 @@
         const ids = grp.items.map(it=> makeLink(it.product.id)).join('、');
         const safeTitle = escapeHtml(grp.title||'');
         return `<div style="border:1px solid rgba(120,120,128,.12);border-radius:10px;padding:8px 10px;margin-bottom:8px">
-          <div style="font-weight:600;margin-bottom:4px">${i+1}. ${safeTitle}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-weight:600">${i+1}. ${safeTitle}</div>
+            <button class="btn tiny" onclick="validateTitleFromDuplicateCheck('${safeTitle.replace(/'/g, "\\'")}')" title="验证此标题的关键词命中情况">验证</button>
+          </div>
           <div class="muted" style="font-size:12px">产品ID：${ids}</div>
         </div>`;
       }).join('');
@@ -1548,10 +1551,17 @@
         const blocks = grp.items.slice(1).map(sim=>{
           const {aHtml,bHtml} = highlightDiff(baseTitle, sim.title||'');
           const idLink = makeLink(sim.product.id);
+          const safeSimTitle = escapeHtml(sim.title||'');
           return `<div style="border-top:1px dashed rgba(120,120,128,.25);padding-top:6px;margin-top:6px">
-            <div style="font-size:13px;color:var(--muted)">原标题：</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+              <div style="font-size:13px;color:var(--muted)">原标题：</div>
+              <button class="btn tiny" onclick="validateTitleFromDuplicateCheck('${escapeHtml(baseTitle).replace(/'/g, "\\'")}')" title="验证原标题的关键词命中情况">验证</button>
+            </div>
             <div style="margin:2px 0">${aHtml}</div>
-            <div style="font-size:13px;color:var(--muted)">相似项：</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+              <div style="font-size:13px;color:var(--muted)">相似项：</div>
+              <button class="btn tiny" onclick="validateTitleFromDuplicateCheck('${safeSimTitle.replace(/'/g, "\\'")}')" title="验证相似项的关键词命中情况">验证</button>
+            </div>
             <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
               <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${bHtml}</div>
               <div class="muted" style="white-space:nowrap;font-size:12px">${idLink} · ${Math.round(sim.similarity)}%</div>
@@ -4099,6 +4109,8 @@
   let minRatioInput = null;
   let minDfInfo = null;
   let compareModeEl = null;
+  let validateBatchSelect = null;
+  let refreshBatchListBtn = null;
   let compareInputWrap = null;
   let compareInput = null;
   let compareBtn = null;
@@ -4301,6 +4313,21 @@
 
   function runValidate(){
     const t = validateInput?.value || '';
+    
+    // 检查是否有关键词数据
+    if (!window.__topKw || window.__topKw.length === 0) {
+      if (validateResult) {
+        // 如果是从产品id获取tab调用的验证，需要选择批次
+        if (validateBatchSelect && !validateBatchSelect.value) {
+          validateResult.innerHTML = '<div class="muted" style="text-align:center;padding:20px">请先选择验证批次</div>';
+        } else {
+          // 如果是在标题识别tab中，提示没有关键词数据
+          validateResult.innerHTML = '<div class="muted" style="text-align:center;padding:20px">暂无关键词数据，请先在标题识别tab中加载标题数据</div>';
+        }
+      }
+      return;
+    }
+    
     const res = validateCustomTitle(t);
     renderValidateResult(res);
   }
@@ -4318,6 +4345,120 @@
     const newRes = validateCustomTitle(newTitle);
     renderValidateResult(originalRes, newRes);
   }
+  // 刷新批次选择器列表
+  async function refreshValidateBatchList() {
+    if (!validateBatchSelect) return;
+    
+    try {
+      // 获取所有历史批次
+      const sessions = await titleSmartStorage.getSessions();
+      
+      // 清空现有选项
+      validateBatchSelect.innerHTML = '<option value="">请选择批次...</option>';
+      
+      if (sessions && sessions.length > 0) {
+        sessions.forEach(session => {
+          const option = document.createElement('option');
+          option.value = session.id;
+          option.textContent = `${session.name} (${session.pages?.length || 0}页)`;
+          validateBatchSelect.appendChild(option);
+        });
+        
+        // 自动选择批次：优先选择当前批次，否则选择第一个
+        if (sessions.length > 0) {
+          let selectedBatchId = null;
+          
+          // 如果有当前批次，优先选择当前批次
+          if (currentSession && currentSession.id) {
+            const currentBatchExists = sessions.find(s => s.id === currentSession.id);
+            if (currentBatchExists) {
+              selectedBatchId = currentSession.id;
+            }
+          }
+          
+          // 如果没有当前批次或当前批次不存在，选择第一个
+          if (!selectedBatchId) {
+            selectedBatchId = sessions[0].id;
+          }
+          
+          validateBatchSelect.value = selectedBatchId;
+          // 自动加载关键词数据
+          loadBatchKeywords(selectedBatchId);
+        }
+      } else {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = '暂无历史批次';
+        option.disabled = true;
+        validateBatchSelect.appendChild(option);
+      }
+    } catch (error) {
+      console.error('刷新批次列表失败:', error);
+      validateBatchSelect.innerHTML = '<option value="">加载失败</option>';
+    }
+  }
+  
+  // 加载选中批次的关键词数据
+  async function loadBatchKeywords(batchId) {
+    if (!batchId) {
+      window.__topKw = [];
+      return;
+    }
+    
+    try {
+      const sessions = await titleSmartStorage.getSessions();
+      const session = sessions.find(s => s.id === batchId);
+      
+      if (!session || !session.pages) {
+        window.__topKw = [];
+        return;
+      }
+      
+      // 收集所有标题
+      const allTitles = [];
+      session.pages.forEach(page => {
+        if (page.titles && Array.isArray(page.titles)) {
+          allTitles.push(...page.titles);
+        }
+      });
+      
+      // 直接使用标题识别tab中已有的完整关键词统计算法
+      const stats = buildKeywordStats(allTitles);
+      const top = rankKeywords(stats, { minDF: 2 });
+      window.__topKw = top; // [[word, df], ...] 格式
+      
+      console.log(`已加载批次关键词数据: ${window.__topKw.length} 个关键词`);
+      
+      // 更新验证结果区域，显示已加载的关键词数量
+      if (validateResult && validateInput && validateInput.value.trim()) {
+        validateResult.innerHTML = `<div class="muted" style="text-align:center;padding:10px">已加载 ${window.__topKw.length} 个关键词，点击验证按钮开始验证</div>`;
+      }
+    } catch (error) {
+      console.error('加载批次关键词失败:', error);
+      window.__topKw = [];
+    }
+  }
+
+  // 从重复检查结果中验证标题的全局函数
+  window.validateTitleFromDuplicateCheck = function(title) {
+    // 打开验证弹窗
+    const validateDlg = document.getElementById('validateDlg');
+    const validateInput = document.getElementById('validateInput');
+    
+    if (validateDlg && validateInput) {
+      // 设置标题到输入框
+      validateInput.value = title;
+      
+      // 刷新批次列表
+      refreshValidateBatchList();
+      
+      // 打开弹窗
+      validateDlg.showModal();
+    } else {
+      alert('验证功能不可用，请刷新页面后重试');
+    }
+  };
+
   // 验证弹窗绑定（在 DOMContentLoaded 后，确保弹窗已插入）
   document.addEventListener('DOMContentLoaded', ()=>{
     // 只在弹窗存在时绑定
@@ -4330,6 +4471,8 @@
     compareInputWrap = document.getElementById('compareInputWrap');
     compareInput = document.getElementById('compareInput');
     compareBtn = document.getElementById('compareBtn');
+    validateBatchSelect = document.getElementById('validateBatchSelect');
+    refreshBatchListBtn = document.getElementById('refreshBatchListBtn');
     
     // 绑定事件
     if (validateBtn) validateBtn.addEventListener('click', runValidate);
@@ -4351,11 +4494,31 @@
     if (compareBtn) compareBtn.addEventListener('click', runCompare);
     if (compareInput) compareInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runCompare(); }});
     
+    // 批次选择器事件
+    if (validateBatchSelect) {
+      validateBatchSelect.addEventListener('change', async (e) => {
+        const batchId = e.target.value;
+        await loadBatchKeywords(batchId);
+        // 如果已有标题输入，自动重新验证
+        if (validateInput && validateInput.value.trim()) {
+          runValidate();
+        }
+      });
+    }
+    
+    if (refreshBatchListBtn) {
+      refreshBatchListBtn.addEventListener('click', refreshValidateBatchList);
+    }
+    
     // 弹窗开关按钮
     const toggleValidateDlgBtn = document.getElementById('toggleValidateDlgBtn');
     const validateDlg = document.getElementById('validateDlg');
     if (toggleValidateDlgBtn && validateDlg) {
-      toggleValidateDlgBtn.addEventListener('click', ()=> validateDlg.showModal());
+      toggleValidateDlgBtn.addEventListener('click', ()=> {
+        // 在标题识别tab中打开验证弹窗时，自动选择当前批次
+        refreshValidateBatchList();
+        validateDlg.showModal();
+      });
       document.getElementById('validateDlgClose')?.addEventListener('click', ()=> validateDlg.close());
     }
   });
@@ -4785,6 +4948,15 @@
       <label class="capsule" title="低于该比例的词将被忽略">忽略低频阈值</label>
       <input id="minRatio" type="number" class="note" step="0.01" min="0" max="0.50" value="0.10" style="width:70px" />
       <span class="capsule" id="minDfInfo">—</span>
+    </div>
+    
+    <!-- 批次选择器 -->
+    <div class="mini-controls" style="gap:6px;margin-bottom:12px;">
+      <label class="capsule" title="选择用于验证的批次数据">验证批次：</label>
+      <select id="validateBatchSelect" class="note" style="min-width:200px">
+        <option value="">请选择批次...</option>
+      </select>
+      <button id="refreshBatchListBtn" class="btn tiny" type="button" title="刷新批次列表">🔄</button>
     </div>
     
     <!-- 原标题输入 -->
