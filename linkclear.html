@@ -1570,27 +1570,140 @@
     content.innerHTML = html;
     if (exportBtn) {
       exportBtn.style.display = 'inline-block';
-      exportBtn.onclick = () => exportProductDuplicateReport(report, totalProducts);
+      exportBtn.onclick = () => exportProductDuplicateReport(report, totalProducts, rawGroups);
     }
     safeOpenDialog(dlg);
   }
   
-  // 导出产品标题重复度检查报告
-  function exportProductDuplicateReport(report, totalProducts) {
+  // 导出产品标题重复度检查报告（改进版 - 更易读的格式）
+  function exportProductDuplicateReport(report, totalProducts, rawGroups) {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     const filename = `产品标题重复度检查报告_${timestamp}.txt`;
     
-    let content = `产品标题重复度检查报告\n`;
-    content += `生成时间: ${new Date().toLocaleString()}\n`;
-    content += `检查产品数量: ${totalProducts} 个\n`;
-    content += `相似度阈值: 80%\n\n`;
-    content += `检查结果:\n${report.message}\n\n`;
+    let content = '';
     
-    if (report.hasDuplicates) {
-      content += `统计信息:\n${report.summary}\n`;
-      content += `重复率: ${report.statistics.duplicateRate}%\n\n`;
-      content += `详细信息:\n${report.details}\n\n`;
+    // 报告头部
+    content += '='.repeat(60) + '\n';
+    content += '📊 产品标题重复度检查报告\n';
+    content += '='.repeat(60) + '\n';
+    content += `检查时间：${new Date().toLocaleString()}\n`;
+    content += `检查产品数量：${totalProducts} 个\n`;
+    content += `相似度阈值：80%\n\n`;
+    
+    if (!report.hasDuplicates) {
+      content += '🎉 检查结果：所有产品标题唯一\n';
+      content += '✅ 未发现重复产品标题\n\n';
+    } else {
+      // 统计摘要
+      content += '⚠️ 检查结果：发现重复产品标题\n';
+      content += `📈 统计信息：${report.summary}\n`;
+      content += `📊 重复率：${report.statistics.duplicateRate}%\n\n`;
+      
+      // 将分组拆分为"完全重复(100%)"与"高度相似(阈值-99%)"两类
+      const exactGroups = [];
+      const nearGroups = [];
+      (rawGroups||[]).forEach(g=>{
+        const exact = [];
+        const near = [];
+        g.similarProducts.forEach(p=>{ (p.similarity>=100 ? exact : near).push(p); });
+        if (g.originalTitle && g.originalTitle.trim()){
+          // 原始本身若存在完全重复，归入 exact；否则落入 near 分组的"头部"
+          const base = { index:g.originalIndex, product:g.originalProduct, title:g.originalTitle, similarity:100 };
+          if (exact.length>0) exact.unshift(base); else if (near.length>0) near.unshift(base);
+        }
+        if (exact.length>=2) exactGroups.push({ title:g.originalTitle, items:exact });
+        if (near.length>=2) nearGroups.push({ title:g.originalTitle, items:near });
+      });
+      
+      // 完全重复部分
+      content += '① 完全重复（标题100%一致）\n';
+      content += '-'.repeat(40) + '\n';
+      if (exactGroups.length === 0) {
+        content += '未发现完全重复的标题\n\n';
+      } else {
+        exactGroups.forEach((grp, i) => {
+          content += `${i + 1}. "${grp.title}"\n`;
+          const ids = grp.items.map(it => it.product.id).join('、');
+          content += `   产品ID：${ids}\n`;
+          content += `   重复数量：${grp.items.length} 个\n\n`;
+        });
+      }
+      
+      // 高度相似部分
+      content += '② 高度相似（相似度 ≥80% 且 <100%）\n';
+      content += '-'.repeat(40) + '\n';
+      if (nearGroups.length === 0) {
+        content += '未发现高度相似的标题\n\n';
+      } else {
+        // 文本版本的差异高亮函数
+        function highlightDiffText(a, b) {
+          const A = [...a], B = [...b];
+          
+          // LCS算法计算最长公共子序列
+          function lcsMatrix(a, b) {
+            const m = a.length, n = b.length;
+            const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(0));
+            for (let i = 1; i <= m; i++) {
+              for (let j = 1; j <= n; j++) {
+                dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+              }
+            }
+            return dp;
+          }
+          
+          const dp = lcsMatrix(A, B);
+          let i = A.length, j = B.length;
+          const keepA = Array(i).fill(false), keepB = Array(j).fill(false);
+          
+          while (i > 0 && j > 0) {
+            if (A[i-1] === B[j-1]) {
+              keepA[i-1] = true;
+              keepB[j-1] = true;
+              i--; j--;
+            } else if (dp[i-1][j] >= dp[i][j-1]) {
+              i--;
+            } else {
+              j--;
+            }
+          }
+          
+          // 生成带标记的文本
+          const aText = A.map((ch, k) => keepA[k] ? ch : `[${ch}]`).join('');
+          const bText = B.map((ch, k) => keepB[k] ? ch : `[${ch}]`).join('');
+          
+          return { aText, bText };
+        }
+        
+        nearGroups.forEach((grp, groupIndex) => {
+          const base = grp.items[0];
+          const baseTitle = base?.title || '';
+          
+          content += `组 ${groupIndex + 1}：\n`;
+          content += `  原始标题：${baseTitle}\n`;
+          
+          grp.items.slice(1).forEach((sim, simIndex) => {
+            const { aText, bText } = highlightDiffText(baseTitle, sim.title || '');
+            content += `  相似项 ${simIndex + 1}：\n`;
+            content += `    原标题：${aText}\n`;
+            content += `    相似项：${bText}\n`;
+            content += `    产品ID：${sim.product.id}\n`;
+            content += `    相似度：${Math.round(sim.similarity)}%\n\n`;
+          });
+        });
+      }
+      
+      // 建议
+      content += '💡 优化建议\n';
+      content += '-'.repeat(40) + '\n';
+      content += '1. 优先保留代表性商品，删除完全重复的产品\n';
+      content += '2. 优化高度相似标题，提高产品差异化\n';
+      content += '3. 考虑合并相似产品，减少SKU数量\n';
+      content += '4. 定期检查产品标题，避免重复问题\n\n';
     }
+    
+    content += '='.repeat(60) + '\n';
+    content += '报告生成完成\n';
+    content += '='.repeat(60) + '\n';
     
     // 创建下载链接
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
