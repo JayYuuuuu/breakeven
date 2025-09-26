@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片悬停效果</title>
+    <link rel="stylesheet" href="image_hover.css?v=1757989120">
+</head>
+<body>
+    <h1>图片预览工具</h1>
+    
+    <!-- 搜索框 -->
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="搜索图片名称...">
+        <button id="clearSearch">清除</button>
+    </div>
+    
+    <div id="galleries-container"></div>
+    
+    <!-- 大图模态框 -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img id="modalImage" class="modal-image" src="" alt="">
+            <div id="modalTitle" class="modal-title"></div>
+        </div>
+    </div>
+    
+    <script src="image_hover.js?v=1757989120"></script>
+</body>
+</html>
