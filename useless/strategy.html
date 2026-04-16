@@ -228,7 +228,8 @@
             <div class="col-span-2">
               <div class="label-row">
                 <label>从示例数据选择</label>
-                <a href="./product_analysis.html" target="_blank" class="reset-btn" title="跳转到商品分析页面">📊 商品表格</a>
+                <!-- 本页在 useless/ 子目录，商品分析仍在站点根目录 -->
+                <a href="../product_analysis.html" target="_blank" class="reset-btn" title="跳转到商品分析页面">📊 商品表格</a>
               </div>
               <select id="exSelect"><option value="">— 选择示例商品 —</option></select>
             </div>
@@ -544,8 +545,9 @@
       computeCPAMetrics,
       profitGivenAd,
       to01
-    } from './engine.js';
-    import { getProductExamples, SYSTEM_PARAMS_EXAMPLE } from './product_examples.js';
+    } from '../engine.js';
+    // 示例数据模块仍在仓库根目录
+    import { getProductExamples, SYSTEM_PARAMS_EXAMPLE } from '../product_examples.js';
 
     // 简易格式化
     const fmt = (n, p=2) => (isFinite(n) ? Number(n).toFixed(p) : '—');

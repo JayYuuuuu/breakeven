@@ -399,7 +399,7 @@ adCostBreakEven = (1 + serviceVATRate) × A
 - `snapshotAt(p, opts)` - 在给定参数下的指标快照
 - `deltaForAdRateDown1pp(p, opts)` - 广告占比降低1pp的敏感度分析
 
-这些函数现在可以在 `metro.html`、`index.html`、`single.html` 等多个页面中复用，确保计算逻辑的一致性和可维护性。
+这些函数现在可以在 `metro.html`、`index.html`、`useless/single.html`（历史单页，已归档）等多个页面中复用，确保计算逻辑的一致性和可维护性。
 
 ## 🚀 部署和使用
 
