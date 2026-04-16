@@ -1,0 +1,2813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 本文件由原 index.html 正文迁移而来：全功能单页计算器，不再内嵌「跳转导航」逻辑 -->
+  <title>经典保本计算器（单页全功能）｜电商运营工具箱</title>
+  <style>
+    :root{
+      --bg:#F5F5F7;              /* Apple system background */
+      --card:#FFFFFF;             /* Card surface */
+      --ink:#111111;              /* Primary text */
+      --muted:#6e6e73;            /* Secondary text (Apple Gray 2) */
+      --accent:#007aff;           /* iOS blue */
+      --accent-2:#0a84ff;         /* hover */
+      --ok:#34c759;               /* Apple green */
+      --warn:#ff9f0a;             /* Apple orange */
+      --bad:#ff3b30;              /* Apple red */
+      --grid: 12px;
+      --radius: 12px;
+      --mono: "Inter var", "Inter", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "DIN Alternate", "DIN Condensed", sans-serif;
+      --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg);
+      color:var(--ink); font-family:var(--sans);
+    }
+    header{ padding:24px 24px 0; }
+    h1{ margin:0 0 6px 0; font-size:22px; letter-spacing:.3px; }
+    .sub{ color:var(--muted); font-size:13px; }
+    main{ padding:24px; }
+    .wrap{ display:grid; grid-template-columns: 1.1fr .9fr; gap:24px; }
+    @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
+    .card{
+      background:var(--card);
+      border:1px solid #d2d2d7; border-radius:var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .card h2{
+      font-size:16px; margin:0; padding:14px 16px; border-bottom:1px solid #e5e5ea;
+      background: linear-gradient(180deg, #fafafa, #ffffff);
+      border-top-left-radius:var(--radius); border-top-right-radius:var(--radius);
+    }
+    .content{ padding:16px; }
+    .grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:16px; }
+    @media (max-width: 640px){ .grid{ grid-template-columns: 1fr; } }
+    label{ font-size:12px; color:var(--muted); display:block; margin:0 0 6px 2px; }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .input{
+      background:#ffffff; border:1px solid #d2d2d7; color:var(--ink);
+      border-radius:10px; padding:14px 12px; width:90%;
+      outline:none; font-size:16px; font-weight:600;
+    }
+    /* 左侧参数输入区域：输入框加高 50%，字体加大加粗 */
+    .wrap > section.card:first-child .input{
+      padding:21px 14px;   /* 原 14px → 21px，高度 +50% */
+      font-size:20px;      /* 原 16px → 20px */
+      font-weight:700;     /* 原 600 → 700（更粗） */
+    }
+    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,0.2); }
+    .switch{
+      display:inline-flex; align-items:center; gap:8px; background:#ffffff; border:1px solid #d2d2d7; padding:8px 10px; border-radius:999px;
+    }
+    .btn{
+      appearance:none; border:0; background:var(--accent); color:white;
+      padding:12px 16px; border-radius:10px; font-weight:600; cursor:pointer; font-size:14px;
+      box-shadow: 0 4px 12px rgba(0,122,255,0.24);
+    }
+    .btn:active{ transform: translateY(1px); filter:brightness(0.95); }
+    .muted{ color:var(--muted); font-size:12px; }
+    .kpi{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
+    @media (max-width: 640px){ .kpi{ grid-template-columns: 1fr; } }
+    .kpi .box{ background:#ffffff; border:1px solid #e5e5ea; border-radius:12px; padding:12px; }
+    .kpi .label{ color:var(--muted); font-size:12px; }
+    .kpi .value{ font-family:var(--mono); font-size:20px; margin-top:8px; color:#111; }
+    .good{ color:#34c759 } .bad{ color:#ff3b30 }
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
+    th, td{ border-bottom:1px solid #e5e5ea; padding:8px 6px; text-align:right; font-family: var(--mono); position:relative; }
+    th:first-child, td:first-child{ text-align:left; }
+    
+    /* 表格悬停聚焦效果 */
+    tr:hover{background-color:rgba(0,122,255,0.05)}
+    td:hover{background-color:rgba(0,122,255,0.1);font-weight:600}
+    th:hover{background-color:rgba(0,122,255,0.05)}
+    
+    /* 行列和单元格聚焦效果 */
+    .row-highlight{background-color:rgba(0,122,255,0.05) !important}
+    .col-highlight{background-color:rgba(0,122,255,0.05) !important}
+    .cell-highlight{background-color:rgba(0,122,255,0.15) !important;font-weight:600}
+    
+    /* 负数红色显示 */
+    .neg{color:var(--bad)}
+    .note{ font-size:12px; color:#3a3a3c; line-height:1.6; }
+    .sep{ height:1px; background:linear-gradient(90deg, #e5e5ea, transparent); margin:12px 0; }
+    .pill{ padding:2px 8px; border-radius:999px; background:#f2f2f7; font-size:11px; color:#111; border:1px solid #d2d2d7; }
+    .mono{ font-family: var(--mono); }
+    /* two-column layout for the explanation card */
+    .explain-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    @media (max-width: 980px){ .explain-grid{ grid-template-columns: 1fr; } }
+    .explain-col{ display:flex; flex-direction:column; gap:10px; }
+    .axis-label{ font-size:11px; fill:#6e6e73; font-family: var(--sans); }
+    .axis-line{ stroke:#e5e5ea; stroke-width:1; }
+    /* Modal styles */
+    .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:999; }
+    .modal{ width:min(1000px, 94vw); max-height:86vh; background:var(--card); border:1px solid #d2d2d7; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.25); display:flex; flex-direction:column; }
+    .modal header{ padding:14px 16px; border-bottom:1px solid #e5e5ea; display:flex; align-items:center; justify-content:space-between; }
+    .modal header h3{ margin:0; font-size:16px; }
+    .modal .modal-body{ padding:16px; overflow:auto; }
+    .modal .modal-actions{ padding:12px 16px; border-top:1px solid #e5e5ea; display:flex; gap:10px; justify-content:flex-end; }
+    .icon-btn{ background:#f2f2f7; border:1px solid #d2d2d7; border-radius:10px; padding:8px 10px; cursor:pointer; }
+    .icon-btn:hover{ background:#e5e5ea; border-color:#bcbcc0; }
+    .icon-btn:active{ transform: translateY(1px); }
+    .close-x{ background:transparent; border:0; font-size:22px; line-height:1; cursor:pointer; color:#6e6e73; }
+    /* 功能按钮托盘：卡片底部，紧凑、可换行、移动端友好 */
+    .tooltray{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .tooltray .tag{ margin-right:auto; align-self:center; color:var(--muted); font-size:12px; }
+    @media (max-width: 640px){ .tooltray{ justify-content:flex-start; } }
+
+    /* 恢复默认值按钮：存在感很小的链接样式 */
+    .reset-link{
+      background:transparent; border:0; color:var(--muted); font-size:11px; 
+      text-decoration:underline; cursor:pointer; padding:0; margin-left:8px;
+      font-family:inherit; font-weight:normal;
+    }
+    .reset-link:hover{ color:var(--accent); }
+
+    /* Floating explain FAB */
+    .fab-explain{ position:fixed; right:22px; bottom:22px; z-index:998; }
+    .fab-btn{
+      background:var(--card); border:1px solid #d2d2d7; color:var(--ink);
+      width:44px; height:44px; border-radius:999px; cursor:pointer; font-weight:700; font-size:18px;
+      box-shadow:0 6px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center;
+    }
+    .fab-btn:hover{ border-color:#bcbcc0; }
+    .fab-hint{ position:absolute; right:54px; bottom:8px; background:#111; color:#fff; font-size:12px; padding:6px 8px; border-radius:8px; opacity:.9; }
+    
+    /* 投放决策面板样式 */
+    .decision-card {
+      background: #fffdf7;
+      border: 1px solid #ffe8b3;
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin: 12px 0;
+    }
+    
+    .decision-item {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .decision-item label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    
+    .decision-item input,
+    .decision-item select {
+      padding: 8px 10px;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    .decision-actions {
+      margin: 16px 0 12px 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .tiny-hint {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+    }
+    
+    .kpi-band {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    
+    .kpi-band .kpi {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .kpi-band .kpi .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    
+    .kpi-band .kpi .val {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    
+    /* 投放决策数据卡片新样式 */
+    .investment-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    
+    .investment-metrics .metric-card {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .investment-metrics .metric-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    
+    .investment-metrics .metric-card .val {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      font-family: var(--mono);
+    }
+    
+    /* 目标推演数据卡片样式 - 一行4列 */
+    .target-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    
+    .target-metrics .target-card {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .target-metrics .target-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    
+    .target-metrics .target-card .val {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      font-family: var(--mono);
+    }
+    
+    .target-analysis {
+      margin-top: 16px;
+    }
+    
+    .result-buttons {
+      margin: 16px 0 12px 0;
+    }
+
+    /* 顶栏：从经典单页返回工具箱（正文由原 index 迁移后补充） */
+    .legacy-topnav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 24px;
+      background: #e8f4ff;
+      border-bottom: 1px solid #c5d8f0;
+      font-size: 13px;
+    }
+    .legacy-topnav a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .legacy-topnav a:hover {
+      text-decoration: underline;
+    }
+    .legacy-topnav-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 站内返回：避免用户困在单页大表单中找不到工具箱入口 -->
+  <nav class="legacy-topnav" aria-label="站内导航">
+    <a href="navigation.html">← 返回工具箱导航</a>
+    <span class="legacy-topnav-hint">经典单页全功能计算器（历史入口：<code>index.html?noRedirect=true</code> 现会跳转到本页）</span>
+  </nav>
+  <header>
+    <h1>电商保本计算器</h1>
+    <div class="sub">计算 <strong>利润</strong>、<strong>保本广告占比</strong>、<strong>保本 ROI</strong>（采用「有效营收口径」；可切换进货是否分摊）。</div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <section class="card">
+        <h2>参数输入</h2>
+        <div class="content">
+          <div class="row" style="margin-bottom:10px">
+            <span class="pill">口径</span>
+            <label class="switch"><input type="radio" name="goodsMode" value="canReturn" checked> 进货可退（不分摊）</label>
+            <label class="switch"><input type="radio" name="goodsMode" value="cannotReturn"> 进货不可退（分摊）</label>
+          </div>
+          <div class="grid">
+            <div>
+              <label>售价（sellingPrice）</label>
+              <input id="sellingPrice" class="input" type="number" step="0.01" value="79.8">
+            </div>
+            <div>
+              <label>退货率（returnRate）%</label>
+              <input id="returnRate" class="input" type="number" step="0.01" value="12">
+            </div>
+            <div>
+              <label>进货价（costPrice）</label>
+              <input id="costPrice" class="input" type="number" step="0.01" value="38">
+            </div>
+            <div>
+              <label>开票费率（inputTaxRate）%</label>
+              <input id="inputTaxRate" class="input" type="number" step="0.01" value="6">
+            </div>
+            <div>
+              <label>进项税率（outputTaxRate）%</label>
+              <input id="outputTaxRate" class="input" type="number" step="0.01" value="13">
+            </div>
+            <div>
+              <label>平台佣金率（platformRate）%</label>
+              <input id="platformRate" class="input" type="number" step="0.01" value="5.5">
+            </div>
+            <div>
+              <label>物流费（shippingCost）</label>
+              <input id="shippingCost" class="input" type="number" step="0.01" value="2.8">
+            </div>
+            <div>
+              <label>运费险（shippingInsurance）</label>
+              <input id="shippingInsurance" class="input" type="number" step="0.01" value="1.5">
+            </div>
+            <div>
+              <label>其他成本（otherCost）</label>
+              <input id="otherCost" class="input" type="number" step="0.01" value="2.5">
+            </div>
+            <div>
+              <label>销项税率（salesTaxRate）%</label>
+              <input id="salesTaxRate" class="input" type="number" step="0.01" value="13">
+            </div>
+            <div>
+              <label>服务费税率（serviceVATRate）% <span class="muted">(佣金/广告，通常为6%)</span></label>
+              <input id="serviceVATRate" class="input" type="number" step="0.01" value="6">
+            </div>
+            <div>
+              <label>广告输入方式</label>
+              <div class="row">
+                <label class="switch"><input type="radio" name="adMode" value="rate" checked> 广告费占比（adRate）%</label>
+                <label class="switch"><input type="radio" name="adMode" value="cost"> 广告费金额（adCost）</label>
+              </div>
+            </div>
+            <div id="adRateWrap">
+              <label>广告费占比（adRate）%</label>
+              <input id="adRate" class="input" type="number" step="0.01" placeholder="例如 25">
+              <div id="adRateEquivWrap" class="muted" style="margin-top:6px">
+                等价到 <span id="adRateEquivTarget">GMV</span> 口径：<span id="adRateEquiv">—</span>
+              </div>
+            </div>
+            <div id="adRateBasisWrap">
+              <label>占比口径（adRate 基数）</label>
+              <div class="row">
+                <label class="switch">
+                  <input type="radio" name="adRateBasis" value="effective" checked>
+                  按有效营收（售价 × (1 - 退货率)）
+                </label>
+                <label class="switch">
+                  <input type="radio" name="adRateBasis" value="gmv">
+                  按 GMV（含税售价）
+                </label>
+              </div>
+            </div>
+            <div id="adCostWrap" style="display:none">
+              <label>广告费（adCost）</label>
+              <input id="adCost" class="input" type="number" step="0.01" placeholder="留空则仅计算保本指标">
+            </div>
+          </div>
+
+          <div class="sep"></div>
+          <div class="row">
+            <button class="btn" id="calc">计算</button>
+            <span class="muted">提示：所有 % 将自动换算为小数参与计算。输入会自动保存到本地。</span>
+            <button class="reset-link" id="resetDefaults">恢复默认值</button>
+          </div>
+          <div class="sep"></div>
+          <div class="tooltray">
+            <span class="tag">功能</span>
+            <button class="btn" id="openSim">利润率推演</button>
+            <button class="btn" id="openPriceSim">到手价推演</button>
+            <button class="btn" id="openTaxSim">税费推演</button>
+            <button class="btn" id="openCostSim">成本价推演</button>
+            <button class="btn" id="openValueSim">数值分析</button>
+            <button class="btn" id="openInvestmentDecision">投放决策</button>
+            <button class="btn" id="openProductAnalysis">商品分析</button>
+            <button class="btn" id="openListPrice">标价计算</button>
+            <!-- 未来功能按钮占位：
+            <button class="icon-btn" disabled>毛利敏感度</button>
+            <button class="icon-btn" disabled>多SKU对比</button>
+            <button class="icon-btn" disabled>渠道费模拟</button>
+            -->
+          </div>
+        </div>
+      </section>
+
+
+      <section class="card">
+        <h2>结果</h2>
+        <div class="content">
+          <div class="kpi">
+            <div class="box">
+              <div class="label">保本广告占比（有效营收口径）</div>
+              <div class="value" id="kpiAdRate">—</div>
+              <div class="muted">= 保本广告费 ÷ [售价 × (1 - 退货率)]</div>
+            </div>
+            <div class="box">
+              <div class="label">保本 ROI（有效营收口径）</div>
+              <div class="value" id="kpiROI">—</div>
+              <div class="muted">= 1 ÷ 保本广告占比</div>
+            </div>
+            <div class="box">
+              <div class="label">利润（给定广告）</div>
+              <div class="value" id="kpiProfit">—</div>
+              <div class="muted">若未输入广告费/占比，则显示“—”</div>
+              <div class="muted">利润率：<span id="kpiProfitMargin">—</span></div>
+            </div>
+          </div>
+          <div class="kpi" style="margin-top:10px">
+            <div class="box">
+              <div class="label">保本广告占比（GMV 口径）</div>
+              <div class="value" id="kpiAdRateGMV">—</div>
+              <div class="muted">= 保本广告费 ÷ 售价</div>
+            </div>
+            <div class="box">
+              <div class="label">保本 ROI（GMV 口径）</div>
+              <div class="value" id="kpiROIGMV">—</div>
+              <div class="muted">= 1 ÷ （保本广告占比（GMV））</div>
+            </div>
+            <div class="box">
+              <div class="label">保本广告费（每出货单）</div>
+              <div class="value" id="kpiAdCost">—</div>
+              <div class="muted">= (1 + 服务费税率) × A</div>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+          <h3 style="margin:6px 0 8px; font-size:14px">分解明细</h3>
+          <table>
+            <tbody id="detailRows"></tbody>
+          </table>
+
+        </div>
+      </section>
+      <div class="modal-overlay" id="simModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="simTitle">
+          <header>
+            <h3 id="simTitle">利润率推演</h3>
+            <button class="close-x" id="closeSim" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <div class="grid">
+              <div>
+                <label>广告占比范围（%）</label>
+                <div class="row">
+                  <input id="simRateFrom" class="input" type="number" step="0.1" value="0" style="width:110px">
+                  <span class="muted">→</span>
+                  <input id="simRateTo" class="input" type="number" step="0.1" value="35" style="width:110px">
+                  <span class="muted">步长</span>
+                  <input id="simRateStep" class="input" type="number" step="0.1" value="2.5" style="width:110px">
+                </div>
+              </div>
+              <div>
+                <label>占比口径</label>
+                <div class="row">
+                  <label class="switch"><input type="radio" name="simBasis" value="effective" checked> 按有效营收</label>
+                  <label class="switch"><input type="radio" name="simBasis" value="gmv"> 按 GMV</label>
+                </div>
+              </div>
+              <div>
+                <label>退货率场景（%，逗号分隔）</label>
+                <input id="simReturnScenarios" class="input" type="text" value="5,8,10,12,15,18,20,22,25,28,30">
+              </div>
+              <div>
+                <label>操作</label>
+                <div class="row">
+                  <button class="btn" id="simulate">推演</button>
+                  <button class="icon-btn" id="markBreakeven">一键标注保本点</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <h3 style="margin:6px 0 8px; font-size:14px">推演表</h3>
+            <table>
+              <thead id="simTableHead"></thead>
+              <tbody id="simTableBody"></tbody>
+            </table>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closeSim2">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="priceModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="priceTitle">
+          <header>
+            <h3 id="priceTitle">到手价推演（反推售价）</h3>
+            <button class="close-x" id="closePrice" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <div class="grid">
+              <div>
+                <label>广告占比范围（%）</label>
+                <div class="row">
+                  <input id="pRateFrom" class="input" type="number" step="0.1" value="0" style="width:110px">
+                  <span class="muted">→</span>
+                  <input id="pRateTo" class="input" type="number" step="0.1" value="35" style="width:110px">
+                  <span class="muted">步长</span>
+                  <input id="pRateStep" class="input" type="number" step="0.1" value="2.5" style="width:110px">
+                </div>
+              </div>
+              <div>
+                <label>占比口径</label>
+                <div class="row">
+                  <label class="switch"><input type="radio" name="pBasis" value="effective" checked> 按有效营收</label>
+                  <label class="switch"><input type="radio" name="pBasis" value="gmv"> 按 GMV</label>
+                </div>
+              </div>
+              <div>
+                <label>目标利润率场景（%，逗号分隔）</label>
+                <input id="pMarginScenarios" class="input" type="text" value="0,3,5,7,9,10,12,13,15,18,20">
+              </div>
+              <div>
+                <label>退货率场景（%，逗号分隔）</label>
+                <input id="pReturnScenarios" class="input" type="text" value="5,8,10,12,15,18,20,22,25,28,30">
+              </div>
+              <div>
+                <label>操作</label>
+                <div class="row">
+                  <button class="btn" id="priceSimRun">推演售价</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <div id="priceSimWrap"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closePrice2">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="taxModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="taxTitle">
+          <header>
+            <h3 id="taxTitle">税费推演（实际税负占比）</h3>
+            <button class="close-x" id="closeTax" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <div class="grid">
+              <div>
+                <label>广告占比范围（%）</label>
+                <div class="row">
+                  <input id="tRateFrom" class="input" type="number" step="0.1" value="0" style="width:110px">
+                  <span class="muted">→</span>
+                  <input id="tRateTo" class="input" type="number" step="0.1" value="35" style="width:110px">
+                  <span class="muted">步长</span>
+                  <input id="tRateStep" class="input" type="number" step="0.1" value="2.5" style="width:110px">
+                </div>
+              </div>
+              <div>
+                <label>广告占比口径</label>
+                <div class="row">
+                  <label class="switch"><input type="radio" name="tBasis" value="effective" checked> 按有效营收</label>
+                  <label class="switch"><input type="radio" name="tBasis" value="gmv"> 按 GMV</label>
+                </div>
+              </div>
+              <div>
+                <label>退货率场景（%，逗号分隔）</label>
+                <input id="tReturnScenarios" class="input" type="text" value="5,8,10,12,15,18,20,22,25,28,30">
+              </div>
+              <div>
+                <label>说明</label>
+                <div class="note">此推演的“实际税费占比”= <strong>净应纳税额 ÷ 售价（GMV）</strong>，其中净应纳税额 = 销项税 − 进项税（进货/佣金/广告）。</div>
+              </div>
+              <div>
+                <label>操作</label>
+                <div class="row"><button class="btn" id="taxSimRun">开始推演</button></div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <div id="taxSimWrap"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closeTax2">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="costModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="costTitle">
+          <header>
+            <h3 id="costTitle">成本价推演（反推进货价）</h3>
+            <button class="close-x" id="closeCost" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <div class="grid">
+              <div>
+                <label>广告占比范围（%）</label>
+                <div class="row">
+                  <input id="cRateFrom" class="input" type="number" step="0.1" value="0" style="width:110px">
+                  <span class="muted">→</span>
+                  <input id="cRateTo" class="input" type="number" step="0.1" value="35" style="width:110px">
+                  <span class="muted">步长</span>
+                  <input id="cRateStep" class="input" type="number" step="0.1" value="2.5" style="width:110px">
+                </div>
+              </div>
+              <div>
+                <label>占比口径</label>
+                <div class="row">
+                  <label class="switch"><input type="radio" name="cBasis" value="effective" checked> 按有效营收</label>
+                  <label class="switch"><input type="radio" name="cBasis" value="gmv"> 按 GMV</label>
+                </div>
+              </div>
+              <div>
+                <label>目标利润率场景（%，逗号分隔）</label>
+                <input id="cMarginScenarios" class="input" type="text" value="0,3,5,7,9,10,12,13,15,18,20">
+              </div>
+              <div>
+                <label>退货率场景（%，逗号分隔）</label>
+                <input id="cReturnScenarios" class="input" type="text" value="5,8,10,12,15,18,20,22,25,28,30">
+              </div>
+              <div>
+                <label>操作</label>
+                <div class="row">
+                  <button class="btn" id="costSimRun">推演进货价</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <div class="note" style="margin:8px 0 10px">说明：反推 <strong>进货价（costPrice）</strong> 使得 <span class="mono">利润率 = 目标值</span>。利润率定义为 <span class="mono">Profit ÷ (售价 × r)</span>；广告占比用于换算广告金额并影响广告进项抵扣。</div>
+            <div id="costSimWrap"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closeCost2">关闭</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-overlay" id="valueModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="valueTitle">
+          <header>
+            <h3 id="valueTitle">数值分析（CPC ↔ CVR ↔ 售价）</h3>
+            <button class="close-x" id="closeValue" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <div class="grid">
+              <div>
+                <label>ROI 口径</label>
+                <div class="row">
+                  <label class="switch"><input type="radio" name="vBasis" value="effective" checked> 按有效营收</label>
+                  <label class="switch"><input type="radio" name="vBasis" value="gmv"> 按 GMV</label>
+                </div>
+              </div>
+              <div>
+                <label>转化率（CVR）%</label>
+                <input id="vCVR" class="input" type="number" step="0.01" placeholder="例如 3.5">
+              </div>
+              <div>
+                <label>CPC（元/点击）</label>
+                <input id="vCPC" class="input" type="number" step="0.01" placeholder="例如 0.60">
+              </div>
+              <div>
+                <label>客单价（AOV，元）<span class="muted">（留空将仅用于临界计算；可手动填当前售价）</span></label>
+                <div class="row">
+                  <input id="vAOV" class="input" type="number" step="0.01" placeholder="例如 79.80">
+                </div>
+              </div>
+              <div>
+                <label>操作</label>
+                <div class="row">
+                  <button class="btn" id="valueRun">计算</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <div class="note" style="margin:6px 0 10px">
+              基础关系：<span class="mono">ROI = (CVR × 客单价) ÷ CPC</span>。本工具用当前参数计算<strong>保本 ROI</strong>，并在你给定任意两项（CVR/CPC/客单价）时，求出第三项的<strong>临界值</strong>。
+            </div>
+            <div id="valueWrap"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closeValue2">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="fab-explain">
+        <button class="fab-btn" id="openExplain" title="口径说明 / 推导">？</button>
+        <div class="fab-hint" style="display:none" id="explainHint">口径说明 / 推导</div>
+      </div>
+      <div class="modal-overlay" id="explainModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="explainTitle">
+          <header>
+            <h3 id="explainTitle">口径说明 / 推导</h3>
+            <button class="close-x" id="closeExplain" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <div class="explain-grid">
+              <div class="explain-col">
+                <div class="muted" style="margin-bottom:6px">本工具展示两种口径，并解释常见疑问：</div>
+
+                <h4 style="font-size:13px; margin:8px 0 4px">① 两套口径的定义</h4>
+                <ul class="muted" style="margin:0 0 8px 18px">
+                  <li><strong>有效营收口径</strong>：分母 = 售价 × (1 − 退货率)，更贴近实际入账收入，用于经营决策。</li>
+                  <li><strong>GMV 口径</strong>：分母 = 售价（含税），与广告平台报表对齐，便于外部沟通。</li>
+                </ul>
+
+                <h4 style="font-size:13px; margin:8px 0 4px">② 保本广告占比与 ROI</h4>
+                <ul class="muted" style="margin:0 0 8px 18px">
+                  <li>保本广告占比（有效营收） = <span class="mono">X ÷ [售价 × (1 − 退货率)]</span></li>
+                  <li>保本广告占比（GMV） = <span class="mono">X ÷ 售价</span> = 上式 × <span class="mono">(1 − 退货率)</span></li>
+                  <li>ROI = 各自占比的倒数。判断盈亏时，务必在<strong>同一口径</strong>下比较。</li>
+                </ul>
+
+                <h4 style="font-size:13px; margin:8px 0 4px">③ 成本与税的口径规则</h4>
+                <div class="note" style="margin-bottom:8px">
+                  ① 进货可退：进货成本与其进项抵扣按 ×r；不可退：按 ×1（出货即耗用）。<br>
+                  ② 快递/运费险/其他：发货即发生，按 ×1。<br>
+                  ③ 平台佣金：仅成交发生，按 ×r；佣金进项抵扣需价内还原。<br>
+                  ④ 广告费：按 ×1 入账；广告进项抵扣需价内还原。<br>
+                  ⑤ 销项税：按有效营收做价内扣除。
+                </div>
+
+                <h4 style="font-size:13px; margin:8px 0 4px">⑤ 建议</h4>
+                <div class="note">
+                  <strong>经营决策优先</strong>：关注有效营收口径（更贴近真实利润）。<br>
+                  <strong>报表对齐</strong>：GMV 口径用于与平台 ROI 对比。两者应同时监控，但不要跨口径直接比较。
+                </div>
+
+                <h4 style="font-size:13px; margin:8px 0 4px">④ 常见疑问</h4>
+                <div class="note">
+                  <strong>疑问：</strong>为何选择 GMV 口径输入广告费占比时，利润更少？<br>
+                  <strong>解释：</strong>因为 GMV > 有效营收，相同的 % 换算成的广告金额更大。利润恒等式未变，是<strong>输入口径分母不同</strong>导致。<br>
+                  提示：跨口径换算关系—— 占比(GMV) = 占比(有效) × r； ROI(GMV) = ROI(有效) ÷ r。
+                </div>
+                <div class="note" style="margin-top:8px">
+                  <strong>疑问：</strong>用<strong>有效营收口径</strong>是不是更难盈利？<br>
+                  <strong>结论：</strong>不是。有效口径先扣除了退货，给出的是<strong>更真实</strong>的保本门槛；数值上它的保本 ROI 更低，反而更容易达标。<br>
+                  <strong>关系：</strong><span class="mono">ROI<sub>BE,eff</sub> = (1 − 退货率) × ROI<sub>BE,gmv</sub></span>（只要退货率&gt;0，保本 ROI（有效）&lt; 保本 ROI（GMV））。<br>
+                  <strong>判定：</strong>盈利条件始终是 <span class="mono">ROI<sub>实际</sub> ≥ ROI<sub>BE</sub></span>，且必须在<strong>同一口径</strong>下比较。<br>
+                  <strong>例子：</strong>售价 100、退货率 20%、保本广告费 30，<span class="mono">ROI<sub>BE,gmv</sub>=100/30≈3.33</span>，<span class="mono">ROI<sub>BE,eff</sub>=80/30≈2.67</span>。若投放 ROI=3：按 GMV 未达标，按有效已达标（更贴近真实利润）。<br>
+                  <strong>提示：</strong>跨口径对比会误判。若需要换算：<span class="mono">占比(GMV) = 占比(有效) × r</span>；<span class="mono">ROI(GMV) = ROI(有效) ÷ r</span>。
+                </div>
+              </div>
+
+              <div class="explain-col">
+                <div class="muted" style="margin:6px 0">完整利润恒等式（以「出货 1 单」为基准件）：</div>
+                <pre class="mono" style="font-size:12px; line-height:1.65; white-space:pre-wrap; background:#f8f8f8; border:1px solid #e5e5ea; border-radius:10px; padding:10px;">
+Profit = Rev
+  - [goodsCost + othersCost + commission + X]
+  - (VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad)
+
+其中：
+Rev = 售价 × (1 − 退货率)
+ goodsCost = 进货价 × (1 + 开票费率) × {可退: ×r；不可退: ×1}
+ othersCost = 物流费 + 运费险 + 其他成本  （发货即发生）
+ commission = 售价 × 平台佣金率 × r
+ VAT_out = Rev ÷ (1 + 销项税率) × 销项税率
+ VAT_in_goods = 进货价 × 进项税率 × {可退: ×r；不可退: ×1}
+ VAT_in_comm  = commission ÷ (1 + 服务费税率) × 服务费税率
+ VAT_in_ad    = X ÷ (1 + 服务费税率) × 服务费税率
+
+将与 X 有关的项合并，可得：
+Profit = A − X/(1 + 服务费税率)
+⇒ 保本广告费 X = (1 + 服务费税率) × A
+A = Rev − (goodsCost + othersCost + commission) − VAT_out + VAT_in_goods + VAT_in_comm
+                </pre>
+
+                <div class="muted" style="margin-top:8px">要点：
+                  <ul style="margin:6px 0 0 18px; padding:0 0 0 0">
+                    <li>进货可退：成本与进项抵扣按 <span class="mono">× r</span>；不可退：按 <span class="mono">×1</span>。</li>
+                    <li>快递/险/其他为发货即发生，<strong>不随 r 分摊</strong>（因“出货基准件”）。</li>
+                    <li>佣金仅在成交时发生，按 <span class="mono">× r</span>；广告抵扣需做价内还原。</li>
+                  </ul>
+                </div>
+
+                <div class="sep"></div>
+                <div class="muted" style="margin:6px 0">成本/费用的退货处理方式：</div>
+                <table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:10px">
+                  <thead>
+                    <tr style="text-align:left; color:#6e6e73">
+                      <th style="padding:4px 6px; border-bottom:1px solid #e5e5ea">类别</th>
+                      <th style="padding:4px 6px; border-bottom:1px solid #e5e5ea">处理方式</th>
+                      <th style="padding:4px 6px; border-bottom:1px solid #e5e5ea">说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="padding:4px 6px">进货成本</td>
+                      <td style="padding:4px 6px">可退：×r<br>不可退：×1</td>
+                      <td style="padding:4px 6px">退货时货值可退回，不需分摊；若不可退则摊到全部出货</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:4px 6px">快递/运费险/其他</td>
+                      <td style="padding:4px 6px">×1 （发货即发生）</td>
+                      <td style="padding:4px 6px">退货也不退回，需摊到所有出货</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:4px 6px">平台佣金</td>
+                      <td style="padding:4px 6px">×r</td>
+                      <td style="padding:4px 6px">佣金仅对成交有效，退货可退</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:4px 6px">广告费</td>
+                      <td style="padding:4px 6px">×1 （出货即确认）</td>
+                      <td style="padding:4px 6px">退货不退广告，必须摊到所有出货</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="sep"></div>
+                <div class="muted" style="margin:6px 0">回代验证：</div>
+                <div class="note">系统会将计算出的保本广告费 X 带回利润恒等式进行检验，若 Profit≈0，则说明公式和逻辑闭合无误。</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closeExplain2">关闭</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 投放决策模态框 -->
+      <div class="modal-overlay" id="investmentModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="investmentTitle">
+          <header>
+            <h3 id="investmentTitle">投放决策</h3>
+            <button class="close-x" id="closeInvestment" aria-label="关闭">×</button>
+          </header>
+          <div class="modal-body">
+            <!-- 投放决策条 -->
+            <div class="decision-card" id="decisionCard">
+              <h4>🎯 投放决策条 <span class="tiny-hint">（基于主页参数，计算 BE-ROAS/BE-CPA/Max CPC 等）</span></h4>
+              <p class="module-description" style="margin: 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+                <strong>💡 设计原理：</strong>需要模拟不同AOV场景，帮助用户做投放决策。
+                AOV输入框和连带购买率会影响计算结果，便于测试不同投放策略。
+              </p>
+              <div class="decision-grid">
+                <div class="decision-item">
+                  <label>口径</label>
+                  <select id="decBasis">
+                    <option value="effective">有效营收</option>
+                    <option value="gmv">GMV</option>
+                  </select>
+                </div>
+                <div class="decision-item">
+                  <label>转化率 CVR（%）</label>
+                  <input type="number" id="decCVR" step="0.01" placeholder="2.0">
+                </div>
+                <div class="decision-item">
+                  <label>买量方式</label>
+                  <select id="decBuyMode">
+                    <option value="cpc">按 CPC 出价</option>
+                    <option value="cpm">按 CPM 出价（需 CTR）</option>
+                  </select>
+                </div>
+                <div class="decision-item" id="decCPCWrap">
+                  <label>CPC（元/点击）</label>
+                  <input type="number" id="decCPC" step="0.01" placeholder="2.50">
+                </div>
+                <div class="decision-item" id="decCPMWrap" style="display:none;">
+                  <label>CPM（元/千次曝光）</label>
+                  <input type="number" id="decCPM" step="0.01" placeholder="30">
+                </div>
+                <div class="decision-item" id="decCTRWrap" style="display:none;">
+                  <label>CTR（%）</label>
+                  <input type="number" id="decCTR" step="0.01" placeholder="2.5">
+                </div>
+                <div class="decision-item">
+                  <label>客单价 AOV（留空则用当前售价）</label>
+                  <input type="number" id="decAOV" step="0.01" placeholder="79.8">
+                </div>
+                <div class="decision-item">
+                  <label>连带购买率（%）</label>
+                  <input type="number" id="decBundleRate" step="0.01" min="0" max="100" placeholder="10">
+                </div>
+              </div>
+              <div class="decision-actions">
+                <button class="btn" id="decCalcBtn" onclick="window.calculateInvestmentDecision();">计算投放阈值</button>
+                <button class="btn primary" style="margin-left: 8px;" onclick="window.calculateInstantDiagnosis()">即时诊断</button>
+                <span class="tiny-hint" style="color: #007aff; font-weight: 600; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #007aff;">（AOV 可手动假设，模拟不同客单价场景）</span>
+                <span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #34c759;">（已启用实时计算，输入后自动更新）</span>
+              </div>
+              <div class="formula-hint">
+                <span class="tiny-hint">公式：ROAS = (CVR×AOV)/CPC；CPC = CPM/(CTR×1000)。当口径=有效营收时，自动用 AOV×(1−退货率)。</span>
+                <span class="tiny-hint">连带购买率用于放大 AOV：AOV′ = AOV × (1 + 连带率)</span>
+                <br><span class="tiny-hint">连带购买率会放大 AOV，从而影响 BE-CPA、Max CPC、ROAS 等指标</span>
+              </div>
+              
+              <!-- 计算逻辑说明 -->
+              <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; margin: 12px 0;">
+                <h6 style="margin: 0 0 8px 0; font-size: 13px; color: #495057; font-weight: 600;">📋 计算逻辑说明</h6>
+                <div style="font-size: 12px; color: #6c757d; line-height: 1.5;">
+                  <div style="margin-bottom: 6px;">
+                    <span style="color: #ff6b35; font-weight: 600;">🟠 基于原价：</span>BE-ROAS（保本ROI）基于商品当前售价计算，不受AOV输入和连带购买率影响，反映商品本身的盈利能力
+                  </div>
+                  <div style="margin-bottom: 6px;">
+                    <span style="color: #34c759; font-weight: 600;">🟢 基于AOV：</span>BE-CPA、Max CPC、ROAS等指标受手动输入的AOV和连带购买率影响，用于模拟不同客单价场景的投放策略
+                  </div>
+                  <div style="font-size: 11px; color: #868e96; margin-top: 8px;">
+                    💡 提示：调整AOV和连带购买率可以测试不同投放策略的效果，而BE-ROAS保持稳定，帮助评估商品基础盈利能力
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 核心保本阈值 -->
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">◎ 核心保本阈值</h5>
+              <div class="investment-metrics" style="margin-bottom: 12px;">
+                <div class="metric-card" id="kpiBEROAS"><div class="label">BE-ROAS（保本ROI）</div><div class="val">—<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span></div></div>
+                <div class="metric-card" id="kpiBECPA"><div class="label">BE-CPA（每单最多广告费）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiMaxCPC"><div class="label">Max CPC（不亏临界）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+              </div>
+
+              <!-- 实际与临界值对比 -->
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">△ 实际与临界值对比</h5>
+              <div class="investment-metrics" style="margin-bottom: 12px;">
+                <div class="metric-card" id="kpiActROAS"><div class="label">当前预估 ROAS（广告回报率）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiCritCVR"><div class="label">CVR 临界（保本转化率）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiCritAOV"><div class="label">AOV 临界（保本客单价）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+              </div>
+
+              <!-- 安全性与建议 -->
+              <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">☆ 安全性与建议</h5>
+              <div class="investment-metrics" style="margin-bottom: 12px;">
+                <div class="metric-card" id="kpiSafety"><div class="label">和最大CPC差值（元/点击）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiCvrCpcStatus"><div class="label">CVR-CPC 状态（出价安全指数）</div><div class="val">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                <div class="metric-card" id="kpiAdvice"><div class="label">建议</div><div class="val">—</div></div>
+              </div>
+
+              <!-- 即时诊断结果 -->
+              <div id="instantDiagnosisResult" style="display: none; margin-top: 16px;">
+                <h5 style="margin: 12px 0 8px 0; color: #007aff; font-size: 14px;">🔍 即时诊断</h5>
+                <span class="tiny-hint">基于 CPC/CVR/客单价 的"成本–效率–收益"链路分析</span>
+                <span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #ff6b35;">（基于商品当前售价计算，不受 AOV 输入影响）</span>
+                <p class="module-description" style="margin: 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+                  <strong>💡 设计原理：</strong>提供基于当前商品参数的稳定分析，不受用户假设影响。
+                  基于固定售价计算，不受AOV输入框和连带购买率影响，提供稳定的诊断结果。
+                </p>
+                
+                <!-- 成本相关指标 -->
+                <div class="investment-metrics" style="margin-bottom: 12px;">
+                  <div class="metric-card"><div class="label">CPA（每单广告成本）=CPC/CVR</div><div class="val" id="actualCPA">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">和保本广告费相比</div><div class="val" id="cpaGap">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">实际广告占比=CPA/（AOV*有效率）</div><div class="val" id="actualAdRate">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                </div>
+                
+                <!-- 效率相关指标 -->
+                <div class="investment-metrics" style="margin-bottom: 12px;">
+                  <div class="metric-card"><div class="label">实际ROI（每点击收益/CPC）</div><div class="val" id="actualROI">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">保本ROI</div><div class="val" id="breakevenROI">—<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span></div></div>
+                  <div class="metric-card"><div class="label">ROI安全边际</div><div class="val" id="safetyMargin">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                </div>
+                
+                <!-- 收益相关指标 -->
+                <div class="investment-metrics" style="margin-bottom: 12px;">
+                  <div class="metric-card"><div class="label">RPC（每点击收益）=CVR*AOV</div><div class="val" id="rpcPerClick">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                  <div class="metric-card"><div class="label">口径说明</div><div class="val" id="basisNote">—</div></div>
+                  <div class="metric-card"><div class="label">状态</div><div class="val" id="statusIndicator">—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span></div></div>
+                </div>
+
+                <!-- 优化建议 -->
+                <div id="optimizationSuggestions" style="margin-top: 16px;">
+                  <h6 style="margin: 8px 0 6px 0; font-size: 13px; color: #333;">💡 优化建议 & 敏感度分析</h6>
+                  <div id="suggestionContent" style="font-size: 12px; color: #666; line-height: 1.5;"></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 目标推演区域 -->
+            <div class="target-analysis decision-card" id="targetCard">
+              <h4>目标推演</h4>
+              <span class="tiny-hint">（与投放决策条统一样式：同口径、同参数，支持百分比自动识别）</span>
+              <div class="decision-grid">
+                <div class="decision-item">
+                  <label>有效率 (r)：支持小数或百分比</label>
+                  <input type="number" id="targetR" step="0.01" min="0" max="100" placeholder="0.88">
+                </div>
+                <div class="decision-item">
+                  <label>广告占比 (a)：支持百分比或小数</label>
+                  <input type="number" id="targetA" step="0.01" min="0" max="100" placeholder="25">
+                </div>
+                <div class="decision-item">
+                  <label>口径：</label>
+                  <select id="targetBasis">
+                    <option value="effective">有效营收</option>
+                    <option value="gmv">GMV</option>
+                  </select>
+                </div>
+                <div class="decision-item">
+                  <label>目标利润率 (m)：输入百分比数字</label>
+                  <input type="number" id="targetM" step="0.01" min="-100" max="100" placeholder="15">
+                </div>
+              </div>
+              <div class="result-buttons">
+                <button class="btn" onclick="window.calculateTargetAnalysis()">计算目标推演</button>
+                <span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #34c759;">（已启用实时计算，输入后自动更新）</span>
+              </div>
+              <div class="target-metrics">
+                <div class="target-card" id="kpiActualMargin"><div class="label">当前产品参数下的实际利润率</div><div class="val" id="actualMarginResult">—</div></div>
+                <div class="target-card" id="kpiTargetPrice"><div class="label">达到目标利润率所需售价</div><div class="val" id="targetPriceResult">—</div></div>
+                <div class="target-card" id="kpiTargetCost"><div class="label">达到目标利润率可接受进货价</div><div class="val" id="targetCostResult">—</div></div>
+                <div class="target-card" id="kpiTargetTax"><div class="label">净税负占比</div><div class="val" id="taxResult">—</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="icon-btn" id="closeInvestment2">关闭</button>
+          </div>
+        </div>
+      </div>
+  </main>
+
+  <footer>
+    © 2025 Breakeven Calculator · 使用仅作测算参考，实际以贵司财务/税务规则为准。
+  </footer>
+
+  <script type="module">
+    // 导入纯函数计算引擎
+    import {
+      computeBase, profitGivenAd, adRateToAmount, adAmountToRates,
+      solveSellingPrice, solveCostPrice, taxBurdenGiven, valueAnalysis,
+      profitGivenAdRateAndR, parseListPercents, formatNumber, formatPercent,
+      // 新增投放决策相关函数
+      cpmToCpc, calcEffectiveAOV, calculateROAS, getSafetyStatus,
+      calculateCPCSafetyMargin, calculateCriticalCVR, calculateCriticalAOV,
+      generateInvestmentAdvice, safetyMarginAnalysis
+    } from './engine.js';
+
+    // 引入共享的参数快照/粘贴工具（用于首页智能粘贴与快照恢复）
+    import {
+      parseBEV1Line,
+      parseHumanBlock,
+      decodeSnapshotFromHash
+    } from './share_utils.js';
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n, p = 2) => formatNumber(n, p);
+    const pct = (n, p = 2) => formatPercent(n, p);
+
+    function valNum(id) {
+      const el = $(id);
+      const v = parseFloat(el.value);
+      return isFinite(v) ? v : 0;
+    }
+    
+    function valRate(id) { // percent to decimal
+      return valNum(id) / 100;
+    }
+
+    // 智能粘贴：将 BEV1 串或“中文可读块”解析并回填到首页主参数
+    function applyParamsToHomepage({ price, cost, rr, basis, platformRate }) {
+      // 将解析出的参数回填到首页输入框，并触发计算
+      const elP = $('sellingPrice');
+      const elC = $('costPrice');
+      const elR = $('returnRate');
+      const elPlatformRate = $('platformRate');
+      
+      if (price != null && elP) elP.value = price;
+      if (cost  != null && elC) elC.value = cost;
+      if (rr    != null && elR) elR.value = (rr * 100).toFixed(2);
+      if (platformRate != null && elPlatformRate) elPlatformRate.value = (platformRate * 100).toFixed(1);
+      if (basis) {
+        const radio = document.querySelector(`input[name="adRateBasis"][value="${basis === 'gmv' ? 'gmv' : 'effective'}"]`);
+        if (radio) radio.checked = true;
+      }
+      if (typeof compute === 'function') compute();
+    }
+
+    function onHomePaste(e){
+      const text = (e.clipboardData || window.clipboardData)?.getData('text');
+      if (!text) return;
+      const bev = parseBEV1Line(text);
+      const human = bev || parseHumanBlock(text);
+      if (human) {
+        e.preventDefault();
+        applyParamsToHomepage(human);
+        if (typeof showToast === 'function') showToast('已从剪贴板导入参数', 1600);
+      }
+    }
+
+    // ===== Local Storage: auto-save & restore all inputs =====
+    const LS_KEY = 'breakeven_calculator_state'; // 本地存储键名
+
+    // 默认值配置
+    const DEFAULT_VALUES = {
+      // 主参数
+      sellingPrice: 79.8,
+      returnRate: 12,
+      costPrice: 38,
+      inputTaxRate: 6,
+      outputTaxRate: 13,
+      platformRate: 5.5,
+      shippingCost: 2.8,
+      shippingInsurance: 1.5,
+      otherCost: 2.5,
+      salesTaxRate: 13,
+      serviceVATRate: 6,
+      adRate: 25,
+      adCost: '',
+      // 推演参数
+      simRateFrom: 0,
+      simRateTo: 35,
+      simRateStep: 2.5,
+      simReturnScenarios: '5,8,10,12,15,18,20,22,25,28,30',
+      pRateFrom: 0,
+      pRateTo: 35,
+      pRateStep: 2.5,
+      pMarginScenarios: '0,3,5,7,9,10,12,13,15,18,20',
+      pReturnScenarios: '5,8,10,12,15,18,20,22,25,28,30',
+      tRateFrom: 0,
+      tRateTo: 35,
+      tRateStep: 2.5,
+      tReturnScenarios: '5,8,10,12,15,18,20,22,25,28,30',
+      cRateFrom: 0,
+      cRateTo: 35,
+      cRateStep: 2.5,
+      cMarginScenarios: '0,3,5,7,9,10,12,13,15,18,20',
+      cReturnScenarios: '5,8,10,12,15,18,20,22,25,28,30',
+      vCVR: 3.5,
+      vCPC: 0.60,
+      vAOV: 79.80
+    };
+
+    // 保存状态到本地存储
+    function saveState(){
+      try {
+        const state = {};
+        
+        // 保存主参数输入框
+        Object.keys(DEFAULT_VALUES).forEach(key => {
+          const element = document.getElementById(key);
+          if (element && element.type !== 'radio') {
+            state[key] = element.value;
+          }
+        });
+        
+        // 保存单选按钮状态
+        const radioGroups = ['goodsMode', 'adMode', 'adRateBasis', 'simBasis', 'pBasis', 'tBasis', 'cBasis', 'vBasis'];
+        radioGroups.forEach(groupName => {
+          const checked = document.querySelector(`input[name="${groupName}"]:checked`);
+          if (checked) {
+            state[groupName] = checked.value;
+          }
+        });
+        
+        localStorage.setItem(LS_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('保存状态失败:', e);
+      }
+    }
+
+    // 从本地存储加载状态
+    function loadState(){
+      try {
+        const saved = localStorage.getItem(LS_KEY);
+        if (saved) {
+          const state = JSON.parse(saved);
+          
+          // 恢复主参数输入框
+          Object.keys(state).forEach(key => {
+            const element = document.getElementById(key);
+            if (element && element.type !== 'radio') {
+              element.value = state[key];
+            }
+          });
+          
+          // 恢复单选按钮状态
+          const radioGroups = ['goodsMode', 'adMode', 'adRateBasis', 'simBasis', 'pBasis', 'tBasis', 'cBasis', 'vBasis'];
+          radioGroups.forEach(groupName => {
+            if (state[groupName]) {
+              const radio = document.querySelector(`input[name="${groupName}"][value="${state[groupName]}"]`);
+              if (radio) {
+                radio.checked = true;
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('加载状态失败:', e);
+      }
+      
+      // 刷新UI
+      try{ updateAdMode(); }catch(e){}
+      try{ compute(); }catch(e){}
+    }
+
+    // 恢复默认值
+    function resetToDefaults(){
+      try {
+        // 恢复主参数输入框
+        Object.keys(DEFAULT_VALUES).forEach(key => {
+          const element = document.getElementById(key);
+          if (element && element.type !== 'radio') {
+            element.value = DEFAULT_VALUES[key];
+          }
+        });
+        
+        // 恢复单选按钮状态
+        document.querySelector('input[name="goodsMode"][value="canReturn"]').checked = true;
+        document.querySelector('input[name="adMode"][value="rate"]').checked = true;
+        document.querySelector('input[name="adRateBasis"][value="effective"]').checked = true;
+        document.querySelector('input[name="simBasis"][value="effective"]').checked = true;
+        document.querySelector('input[name="pBasis"][value="effective"]').checked = true;
+        document.querySelector('input[name="tBasis"][value="effective"]').checked = true;
+        document.querySelector('input[name="cBasis"][value="effective"]').checked = true;
+        document.querySelector('input[name="vBasis"][value="effective"]').checked = true;
+        
+        // 刷新UI
+        updateAdMode();
+        compute();
+        
+        // 保存默认状态
+        saveState();
+        
+        // 显示提示
+        showToast('已恢复默认值');
+      } catch (e) {
+        console.error('恢复默认值失败:', e);
+        showToast('恢复默认值失败，请刷新页面重试');
+      }
+    }
+
+    // 显示提示信息
+    function showToast(message, duration = 2000){
+      // 创建提示元素
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--card);
+        color: var(--ink);
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #d2d2d7;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        font-size: 14px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // 显示动画
+      setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+      }, 10);
+      
+      // 自动隐藏
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, duration);
+    }
+
+    // debounce helper for saving
+    function debounce(fn, ms){ 
+      let t; 
+      return function(...args){ 
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), ms);
+      }
+    }
+
+    // Switch ad input mode UI
+    function updateAdMode(){
+      const mode = document.querySelector('input[name="adMode"]:checked').value;
+      $('adRateWrap').style.display = mode==='rate' ? '' : 'none';
+      $('adCostWrap').style.display = mode==='cost' ? '' : 'none';
+      const basis = $('adRateBasisWrap');
+      if (basis) basis.style.display = mode==='rate' ? '' : 'none';
+    }
+    document.querySelectorAll('input[name="adMode"]').forEach(el=>el.addEventListener('change', updateAdMode));
+
+    function compute(){
+      // 读取输入参数
+      const params = {
+        sellingPrice: valNum('sellingPrice'),
+        returnRate: valRate('returnRate'),
+        costPrice: valNum('costPrice'),
+        inputTaxRate: valRate('inputTaxRate'),
+        outputTaxRate: valRate('outputTaxRate'),
+        platformRate: valRate('platformRate'),
+        shippingCost: valNum('shippingCost'),
+        shippingInsurance: valNum('shippingInsurance'),
+        otherCost: valNum('otherCost'),
+        salesTaxRate: valRate('salesTaxRate'),
+        serviceVATRate: valRate('serviceVATRate'),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+      };
+
+      // 调用纯函数计算基础结果
+      const base = computeBase(params);
+      const r = base.r;
+      const Rev = base.Rev;
+
+      // 成本（采用“出货基准单”口径）：
+      // 进货可退 → 仅在成交时耗用（× r）；不可退 → 出货即耗用（× 1）
+
+
+      // 给定广告（可选；按出货基准单计）
+      const adMode = document.querySelector('input[name="adMode"]:checked').value;
+      let adCostGiven = 0;
+
+      // 占比口径（effective / gmv）
+      let adRateBasis = 'effective';
+      const basisEl = document.querySelector('input[name="adRateBasis"]:checked');
+      if (basisEl) adRateBasis = basisEl.value;
+
+      // 基数（用于把占比换成金额）
+      let adRateBaseValue = Rev; // 默认：有效营收（售价 × r）
+      let adRateBaseLabel = '有效营收（售价 × r）';
+      if (adRateBasis === 'gmv') {
+        adRateBaseValue = params.sellingPrice;  // GMV：含税售价
+        adRateBaseLabel = 'GMV（含税售价）';
+      }
+
+      if (adMode === 'rate') {
+        const adRate = valRate('adRate');
+        adCostGiven = adRateToAmount(params, adRate, adRateBasis);
+      } else {
+        adCostGiven = valNum('adCost');
+      }
+
+      // === 等价占比（另一口径）的实时显示 ===
+      (function renderAdRateEquivalence(){
+        const wrap = $('adRateEquivWrap');
+        if(!wrap){ return; }
+        // 仅在“占比”模式下显示；金额模式隐藏
+        wrap.style.display = adMode==='rate' ? '' : 'none';
+        if(adMode !== 'rate') return;
+
+        const rateInput = valRate('adRate'); // 当前输入占比（小数）
+        let targetLabel = adRateBasis==='effective' ? 'GMV' : '有效营收';
+        let eqRate = NaN;
+        if(adRateBasis==='effective'){
+          // 占比(GMV) = 占比(有效) × r
+          eqRate = rateInput * r;
+        }else{
+          // 占比(有效) = 占比(GMV) ÷ r
+          eqRate = r>0 ? rateInput / r : NaN;
+        }
+        $('adRateEquivTarget').textContent = targetLabel;
+        $('adRateEquiv').textContent = isFinite(eqRate) ? pct(eqRate, 2) : '—';
+      })();
+
+      // 计算给定广告费下的利润
+      let Profit = NaN;
+      let VAT_in_ad_given = 0;
+      if (adCostGiven > 0) {
+        const profitResult = profitGivenAd(params, { adCost: adCostGiven });
+        Profit = profitResult.profit;
+        VAT_in_ad_given = profitResult.VAT_in_ad;
+      }
+
+      // 保本广告费计算已通过 computeBase() 完成
+      // 保本广告费（解 Profit=0；出货基准单口径）
+      const A = base.A;
+      const adCostBreakEven = base.adCostBreakEven;
+      const adRateBreakEven = base.adRateBE_effective; // 有效营收口径
+      const ROIBreakEven = base.ROI_BE_effective;
+
+      // GMV-based metrics (platform ROI denominator = 售价)
+      const adRateBreakEvenGMV = base.adRateBE_gmv;
+      const ROIBreakEvenGMV = base.ROI_BE_gmv;
+
+      // Render KPI
+      $('kpiAdRate').textContent = pct(base.adRateBE_effective, 2);
+      $('kpiROI').textContent = isFinite(base.ROI_BE_effective) ? fmt(base.ROI_BE_effective, 2) : '—';
+      $('kpiProfit').textContent = isFinite(Profit) ? (Profit >= 0 ? '+' : '') + fmt(Profit, 2) + ' 元' : '—';
+      $('kpiProfit').className = 'value ' + (isFinite(Profit) ? (Profit > 0 ? 'good' : (Profit < 0 ? 'bad' : '')) : '');
+      const profitMargin = isFinite(Profit) && Rev > 0 ? Profit / Rev : NaN;
+      $('kpiProfitMargin').textContent = isFinite(profitMargin) ? pct(profitMargin, 2) : '—';
+
+      $('kpiAdRateGMV').textContent = pct(base.adRateBE_gmv, 2);
+      $('kpiROIGMV').textContent = isFinite(base.ROI_BE_gmv) ? fmt(base.ROI_BE_gmv, 2) : '—';
+      $('kpiAdCost').textContent = isFinite(base.adCostBreakEven) ? fmt(base.adCostBreakEven, 2) + ' 元' : '—';
+
+      // Details table
+      const rows = [
+        ['有效比例 r', pct(r,2), ''],
+        ['有效含税营收（售价 × r）', fmt(Rev), '元'],
+        ['GMV（含税售价）', fmt(params.sellingPrice), '元/单'],
+        ['— 口径提示：GMV 用于平台ROI分母', '', ''],
+        ['进货成本（可退×r，不可退×1）', fmt(base.goodsCost), '元'],
+        ['其它固定成本（发货即发生）', fmt(base.othersCost), '元'],
+        ['平台佣金（× r）', fmt(base.commission), '元'],
+        ['广告费（给定）', isFinite(adCostGiven) ? fmt(adCostGiven) : '—', '元'],
+        ['— 占比口径基数', adMode === 'rate' ? `${adRateBaseLabel} = ${fmt(adRateBaseValue)}` : '—', ''],
+        ['销项税（价内）', fmt(base.VAT_out), '元'],
+        ['进货抵扣（VAT_in_goods）', fmt(base.VAT_in_goods), '元'],
+        ['佣金抵扣（VAT_in_comm）', fmt(base.VAT_in_comm), '元'],
+        ['广告抵扣（给定）', isFinite(Profit) ? fmt(VAT_in_ad_given) : '—', '元'],
+        ['A（用于解保本广告）', fmt(base.A), '元'],
+        ['保本广告费', fmt(base.adCostBreakEven), '元'],
+        ['保本广告占比（有效营收口径）', pct(base.adRateBE_effective, 2), ''],
+        ['保本 ROI（有效营收口径）', isFinite(base.ROI_BE_effective) ? fmt(base.ROI_BE_effective, 2) : '—', ''],
+        ['保本广告占比（GMV 口径）', pct(base.adRateBE_gmv, 2), ''],
+        ['保本 ROI（GMV 口径）', isFinite(base.ROI_BE_gmv) ? fmt(base.ROI_BE_gmv, 2) : '—', '']
+      ];
+      const tbody = $('detailRows');
+      tbody.innerHTML = rows.map(([k,v,u])=>`<tr><td>${k}</td><td>${v}</td><td>${u}</td></tr>`).join('');
+    }
+
+    let SIM_MARK_BREAK_EVEN = false;
+    // -------- 利润率推演 --------
+    // ===== 到手价推演（反推售价） =====
+    // parseListPercents 函数已移至 engine.js
+
+    // solveSellingPrice 函数已移至 engine.js
+
+    function renderPriceSim(){
+      const params = {
+        sellingPrice: valNum('sellingPrice'), // 不直接使用，但保留结构一致
+        costPrice: valNum('costPrice'),
+        inputTaxRate: valRate('inputTaxRate'),
+        outputTaxRate: valRate('outputTaxRate'),
+        platformRate: valRate('platformRate'),
+        shippingCost: valNum('shippingCost'),
+        shippingInsurance: valNum('shippingInsurance'),
+        otherCost: valNum('otherCost'),
+        salesTaxRate: valRate('salesTaxRate'),
+        serviceVATRate: valRate('serviceVATRate'),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+      };
+
+      const basis = document.querySelector('input[name="pBasis"]:checked').value;
+      const rates = [];
+      for(let v=parseFloat($('pRateFrom').value)||0; v<= (parseFloat($('pRateTo').value)||0) + 1e-9; v += (parseFloat($('pRateStep').value)||1)){
+        rates.push(parseFloat(v.toFixed(4)));
+      }
+      const margins = parseListPercents($('pMarginScenarios').value).map(v=> v/100);
+      const rScenarios = parseListPercents($('pReturnScenarios').value).map(v=> Math.max(0, 1 - v/100));
+
+      // Build HTML: one table per r
+      let html = '';
+      rScenarios.forEach((r, idx)=>{
+        // header rows
+        const headTop = `<tr><th class="muted">利润率 →</th>${margins.map(m=>`<th class="muted">${(m*100).toFixed(1)}%</th>`).join('')}</tr>`;
+        const head = `<tr><th>广告占比%</th>${margins.map(()=>'<th>所需售价</th>').join('')}</tr>`;
+        const rows = rates.map(pct=>{
+          const a = pct/100; // 占比小数
+          const cols = margins.map(m => {
+            const S = solveSellingPrice(params, r, a, basis, m);
+            if (!isFinite(S)) return '—';
+            // 为负数添加红色样式
+            return S < 0 ? `<span class="neg">${fmt(S, 2)}</span>` : fmt(S, 2);
+          });
+          return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+        }).join('');
+
+        html += `
+          <div class="muted" style="margin:14px 0 6px">退货率场景：${((1-r)*100).toFixed(1)}%（r=${r.toFixed(3)}）</div>
+          <table>
+            <thead>${headTop}${head}</thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      });
+
+      $('priceSimWrap').innerHTML = html || '<div class="muted">请先设置参数后推演。</div>';
+      
+      // 为所有表格添加悬停聚焦效果
+      setTimeout(() => {
+        const tables = document.querySelectorAll('#priceSimWrap table');
+        tables.forEach(table => addTableHoverEffectsToTable(table));
+      }, 100);
+    }
+    // ===== 税费推演：在不同广告占比 & 退货率下，实际税负占比（净税/售价） =====
+    // taxBurdenGiven 函数已移至 engine.js
+
+    function renderTaxSim(){
+      const params = {
+        sellingPrice: valNum('sellingPrice'),
+        costPrice: valNum('costPrice'),
+        inputTaxRate: valRate('inputTaxRate'),
+        outputTaxRate: valRate('outputTaxRate'),
+        platformRate: valRate('platformRate'),
+        shippingCost: valNum('shippingCost'),
+        shippingInsurance: valNum('shippingInsurance'),
+        otherCost: valNum('otherCost'),
+        salesTaxRate: valRate('salesTaxRate'),
+        serviceVATRate: valRate('serviceVATRate'),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+      };
+      const basis = document.querySelector('input[name="tBasis"]:checked').value;
+      const rates = [];
+      for(let v=parseFloat($('tRateFrom').value)||0; v<= (parseFloat($('tRateTo').value)||0) + 1e-9; v += (parseFloat($('tRateStep').value)||1)){
+        rates.push(parseFloat(v.toFixed(4)));
+      }
+      const rScenarios = parseListPercents($('tReturnScenarios').value).map(v=> Math.max(0, 1 - v/100));
+
+      let html = '';
+      // 表头：每个 r 一列
+      const headTop = `<tr><th class="muted">口径</th>${rScenarios.map(()=>`<th class="muted">净税/售价</th>`).join('')}</tr>`;
+      const head   = `<tr><th>广告占比%</th>${rScenarios.map(r=>`<th>退货率 ${( (1-r)*100 ).toFixed(1)}%</th>`).join('')}</tr>`;
+
+      const rows = rates.map(pct=>{
+        const a = pct/100;
+        const cols = rScenarios.map(r=>{
+          const { netTax, shareGMV } = taxBurdenGiven(params, a, r, basis);
+          if (!isFinite(shareGMV)) return '—';
+          // 为负数添加红色样式
+          const taxFormatted = netTax < 0 ? `<span class="neg">${fmt(netTax,2)}</span>` : fmt(netTax,2);
+          return `${(shareGMV*100).toFixed(2)}%<br><span class="muted">(${taxFormatted} 元)</span>`;
+        });
+        return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+      }).join('');
+
+      html = `
+        <div class="note" style="margin:8px 0 10px">说明：净税 = 销项税 − 进货抵扣 − 佣金抵扣 − 广告抵扣；占比= 净税 ÷ 售价（GMV）。广告占比口径用于换算广告金额（影响“广告可抵扣”）。</div>
+        <table>
+          <thead>${headTop}${head}</thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      $('taxSimWrap').innerHTML = html;
+      
+      // 为表格添加悬停聚焦效果
+      setTimeout(() => {
+        const table = document.querySelector('#taxSimWrap table');
+        if (table) addTableHoverEffectsToTable(table);
+      }, 100);
+    }
+
+    // ===== 成本价推演：在不同广告占比 & 利润率 & 退货率下，反推进货价 =====
+    // solveCostPrice 函数已移至 engine.js
+
+    function renderCostSim(){
+      const params = {
+        sellingPrice: valNum('sellingPrice'),
+        costPrice: valNum('costPrice'), // 未直接使用，仅保持结构一致
+        inputTaxRate: valRate('inputTaxRate'),
+        outputTaxRate: valRate('outputTaxRate'),
+        platformRate: valRate('platformRate'),
+        shippingCost: valNum('shippingCost'),
+        shippingInsurance: valNum('shippingInsurance'),
+        otherCost: valNum('otherCost'),
+        salesTaxRate: valRate('salesTaxRate'),
+        serviceVATRate: valRate('serviceVATRate'),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+      };
+
+      const basis = document.querySelector('input[name="cBasis"]:checked').value;
+
+      const rates = [];
+      for(let v=parseFloat($('cRateFrom').value)||0; v<= (parseFloat($('cRateTo').value)||0) + 1e-9; v += (parseFloat($('cRateStep').value)||1)){
+        rates.push(parseFloat(v.toFixed(4)));
+      }
+      const margins = parseListPercents($('cMarginScenarios').value).map(v=> v/100);
+      const rScenarios = parseListPercents($('cReturnScenarios').value).map(v=> Math.max(0, 1 - v/100));
+
+      let html = '';
+      rScenarios.forEach((r)=>{
+        const headTop = `<tr><th class="muted">利润率 →</th>${margins.map(m=>`<th class=\"muted\">${(m*100).toFixed(1)}%</th>`).join('')}</tr>`;
+        const head = `<tr><th>广告占比%</th>${margins.map(()=>'<th>所需进货价</th>').join('')}</tr>`;
+        const rows = rates.map(pct=>{
+          const a = pct/100;
+          const cols = margins.map(m=>{
+            const cp = solveCostPrice(params, r, a, basis, m);
+            if (!isFinite(cp)) return '—';
+            // 为负数添加红色样式
+            return cp < 0 ? `<span class="neg">${fmt(cp,2)}</span>` : fmt(cp,2);
+          });
+          return `<tr><td>${pct.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+        }).join('');
+
+        html += `
+          <div class="muted" style="margin:14px 0 6px">退货率场景：${((1-r)*100).toFixed(1)}%（r=${r.toFixed(3)}）</div>
+          <table>
+            <thead>${headTop}${head}</thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      });
+
+      $('costSimWrap').innerHTML = html || '<div class="muted">请先设置参数后推演。</div>';
+      
+      // 为所有表格添加悬停聚焦效果
+      setTimeout(() => {
+        const tables = document.querySelectorAll('#costSimWrap table');
+        tables.forEach(table => addTableHoverEffectsToTable(table));
+      }, 100);
+    }
+
+    function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
+    // parseScenarioRates 函数已移至 engine.js
+
+    // profitGivenAdRateAndR 函数已移至 engine.js
+
+    function renderSimChart(xVals, series, legends){
+      const svg = document.getElementById('simChart');
+      if(!svg) return;
+      const W = svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal.width : svg.width.baseVal.value || 720;
+      const H = svg.viewBox.baseVal && svg.viewBox.baseVal.height ? svg.viewBox.baseVal.height : svg.height.baseVal.value || 280;
+      const padL=42, padR=12, padT=8, padB=26;
+
+      // compute domain
+      const allY = series.flatMap(s=>s.values).filter(v=>isFinite(v));
+      const yMin = Math.min(-0.6, Math.min(...allY, 0));
+      const yMax = Math.max(0.6, Math.max(...allY, 0.01));
+      const xMin = 0, xMax = xVals.length-1;
+
+      const sx = i=> padL + ( (W - padL - padR) * (i - xMin) / Math.max(1, (xMax - xMin)) );
+      const sy = y=> padT + (H - padT - padB) * (1 - ( (y - yMin) / (yMax - yMin) ));
+
+      // clear
+      svg.innerHTML = '';
+
+      // axes
+      const axis = document.createElementNS('http://www.w3.org/2000/svg','path');
+      axis.setAttribute('d',`M ${padL} ${sy(0)} H ${W-padR} M ${padL} ${padT} V ${H-padB}`);
+      axis.setAttribute('class','axis-line');
+      axis.setAttribute('fill','none');
+      svg.appendChild(axis);
+
+      // x labels (every ~5th)
+      for(let i=0;i<xVals.length;i++){
+        if(i%5!==0 && i!==xVals.length-1) continue;
+        const tx = document.createElementNS('http://www.w3.org/2000/svg','text');
+        tx.setAttribute('x', sx(i));
+        tx.setAttribute('y', H-8);
+        tx.setAttribute('text-anchor','middle');
+        tx.setAttribute('class','axis-label');
+        tx.textContent = xVals[i].toFixed(1)+'%';
+        svg.appendChild(tx);
+      }
+      // y labels (5 ticks)
+      for(let t=0;t<=5;t++){
+        const yv = yMin + (yMax-yMin)*t/5;
+        const ty = document.createElementNS('http://www.w3.org/2000/svg','text');
+        ty.setAttribute('x', 6);
+        ty.setAttribute('y', sy(yv)+4);
+        ty.setAttribute('class','axis-label');
+        ty.textContent = (yv*100).toFixed(0)+'%';
+        svg.appendChild(ty);
+        const grid = document.createElementNS('http://www.w3.org/2000/svg','line');
+        grid.setAttribute('x1', padL);
+        grid.setAttribute('x2', W-padR);
+        grid.setAttribute('y1', sy(yv));
+        grid.setAttribute('y2', sy(yv));
+        grid.setAttribute('class','axis-line');
+        grid.setAttribute('opacity','0.5');
+        svg.appendChild(grid);
+      }
+
+      const colors = ['#007aff','#34c759','#ff9f0a','#ff3b30','#5e5ce6','#64d2ff'];
+      series.forEach((s,idx)=>{
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        let d='';
+        s.values.forEach((y,i)=>{
+          const X=sx(i), Y=sy(y);
+          d += (i===0?`M ${X} ${Y}`:` L ${X} ${Y}`);
+        });
+        path.setAttribute('d', d);
+        path.setAttribute('fill','none');
+        path.setAttribute('stroke', colors[idx%colors.length]);
+        path.setAttribute('stroke-width','2');
+        svg.appendChild(path);
+
+        // breakeven marker
+        if (SIM_MARK_BREAK_EVEN && s.breakEvenIndex != null) {
+          const i = s.breakEvenIndex;
+          const X = sx(i);
+          const Y = sy(s.values[i]);
+          const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          dot.setAttribute('cx', X); dot.setAttribute('cy', Y); dot.setAttribute('r', 4);
+          dot.setAttribute('fill', colors[idx%colors.length]);
+          dot.setAttribute('stroke', '#fff'); dot.setAttribute('stroke-width', '1.5');
+          svg.appendChild(dot);
+        }
+      });
+
+      // legend
+      legends.forEach((lg,idx)=>{
+        const x = padL + idx*140;
+        const y = padT + 14;
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1', x); line.setAttribute('x2', x+18);
+        line.setAttribute('y1', y-5); line.setAttribute('y2', y-5);
+        line.setAttribute('stroke', ['#007aff','#34c759','#ff9f0a','#ff3b30','#5e5ce6','#64d2ff'][idx%6]);
+        line.setAttribute('stroke-width','3');
+        svg.appendChild(line);
+        const tx = document.createElementNS('http://www.w3.org/2000/svg','text');
+        tx.setAttribute('x', x+24); tx.setAttribute('y', y-2);
+        tx.setAttribute('class','axis-label');
+        tx.textContent = lg;
+        svg.appendChild(tx);
+      });
+    }
+    
+    // 添加表格悬停聚焦效果（针对特定容器）
+    function addTableHoverEffects() {
+      const table = document.querySelector('#simTableWrap table');
+      if (!table) return;
+      addTableHoverEffectsToTable(table);
+    }
+    
+    // 通用的表格悬停聚焦效果函数
+    function addTableHoverEffectsToTable(table) {
+      if (!table) return;
+      
+      const cells = table.querySelectorAll('td');
+      
+      cells.forEach(cell => {
+        cell.addEventListener('mouseenter', function() {
+          // 获取当前单元格的行和列索引
+          const row = this.parentElement;
+          const colIndex = Array.from(row.children).indexOf(this);
+          
+          // 高亮当前行
+          row.classList.add('row-highlight');
+          
+          // 高亮当前列
+          const allRows = table.querySelectorAll('tr');
+          allRows.forEach(tr => {
+            const colCell = tr.children[colIndex];
+            if (colCell) {
+              colCell.classList.add('col-highlight');
+            }
+          });
+          
+          // 高亮当前单元格（颜色最深）
+          this.classList.add('cell-highlight');
+        });
+        
+        cell.addEventListener('mouseleave', function() {
+          // 移除所有高亮
+          const allRows = table.querySelectorAll('tr');
+          allRows.forEach(tr => {
+            tr.classList.remove('row-highlight');
+            tr.querySelectorAll('td, th').forEach(cell => {
+              cell.classList.remove('col-highlight', 'cell-highlight');
+            });
+          });
+        });
+      });
+    }
+
+    function simulate(){
+      // read params from current inputs
+      const params = {
+        sellingPrice: valNum('sellingPrice'),
+        costPrice: valNum('costPrice'),
+        inputTaxRate: valRate('inputTaxRate'),
+        outputTaxRate: valRate('outputTaxRate'),
+        platformRate: valRate('platformRate'),
+        shippingCost: valNum('shippingCost'),
+        shippingInsurance: valNum('shippingInsurance'),
+        otherCost: valNum('otherCost'),
+        salesTaxRate: valRate('salesTaxRate'),
+        serviceVATRate: valRate('serviceVATRate'),
+        goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+      };
+
+      // Reset cached breakeven list
+      window._beRates = [];
+
+      const rateFrom = Math.max(0, parseFloat(document.getElementById('simRateFrom').value) || 0);
+      const rateTo = Math.max(rateFrom, parseFloat(document.getElementById('simRateTo').value) || 0);
+      const rateStep = Math.max(0.1, parseFloat(document.getElementById('simRateStep').value) || 1);
+      const basis = document.querySelector('input[name="simBasis"]:checked').value;
+      const rScenariosPct = parseListPercents(document.getElementById('simReturnScenarios').value);
+      const rScenarios = rScenariosPct.map(p=> Math.max(0, 1 - p/100));
+
+      // x-axis values (percent list)
+      const xVals = [];
+      for(let v=rateFrom; v<=rateTo+1e-9; v+=rateStep){ xVals.push(parseFloat(v.toFixed(4))); }
+
+      // build series per scenario
+      const series = [];
+      const legends = [];
+      rScenarios.forEach((r,idx)=>{
+        const values = [];
+        xVals.forEach(pctVal=>{
+          const res = profitGivenAdRateAndR(params, pctVal/100, r, basis);
+          values.push(res.margin);
+        });
+        // compute breakeven ad rate for this r
+        // 使用 engine.js 中的函数计算
+        const tempParams = { ...params, returnRate: 1 - r };
+        const tempBase = computeBase(tempParams);
+        const Rev = tempBase.Rev;
+        const X = tempBase.adCostBreakEven;
+        const base = (basis === 'gmv') ? params.sellingPrice : Rev;
+        const rateBE = base > 0 ? (X / base) : NaN; // 小数
+        let idxBE = null;
+        if (isFinite(rateBE)) {
+          // find nearest index on xVals
+          let best = 0, bestDiff = Infinity;
+          for(let i=0;i<xVals.length;i++){
+            const diff = Math.abs(rateBE*100 - xVals[i]);
+            if(diff < bestDiff){ bestDiff = diff; best = i; }
+          }
+          idxBE = best;
+        }
+        series.push({ r, values, breakEvenIndex: idxBE });
+        legends.push(`退货率 ${((1-r)*100).toFixed(1)}%`);
+        if(!window._beRates){ window._beRates = []; }
+        window._beRates.push(isFinite(rateBE) ? (rateBE*100).toFixed(1)+'%' : '—');
+      });
+
+      // 图表已移除：此处不再渲染 SVG 曲线
+
+      // table
+      const thead = document.getElementById('simTableHead');
+      const tbody = document.getElementById('simTableBody');
+      const beRow = `<tr><th class="muted">保本占比</th>${(window._beRates||[]).map(v=>`<th class="muted">≈ ${v}</th>`).join('')}</tr>`;
+      const headRow = `<tr><th>广告占比%</th>${legends.map(l=>`<th>${l}</th>`).join('')}</tr>`;
+      thead.innerHTML = beRow + headRow;
+      tbody.innerHTML = xVals.map((pctVal,i)=>{
+        const cols = series.map(s=> {
+          if (!isFinite(s.values[i])) return '—';
+          const value = s.values[i] * 100;
+          const formatted = value.toFixed(2) + '%';
+          // 为负数添加红色样式
+          return value < 0 ? `<span class="neg">${formatted}</span>` : formatted;
+        });
+        return `<tr><td>${pctVal.toFixed(1)}%</td>${cols.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+      }).join('');
+      
+      // 添加表格悬停聚焦效果
+      addTableHoverEffects();
+    }
+
+    // Wire up
+
+    document.getElementById('calc').addEventListener('click', compute);
+    
+    // 启用自动保存功能
+    const saveDebounced = debounce(saveState, 500); // 500ms 防抖保存
+    
+    // 为所有输入框添加事件监听
+    document.querySelectorAll('input').forEach(el=>{
+      el.addEventListener('input', ()=>{ 
+        clearTimeout(el._t); 
+        el._t=setTimeout(compute,120); 
+        saveDebounced(); // 启用自动保存
+      });
+      el.addEventListener('change', ()=>{ 
+        compute(); 
+        saveDebounced(); // 启用自动保存
+      });
+    });
+
+    // 绑定智能粘贴到关键输入（售价/进货价/退货率）
+    ;['sellingPrice','costPrice','returnRate'].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('paste', onHomePaste);
+    });
+    
+    // 为单选按钮组添加事件监听
+    document.querySelectorAll('input[name="goodsMode"]').forEach(el=> el.addEventListener('change', ()=>{ 
+      compute(); 
+      saveDebounced(); // 启用自动保存
+    }));
+    document.querySelectorAll('input[name="adRateBasis"]').forEach(el=> el.addEventListener('change', ()=>{ 
+      compute(); 
+      saveDebounced(); // 启用自动保存
+    }));
+    
+    // 为其他单选按钮组添加事件监听
+    ['adMode', 'simBasis', 'pBasis', 'tBasis', 'cBasis', 'vBasis'].forEach(groupName => {
+      document.querySelectorAll(`input[name="${groupName}"]`).forEach(el => el.addEventListener('change', saveDebounced));
+    });
+    
+    // 添加恢复默认值按钮事件监听
+    document.getElementById('resetDefaults').addEventListener('click', resetToDefaults);
+    
+    // 商品分析页面跳转
+    document.getElementById('openProductAnalysis').addEventListener('click', () => {
+      window.open('./product_analysis.html', '_blank');
+    });
+
+    // 标价计算页面跳转
+    document.getElementById('openListPrice').addEventListener('click', () => {
+      window.open('./list_price.html', '_blank');
+    });
+
+    // first-time restore
+    loadState();
+    updateAdMode();
+
+    // 启动时：若 URL 含有 #snap= 快照，自动解析并回填到主参数
+    (function bootFromHash(){
+      try{
+        const snap = decodeSnapshotFromHash(location.hash);
+        if (!snap || snap.type !== 'breakeven.snapshot.v1') return;
+        const first = snap.items && snap.items[0];
+        if (!first) return;
+        // 优先使用单一价格；否则取第一档
+        let price = first.singlePrice;
+        let cost = first.singleCost;
+        let rr = first.returnRate;
+        if ((price == null || cost == null) && first.tiers && first.tiers.length){
+          const t0 = first.tiers[0] || {};
+          if (price == null) price = t0.price;
+          if (cost  == null) cost  = t0.cost;
+          if (rr == null) rr = t0.rr;
+        }
+        applyParamsToHomepage({ price, cost, rr, basis: snap.basis || 'effective' });
+        if (typeof showToast === 'function') showToast('已从快照链接恢复参数', 1600);
+      }catch(_){ /* 忽略错误 */ }
+    })();
+
+    // --- 利润率推演交互 ---
+    document.getElementById('simulate').addEventListener('click', simulate);
+    document.querySelectorAll('input[name="simBasis"]').forEach(el=> el.addEventListener('change', ()=>{ simulate(); saveDebounced(); }));
+    ['simRateFrom','simRateTo','simRateStep','simReturnScenarios'].forEach(id=>{
+      const el=$(id); if(el){ el.addEventListener('input', ()=>{ clearTimeout(el._t); el._t=setTimeout(simulate,160); saveDebounced(); }); }
+    });
+    // --- Modal open/close ---
+    const simModal = document.getElementById('simModal');
+    function openSim(){ simModal.style.display='flex'; simulate(); }
+    function closeSim(){ simModal.style.display='none'; }
+    document.getElementById('openSim').addEventListener('click', openSim);
+    document.getElementById('closeSim').addEventListener('click', closeSim);
+    document.getElementById('closeSim2').addEventListener('click', closeSim);
+    simModal.addEventListener('click', (e)=>{ if(e.target===simModal) closeSim(); });
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){
+        closeSim();
+        closePrice();
+        closeTax();
+        closeCost();
+        closeValue();
+        closeExplain();
+      }
+    });
+    // --- Explain modal open/close ---
+    const explainModal = document.getElementById('explainModal');
+    function openExplain(){ explainModal.style.display='flex'; }
+    function closeExplain(){ explainModal.style.display='none'; }
+    const openExplainBtn = document.getElementById('openExplain');
+    const explainHint = document.getElementById('explainHint');
+    if(openExplainBtn){
+      openExplainBtn.addEventListener('click', openExplain);
+      openExplainBtn.addEventListener('mouseenter', ()=>{ if(explainHint) explainHint.style.display='block'; });
+      openExplainBtn.addEventListener('mouseleave', ()=>{ if(explainHint) explainHint.style.display='none'; });
+    }
+    document.getElementById('closeExplain').addEventListener('click', closeExplain);
+    document.getElementById('closeExplain2').addEventListener('click', closeExplain);
+    explainModal.addEventListener('click', (e)=>{ if(e.target===explainModal) closeExplain(); });
+
+    // --- One-click mark breakeven ---
+    document.getElementById('markBreakeven').addEventListener('click', ()=>{ SIM_MARK_BREAK_EVEN = true; simulate(); });
+    // initial render
+    simulate();
+    
+    // 页面加载完成后，确保所有推演模块都能正确显示保存的状态
+    setTimeout(() => {
+      // 如果弹窗是打开的，刷新对应的推演结果
+      if (simModal.style.display === 'flex') {
+        simulate();
+      }
+      if (priceModal.style.display === 'flex') {
+        renderPriceSim();
+      }
+      if (taxModal.style.display === 'flex') {
+        renderTaxSim();
+      }
+      if (costModal.style.display === 'flex') {
+        renderCostSim();
+      }
+      if (valueModal.style.display === 'flex') {
+        valueSim();
+      }
+    }, 100);
+
+    // --- Price Sim modal open/close ---
+    const priceModal = document.getElementById('priceModal');
+    function openPrice(){ priceModal.style.display='flex'; renderPriceSim(); }
+    function closePrice(){ priceModal.style.display='none'; }
+    document.getElementById('openPriceSim').addEventListener('click', openPrice);
+    document.getElementById('closePrice').addEventListener('click', closePrice);
+    document.getElementById('closePrice2').addEventListener('click', closePrice);
+    priceModal.addEventListener('click', (e)=>{ if(e.target===priceModal) closePrice(); });
+
+    // live update
+    ['pRateFrom','pRateTo','pRateStep','pMarginScenarios','pReturnScenarios'].forEach(id=>{
+      const el=$(id); if(el){ el.addEventListener('input', ()=>{ clearTimeout(el._t); el._t=setTimeout(renderPriceSim,160); saveDebounced(); }); }
+    });
+    document.querySelectorAll('input[name="pBasis"]').forEach(el=> el.addEventListener('change', ()=>{ renderPriceSim(); saveDebounced(); }));
+    // ensure main params changes also refresh when modal打开着
+    document.querySelectorAll('#sellingPrice,#costPrice,#inputTaxRate,#outputTaxRate,#platformRate,#shippingCost,#shippingInsurance,#otherCost,#salesTaxRate,#serviceVATRate').forEach(el=>{
+      el.addEventListener('input', ()=>{ if(priceModal.style.display==='flex'){ renderPriceSim(); } });
+    });
+    document.querySelectorAll('input[name="goodsMode"]').forEach(el=> el.addEventListener('change', ()=>{ if(priceModal.style.display==='flex'){ renderPriceSim(); } }));
+    // --- Tax Sim modal open/close ---
+    const taxModal = document.getElementById('taxModal');
+    function openTax(){ taxModal.style.display='flex'; renderTaxSim(); }
+    function closeTax(){ taxModal.style.display='none'; }
+    document.getElementById('openTaxSim').addEventListener('click', openTax);
+    document.getElementById('closeTax').addEventListener('click', closeTax);
+    document.getElementById('closeTax2').addEventListener('click', closeTax);
+    taxModal.addEventListener('click', (e)=>{ if(e.target===taxModal) closeTax(); });
+
+    // live update for Tax Sim
+    ['tRateFrom','tRateTo','tRateStep','tReturnScenarios'].forEach(id=>{
+      const el=$(id); if(el){ el.addEventListener('input', ()=>{ clearTimeout(el._t); el._t=setTimeout(renderTaxSim,160); saveDebounced(); }); }
+    });
+    document.querySelectorAll('input[name="tBasis"]').forEach(el=> el.addEventListener('change', ()=>{ renderTaxSim(); saveDebounced(); }));
+    // 主参数变化联动刷新（当弹窗开启时）
+    document.querySelectorAll('#sellingPrice,#costPrice,#inputTaxRate,#outputTaxRate,#platformRate,#shippingCost,#shippingInsurance,#otherCost,#salesTaxRate,#serviceVATRate').forEach(el=>{
+      el.addEventListener('input', ()=>{ if(taxModal.style.display==='flex'){ renderTaxSim(); } });
+    });
+    document.querySelectorAll('input[name="goodsMode"]').forEach(el=> el.addEventListener('change', ()=>{ if(taxModal.style.display==='flex'){ renderTaxSim(); } }));
+    // --- Cost Sim modal open/close ---
+    const costModal = document.getElementById('costModal');
+    function openCost(){ costModal.style.display='flex'; renderCostSim(); }
+    function closeCost(){ costModal.style.display='none'; }
+    document.getElementById('openCostSim').addEventListener('click', openCost);
+    document.getElementById('closeCost').addEventListener('click', closeCost);
+    document.getElementById('closeCost2').addEventListener('click', closeCost);
+    costModal.addEventListener('click', (e)=>{ if(e.target===costModal) closeCost(); });
+
+    // live update for Cost Sim
+    ['cRateFrom','cRateTo','cRateStep','cMarginScenarios','cReturnScenarios'].forEach(id=>{
+      const el=$(id); if(el){ el.addEventListener('input', ()=>{ clearTimeout(el._t); el._t=setTimeout(renderCostSim,160); saveDebounced(); }); }
+    });
+    document.querySelectorAll('input[name="cBasis"]').forEach(el=> el.addEventListener('change', ()=>{ renderCostSim(); saveDebounced(); }));
+    // 主参数变化联动刷新（当弹窗开启时）
+    document.querySelectorAll('#sellingPrice,#inputTaxRate,#outputTaxRate,#platformRate,#shippingCost,#shippingInsurance,#otherCost,#salesTaxRate,#serviceVATRate').forEach(el=>{
+      el.addEventListener('input', ()=>{ if(costModal.style.display==='flex'){ renderCostSim(); } });
+    });
+    document.querySelectorAll('input[name="goodsMode"]').forEach(el=> el.addEventListener('change', ()=>{ if(costModal.style.display==='flex'){ renderCostSim(); } }));
+  // ===== 保本 ROI（按口径） =====
+  function getBreakevenROI_byBasis(basis){
+    const S = valNum('sellingPrice');
+    const r = Math.max(0, 1 - valRate('returnRate'));
+    const costPrice = valNum('costPrice');
+    const inputTaxRate = valRate('inputTaxRate');
+    const outputTaxRate = valRate('outputTaxRate');
+    const platformRate = valRate('platformRate');
+    const shippingCost = valNum('shippingCost');
+    const shippingInsurance = valNum('shippingInsurance');
+    const otherCost = valNum('otherCost');
+    const salesTaxRate = valRate('salesTaxRate');
+    const serviceVATRate = valRate('serviceVATRate');
+    const goodsMode = document.querySelector('input[name="goodsMode"]:checked').value;
+
+    const Rev = S * r;
+    const goodsCost = costPrice * (1 + inputTaxRate) * (goodsMode==='canReturn' ? r : 1);
+    const othersCost = (shippingCost + shippingInsurance + otherCost);
+    const commission = S * platformRate * r;
+    const VAT_out = Rev / (1 + salesTaxRate) * salesTaxRate;
+    const VAT_in_goods = costPrice * outputTaxRate * (goodsMode==='canReturn' ? r : 1);
+    const VAT_in_comm  = commission / (1 + serviceVATRate) * serviceVATRate;
+    const A = Rev - (goodsCost + othersCost + commission) - VAT_out + VAT_in_goods + VAT_in_comm;
+    const X = (1 + serviceVATRate) * A; // 保本广告费（出货基准单）
+
+    if(basis==='effective'){
+      const adRate = Rev>0 ? (X/Rev) : NaN;        // 有效营收口径
+      return (adRate>0) ? (1/adRate) : NaN;
+    }else{
+      const adRate = S>0 ? (X/S) : NaN;            // GMV 口径
+      return (adRate>0) ? (1/adRate) : NaN;
+    }
+  }
+
+  // ===== 数值分析：根据两项求第三项临界值 =====
+  function valueSim(){
+    const basis = document.querySelector('input[name="vBasis"]:checked')?.value || 'effective';
+    const ROIbe = getBreakevenROI_byBasis(basis);
+
+    const cvrInput = parseFloat((document.getElementById('vCVR').value||'').trim());
+    const CPC = parseFloat((document.getElementById('vCPC').value||'').trim());
+    const AOV = parseFloat((document.getElementById('vAOV').value||'').trim());
+    const CVR = isFinite(cvrInput) ? (cvrInput/100) : NaN; // 转化率小数
+
+    if(!isFinite(ROIbe) || ROIbe<=0){
+      document.getElementById('valueWrap').innerHTML = '<div class="note">当前参数下无法计算保本 ROI，请先在左侧完善参数（售价、成本、税率、退货率等）。</div>';
+      return;
+    }
+
+    const miss = [isFinite(CPC), isFinite(CVR), isFinite(AOV)].filter(v=>!v).length;
+    // 缺两项或三项 → 无法计算
+    if(miss >= 2){
+      document.getElementById('valueWrap').innerHTML = '<div class="note">请至少填写其中两项（CPC / CVR / 客单价）。\n若填写三项，将显示“即时诊断”；若留空一项，将计算该项的临界值。</div>';
+      return;
+    }
+
+    const cards = [];
+    // 当仅留空一项时，才计算三角临界卡片
+    const needCritical = (miss === 1);
+    // CPC 临界
+    if(needCritical && isFinite(CVR) && isFinite(AOV)){
+      const CPCcrit = (CVR * AOV) / ROIbe;
+      const gap = isFinite(CPC) ? (CPC - CPCcrit) : NaN;
+      cards.push(`<div class="box"><div class="label">最大可承受 CPC</div><div class="value">${fmt(CPCcrit,2)} 元/点</div>${isFinite(gap)?`<div class="muted">与你输入的 CPC 差：${gap>=0?'+':''}${fmt(gap,2)} 元</div>`:''}</div>`);
+    }
+    // CVR 临界
+    if(needCritical && isFinite(CPC) && isFinite(AOV) && AOV>0){
+      const CVRcrit = (CPC * ROIbe) / AOV;
+      const gappp = isFinite(CVR) ? ((CVRcrit - CVR) * 100) : NaN;
+      cards.push(`<div class="box"><div class="label">最低所需转化率</div><div class="value">${pct(CVRcrit,2)}</div>${isFinite(gappp)?`<div class="muted">与你输入的 CVR 差：${gappp>=0?'+':''}${gappp.toFixed(2)} pp</div>`:''}</div>`);
+    }
+    // 客单价临界
+    if(needCritical && isFinite(CPC) && isFinite(CVR) && CVR>0){
+      const AOVcrit = (CPC * ROIbe) / CVR;
+      const gapA = isFinite(AOV) ? (AOVcrit - AOV) : NaN;
+      cards.push(`<div class="box"><div class="label">最低所需客单价</div><div class="value">${fmt(AOVcrit,2)} 元</div>${isFinite(gapA)?`<div class="muted">与你输入的客单差：${gapA>=0?'+':''}${fmt(gapA,2)} 元</div>`:''}</div>`);
+    }
+
+    // ===== 扩展：已知 CPC、CVR、AOV 时，给出更多经营指标 =====
+    const allGiven = isFinite(CPC) && isFinite(CVR) && CVR>0 && isFinite(AOV) && AOV>0;
+    let extras = '';
+    if(allGiven){
+      // 读取主参数
+      const S = valNum('sellingPrice');
+      const rEff = Math.max(0, 1 - valRate('returnRate'));
+      const ROI_be_eff = getBreakevenROI_byBasis('effective');
+      const ROI_be_gmv = getBreakevenROI_byBasis('gmv');
+
+      // 基础派生量
+      const CPA = CPC / CVR;                 // 每出货单广告成本（按“出货基准单”）
+      const RPC_gmv = AOV * CVR;             // 每点击带来的 GMV 收入
+      const RPC_eff = AOV * rEff * CVR;      // 每点击带来的有效收入
+
+      // 实际广告占比（两口径）与 ROI（两口径）
+      const adRate_gmv_act = (S>0) ? (CPA / S) : NaN;        // 小数
+      const adRate_eff_act = (S>0 && rEff>0) ? (CPA / (S*rEff)) : NaN;
+      const ROI_gmv_act = isFinite(adRate_gmv_act) && adRate_gmv_act>0 ? (1/adRate_gmv_act) : NaN;
+      const ROI_eff_act = isFinite(adRate_eff_act) && adRate_eff_act>0 ? (1/adRate_eff_act) : NaN;
+
+      // 与保本的安全边际（正数=安全，负数=超支）
+      const headroom_gmv = isFinite(ROI_be_gmv) && isFinite(ROI_gmv_act) ? (ROI_gmv_act/ROI_be_gmv - 1) : NaN; // ROI 角度
+      const headroom_eff = isFinite(ROI_be_eff) && isFinite(ROI_eff_act) ? (ROI_eff_act/ROI_be_eff - 1) : NaN;
+
+      // 计算“给定广告”下的真实利润/利润率，复用主公式
+      (function(){
+        const params = {
+          sellingPrice: valNum('sellingPrice'),
+          costPrice: valNum('costPrice'),
+          inputTaxRate: valRate('inputTaxRate'),
+          outputTaxRate: valRate('outputTaxRate'),
+          platformRate: valRate('platformRate'),
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valRate('salesTaxRate'),
+          serviceVATRate: valRate('serviceVATRate'),
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+        };
+        const Rev = params.sellingPrice * rEff;
+        const goodsCost = params.costPrice * (1 + params.inputTaxRate) * (params.goodsMode==='canReturn' ? rEff : 1);
+        const othersCost = (params.shippingCost + params.shippingInsurance + params.otherCost);
+        const commission = params.sellingPrice * params.platformRate * rEff;
+        const VAT_out = Rev / (1 + params.salesTaxRate) * params.salesTaxRate;
+        const VAT_in_goods = params.costPrice * params.outputTaxRate * (params.goodsMode==='canReturn' ? rEff : 1);
+        const VAT_in_comm  = commission / (1 + params.serviceVATRate) * params.serviceVATRate;
+        const VAT_in_ad_given = CPA / (1 + params.serviceVATRate) * params.serviceVATRate; // 广告抵扣（按 CPA 金额）
+        const ProfitActual = Rev - (goodsCost + othersCost + commission + CPA)
+          - (VAT_out - VAT_in_goods - VAT_in_comm - VAT_in_ad_given);
+        const MarginActual = (Rev>0) ? (ProfitActual/Rev) : NaN;
+
+        // 可承受 CPA（保本）与与当前 CPA 的差
+        // 保本广告费 X = (1 + s) * A ；A 同 compute()
+        const A = Rev - (goodsCost + othersCost + commission) - VAT_out + VAT_in_goods + VAT_in_comm;
+        const CPAcrit = (1 + params.serviceVATRate) * A; // 每出货单保本广告额
+        const gapCPA = isFinite(CPAcrit) ? (CPAcrit - CPA) : NaN;
+
+        extras = `
+          <div class="sep"></div>
+          <h3 style="margin:6px 0 8px; font-size:14px">基于 CPC/CVR/客单价 的即时诊断</h3>
+          <div class="kpi">
+            <div class="box"><div class="label">实际 ROI（有效营收口径）</div><div class="value">${isFinite(ROI_eff_act)?fmt(ROI_eff_act,2):'—'}</div><div class="muted">= 1 ÷ 实际广告占比（有效）</div></div>
+            <div class="box"><div class="label">实际 ROI（GMV 口径）</div><div class="value">${isFinite(ROI_gmv_act)?fmt(ROI_gmv_act,2):'—'}</div><div class="muted">= 1 ÷ 实际广告占比（GMV）</div></div>
+            <div class="box"><div class="label">CPA（每出货单广告成本）</div><div class="value">${fmt(CPA,2)} 元</div><div class="muted">= CPC ÷ CVR</div></div>
+          </div>
+          <div class="kpi" style="margin-top:10px">
+            <div class="box"><div class="label">实际广告占比（有效）</div><div class="value">${pct(adRate_eff_act,2)}</div><div class="muted">= CPA ÷ [售价 × r]</div></div>
+            <div class="box"><div class="label">实际广告占比（GMV）</div><div class="value">${pct(adRate_gmv_act,2)}</div><div class="muted">= CPA ÷ 售价</div></div>
+            <div class="box"><div class="label">与保本 CPA 的差</div><div class="value">${isFinite(gapCPA)?(gapCPA>=0?'+':'')+fmt(gapCPA,2)+' 元':'—'}</div><div class="muted">正数=还有空间；负数=已超支</div></div>
+          </div>
+          <div class="kpi" style="margin-top:10px">
+            <div class="box"><div class="label">每点击收益（有效）</div><div class="value">${fmt(RPC_eff,2)} 元/点</div><div class="muted">= AOV × r × CVR</div></div>
+            <div class="box"><div class="label">每点击收益（GMV）</div><div class="value">${fmt(RPC_gmv,2)} 元/点</div><div class="muted">= AOV × CVR</div></div>
+            <div class="box"><div class="label">安全边际（ROI，有效）</div><div class="value">${isFinite(headroom_eff)?((headroom_eff*100).toFixed(2)+'%'):'—'}</div><div class="muted">= 实际 ROI / 保本 ROI − 1</div></div>
+          </div>
+          <div class="muted" style="margin-top:6px">提示：以上“实际”口径与你在弹窗顶部选择的 ROI 口径并无强制绑定，已同时给出两套口径，便于对齐外部报表。</div>
+        `;
+      })();
+    }
+
+    // 敏感度（线性近似）
+    const baseAOV = isFinite(AOV) ? AOV : (isFinite(CPC)&&isFinite(CVR) ? (CPC*ROIbe/CVR) : NaN);
+    const baseCVR = isFinite(CVR) ? CVR : (isFinite(CPC)&&isFinite(AOV) ? (CPC*ROIbe/AOV) : NaN);
+    const dCPC_per_1pp_CVR = (isFinite(baseAOV) ? (baseAOV/ROIbe*0.01) : NaN);
+    const dCPC_per_1yuan_AOV = (isFinite(baseCVR) ? (baseCVR/ROIbe) : NaN);
+    const dCVR_per_01yuan_CPC = (isFinite(baseAOV) ? ((0.1*ROIbe)/baseAOV) : NaN);
+    const dAOV_per_01yuan_CPC = (isFinite(baseCVR) && baseCVR>0 ? ((0.1*ROIbe)/baseCVR) : NaN);
+
+    const suggest = `
+      <div class="sep"></div>
+      <h3 style="margin:6px 0 8px; font-size:14px">优化建议 & 敏感度</h3>
+      <div class="note">当前保本 ROI（${basis==='effective'?'有效营收':'GMV'} 口径）= <strong>${fmt(ROIbe,2)}</strong>。
+      <ul style="margin:6px 0 0 18px">
+        ${isFinite(dCPC_per_1pp_CVR)?`<li>CVR 每提升 <strong>1pp</strong> ，可将可承受 CPC 提升约 <strong>${fmt(dCPC_per_1pp_CVR,2)} 元</strong>。</li>`:''}
+        ${isFinite(dCPC_per_1yuan_AOV)?`<li>客单价每提高 <strong>1 元</strong> ，可将可承受 CPC 提升约 <strong>${fmt(dCPC_per_1yuan_AOV,2)} 元</strong>。</li>`:''}
+        ${isFinite(dCVR_per_01yuan_CPC)?`<li>CPC 每降低 <strong>0.10 元</strong> ，等价于 CVR 提升约 <strong>${(dCVR_per_01yuan_CPC*100).toFixed(2)} pp</strong>。</li>`:''}
+        ${isFinite(dAOV_per_01yuan_CPC)?`<li>CPC 每降低 <strong>0.10 元</strong> ，等价于客单价提升约 <strong>${fmt(dAOV_per_01yuan_CPC,2)} 元</strong>。</li>`:''}
+      </ul>
+      <div class="muted" style="margin-top:6px">提示：上述为线性近似，适用于小幅调整的判断；大幅调整请结合利润推演验证。</div>
+      </div>`;
+
+    const grid = `<div class="kpi" style="margin-top:6px">${cards.join('')}</div>`;
+    document.getElementById('valueWrap').innerHTML = grid + suggest + (extras||'');
+  }
+
+  // --- Value Sim modal open/close ---
+  const valueModal = document.getElementById('valueModal');
+  function openValue(){ valueModal.style.display='flex'; valueSim(); }
+  function closeValue(){ valueModal.style.display='none'; }
+  document.getElementById('openValueSim').addEventListener('click', openValue);
+  document.getElementById('closeValue').addEventListener('click', closeValue);
+  document.getElementById('closeValue2').addEventListener('click', closeValue);
+  valueModal.addEventListener('click', (e)=>{ if(e.target===valueModal) closeValue(); });
+  document.getElementById('valueRun').addEventListener('click', valueSim);
+
+  // live update inside modal
+  ;['vCVR','vCPC','vAOV'].forEach(id=>{ const el=$(id); if(el){ el.addEventListener('input', ()=>{ clearTimeout(el._t); el._t=setTimeout(valueSim,140); saveDebounced(); }); } });
+  document.querySelectorAll('input[name="vBasis"]').forEach(el=> el.addEventListener('change', ()=>{ valueSim(); saveDebounced(); }));
+  // 主参数变动联动（弹窗开启时刷新）
+  document.querySelectorAll('#sellingPrice,#costPrice,#inputTaxRate,#outputTaxRate,#platformRate,#shippingCost,#shippingInsurance,#otherCost,#salesTaxRate,#serviceVATRate,#returnRate').forEach(el=>{
+    el.addEventListener('input', ()=>{ if(valueModal.style.display==='flex'){ valueSim(); } });
+  });
+  // storage sync disabled
+
+      // 为系统中所有输入框添加点击全选功能
+    document.addEventListener('click', function(event) {
+      const target = event.target;
+      // 检查是否是输入框（包括数值、文本输入框）
+      if (target.tagName === 'INPUT' && (target.type === 'number' || target.type === 'text')) {
+        // 延迟执行以确保焦点已设置
+        setTimeout(() => {
+          target.select();
+        }, 0);
+      }
+    });
+
+    // ===== 投放决策功能 =====
+    
+    // 投放决策模态框控制
+    const investmentModal = document.getElementById('investmentModal');
+    function openInvestment() {
+      investmentModal.style.display = 'flex';
+      // 自动填入主页的售价到AOV
+      const sellingPrice = valNum('sellingPrice');
+      if (sellingPrice > 0) {
+        document.getElementById('decAOV').value = sellingPrice.toFixed(2);
+      }
+      // 自动填入主页的退货率到目标推演的有效率
+      const returnRate = valRate('returnRate');
+      const effectiveRate = 1 - returnRate;
+      document.getElementById('targetR').value = (effectiveRate * 100).toFixed(2);
+      
+      // 初始化实时计算功能
+      setupRealTimeCalculation();
+      
+      // 如果已有足够参数，自动计算一次
+      setTimeout(() => {
+        if (shouldAutoCalculate()) {
+          window.calculateInvestmentDecision();
+        }
+        if (shouldAutoCalculateTarget()) {
+          window.calculateTargetAnalysis();
+        }
+        
+        // 自动显示即时诊断模块（即使参数不足也显示）
+        setTimeout(() => {
+          window.calculateInstantDiagnosis();
+        }, 200);
+      }, 100);
+    }
+    
+    function closeInvestment() {
+      investmentModal.style.display = 'none';
+    }
+    
+    // 绑定投放决策按钮事件
+    document.getElementById('openInvestmentDecision').addEventListener('click', openInvestment);
+    document.getElementById('closeInvestment').addEventListener('click', closeInvestment);
+    document.getElementById('closeInvestment2').addEventListener('click', closeInvestment);
+    investmentModal.addEventListener('click', (e) => { if(e.target === investmentModal) closeInvestment(); });
+    
+    // 买量方式切换
+    document.getElementById('decBuyMode').addEventListener('change', function() {
+      const mode = this.value;
+      const cpcWrap = document.getElementById('decCPCWrap');
+      const cpmWrap = document.getElementById('decCPMWrap');
+      const ctrWrap = document.getElementById('decCTRWrap');
+      
+      if (mode === 'cpc') {
+        cpcWrap.style.display = '';
+        cpmWrap.style.display = 'none';
+        ctrWrap.style.display = 'none';
+      } else {
+        cpcWrap.style.display = 'none';
+        cpmWrap.style.display = '';
+        ctrWrap.style.display = '';
+      }
+    });
+    
+    // 投放决策计算函数
+    window.calculateInvestmentDecision = function() {
+      try {
+        console.log('🎯 开始计算投放决策...');
+        
+        // 从主页获取商品参数
+        const params = {
+          sellingPrice: valNum('sellingPrice'),
+          returnRate: valRate('returnRate'),
+          costPrice: valNum('costPrice'),
+          inputTaxRate: valRate('inputTaxRate'),
+          outputTaxRate: valRate('outputTaxRate'),
+          platformRate: valRate('platformRate'),
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valRate('salesTaxRate'),
+          serviceVATRate: valRate('serviceVATRate'),
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+        };
+        
+        // 计算基础保本指标
+        const base = computeBase(params);
+        
+        // 读取投放参数
+        const basis = document.getElementById('decBasis').value;
+        const cvr = valNum('decCVR') / 100; // 转化率转为小数
+        const bundleRate = valNum('decBundleRate') / 100; // 连带购买率
+        const aov = valNum('decAOV');
+        const mode = document.getElementById('decBuyMode').value;
+        
+        // 计算有效AOV（考虑连带购买率）
+        const effectiveAOV = calcEffectiveAOV(aov, bundleRate);
+        
+        // 计算CPC（根据买量方式）
+        let cpc = 0;
+        let cpcStatus = 'pending'; // 新增：CPC状态标记
+        
+        if (mode === 'cpc') {
+          cpc = valNum('decCPC');
+          cpcStatus = cpc > 0 ? 'valid' : 'missing';
+        } else {
+          const cpm = valNum('decCPM');
+          const ctr = valNum('decCTR') / 100;
+          if (cpm > 0 && ctr > 0) {
+            cpc = cpmToCpc(cpm, ctr);
+            cpcStatus = 'valid';
+          } else {
+            cpcStatus = 'missing';
+          }
+        }
+        
+        // 保本指标计算 - 与商品分析页面保持一致
+        const beROAS = basis === 'effective' ? base.ROI_BE_effective : base.ROI_BE_gmv;
+        
+        // 计算有效AOV（按口径对齐，考虑退货率）
+        const usedAOV = (basis === 'effective' && isFinite(params.returnRate)) 
+          ? (effectiveAOV * (1 - params.returnRate)) 
+          : effectiveAOV;
+        
+        // 调试日志 - 与商品分析页面保持一致
+        console.log('📦 首页投放决策连带购买率:', bundleRate, '基础AOV:', aov, '放大后AOV:', effectiveAOV);
+        console.log('🔍 首页AOV两套逻辑:', {
+          结构口径AOV: (basis === 'effective' && isFinite(params.returnRate)) ? (aov * (1 - params.returnRate)) : aov, // 用于 BE-ROAS
+          连带放大AOV: usedAOV,       // 用于 BE-CPA/MaxCPC/ROAS
+          放大倍数: (1 + bundleRate)
+        });
+        
+        // 保本CPA计算 - 与商品分析页面保持一致
+        const beCPA = (isFinite(beROAS) && beROAS > 0 && isFinite(usedAOV)) 
+          ? (usedAOV / beROAS) 
+          : NaN;
+        
+        // 计算最大CPC - 与商品分析页面保持一致
+        const maxCPC = (isFinite(cvr) && isFinite(usedAOV) && beROAS > 0) 
+          ? (cvr * usedAOV) / beROAS 
+          : NaN;
+        
+        // 计算临界值 - 与商品分析页面保持一致
+        const critCVR = calculateCriticalCVR(cpc, beCPA);
+        const critAOV = calculateCriticalAOV(cpc, cvr, beROAS);
+        
+        // 计算实际ROAS - 与商品分析页面保持一致
+        // 商品分析页面逻辑：ROAS = (cvr * usedAOV) / cpc
+        const actualROAS = calculateROAS(cvr, usedAOV, cpc);
+        
+        // 安全性分析 - 与商品分析页面保持一致
+        let safety = NaN;
+        if (isFinite(cvr) && isFinite(cpc) && isFinite(beCPA)) {
+          try {
+            const safetyAnalysis = safetyMarginAnalysis(cpc, cvr, beCPA);
+            if (!safetyAnalysis.error) {
+              safety = safetyAnalysis.marginPerClick; // 使用元/点击口径的安全边际
+            }
+          } catch (error) {
+            console.error('❌ 安全边际计算失败，使用降级计算:', error);
+          }
+        }
+        
+        // 如果 safetyAnalysis 失败，降级到原来的计算方式
+        if (!isFinite(safety)) {
+          safety = calculateCPCSafetyMargin(maxCPC, cpc);
+        }
+        
+        const status = getSafetyStatus(safety);
+        
+        // 更新显示 - 根据CPC状态智能显示，并添加标签
+        const beROASEl = document.querySelector('#kpiBEROAS .val');
+        beROASEl.innerHTML = (isFinite(beROAS) ? beROAS.toFixed(2) : '—') + '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>';
+        
+        const beCPAEl = document.querySelector('#kpiBECPA .val');
+        beCPAEl.innerHTML = (isFinite(beCPA) ? beCPA.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+        
+        const maxCPCEl = document.querySelector('#kpiMaxCPC .val');
+        maxCPCEl.innerHTML = (isFinite(maxCPC) ? maxCPC.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+        
+        // 需要CPC的指标根据状态显示
+        if (cpcStatus === 'valid') {
+          const actROASEl = document.querySelector('#kpiActROAS .val');
+          actROASEl.innerHTML = (isFinite(actualROAS) ? actualROAS.toFixed(2) : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critCVREl = document.querySelector('#kpiCritCVR .val');
+          critCVREl.innerHTML = (isFinite(critCVR) ? (critCVR * 100).toFixed(2) + '%' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critAOVEl = document.querySelector('#kpiCritAOV .val');
+          critAOVEl.innerHTML = (isFinite(critAOV) ? critAOV.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const safetyEl = document.querySelector('#kpiSafety .val');
+          safetyEl.innerHTML = (isFinite(safety) ? (safety >= 0 ? '+' : '') + safety.toFixed(2) + ' 元' : '—') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const cvrCpcStatusEl = document.querySelector('#kpiCvrCpcStatus .val');
+          cvrCpcStatusEl.innerHTML = status + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          // 生成建议
+          const advice = generateInvestmentAdvice(actualROAS, beROAS);
+          document.querySelector('#kpiAdvice .val').textContent = advice;
+        } else {
+          // CPC缺失时的提示
+          const cpcHint = mode === 'cpc' ? '请输入CPC' : '请输入CPM和CTR';
+          const actROASEl = document.querySelector('#kpiActROAS .val');
+          actROASEl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critCVREl = document.querySelector('#kpiCritCVR .val');
+          critCVREl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const critAOVEl = document.querySelector('#kpiCritAOV .val');
+          critAOVEl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const safetyEl = document.querySelector('#kpiSafety .val');
+          safetyEl.innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          const cvrCpcStatusEl = document.querySelector('#kpiCvrCpcStatus .val');
+          cvrCpcStatusEl.innerHTML = '待输入<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          document.querySelector('#kpiAdvice .val').textContent = `请先${cpcHint}`;
+        }
+        
+        console.log('✅ 投放决策计算完成');
+        showToast('投放决策计算完成', 2000);
+        
+        // 自动调用即时诊断，让诊断模块自动显示
+        if (shouldAutoCalculate()) {
+          setTimeout(() => {
+            window.calculateInstantDiagnosis();
+          }, 100);
+        }
+        
+      } catch (error) {
+        console.error('❌ 投放决策计算失败:', error);
+        showToast('计算失败，请检查输入参数', 2000);
+      }
+    };
+    
+    // 即时诊断函数
+    // 注意：与商品分析页面保持一致，基于商品当前售价计算，不受AOV输入和连带购买率影响
+    window.calculateInstantDiagnosis = function() {
+      try {
+        console.log('🔍 开始即时诊断...');
+        
+        // 获取基础参数（同投放决策）
+        const params = {
+          sellingPrice: valNum('sellingPrice'),
+          returnRate: valRate('returnRate'),
+          costPrice: valNum('costPrice'),
+          inputTaxRate: valRate('inputTaxRate'),
+          outputTaxRate: valRate('outputTaxRate'),
+          platformRate: valRate('platformRate'),
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valRate('salesTaxRate'),
+          serviceVATRate: valRate('serviceVATRate'),
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+        };
+        
+        const base = computeBase(params);
+        const cvr = valNum('decCVR') / 100;
+        // 即时诊断：基于商品当前售价计算，不受AOV输入影响（与商品分析页面保持一致）
+        const aov = params.sellingPrice; // 固定使用售价，不受AOV输入影响
+        const mode = document.getElementById('decBuyMode').value;
+        
+        let cpc = 0;
+        if (mode === 'cpc') {
+          cpc = valNum('decCPC');
+        } else {
+          const cpm = valNum('decCPM');
+          const ctr = valNum('decCTR') / 100;
+          cpc = cpmToCpc(cpm, ctr);
+        }
+        
+        // 即时诊断：使用固定售价，不考虑连带购买率（与商品分析页面保持一致）
+        const effectiveRate = 1 - params.returnRate;
+        const usedAOV = aov * effectiveRate; // 有效营收口径的AOV（基于固定售价）
+        
+        // 总是显示即时诊断结果，根据参数情况显示不同内容
+        if (cvr > 0 && cpc > 0) {
+          const actualCPA = cpc / cvr;
+          const cpaGap = base.adCostBreakEven - actualCPA;
+          const actualAdRate = actualCPA / (aov * effectiveRate);
+          const actualROI = calculateROAS(cvr, usedAOV, cpc);
+          const breakevenROI = base.ROI_BE_effective;
+          const safetyMargin = actualROI / breakevenROI - 1;
+          const rpcPerClick = cvr * usedAOV;
+          
+          // 更新即时诊断显示，并添加标签
+          document.getElementById('actualCPA').innerHTML = actualCPA.toFixed(2) + ' 元<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('cpaGap').innerHTML = (cpaGap >= 0 ? '+' : '') + cpaGap.toFixed(2) + ' 元<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualAdRate').innerHTML = (actualAdRate * 100).toFixed(2) + '%<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualROI').innerHTML = actualROI.toFixed(2) + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('breakevenROI').innerHTML = breakevenROI.toFixed(2) + '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>';
+          document.getElementById('safetyMargin').innerHTML = (safetyMargin * 100).toFixed(2) + '%<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('rpcPerClick').innerHTML = rpcPerClick.toFixed(2) + ' 元<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('basisNote').textContent = '有效营收口径';
+          document.getElementById('statusIndicator').innerHTML = (getSafetyStatus(safetyMargin) === '安全' ? '✅ 安全' : '⚠️ 风险') + '<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          
+          console.log('✅ 即时诊断完成');
+        } else {
+          // 参数缺失时的提示，但显示基础信息
+          const missingParams = [];
+          if (cvr <= 0) missingParams.push('CVR');
+          if (cpc <= 0) {
+            if (mode === 'cpc') {
+              missingParams.push('CPC');
+            } else {
+              missingParams.push('CPM和CTR');
+            }
+          }
+          
+          // 显示即时诊断结果但显示提示信息，同时显示基础保本信息
+          document.getElementById('actualCPA').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('cpaGap').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualAdRate').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('actualROI').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('breakevenROI').innerHTML = base.ROI_BE_effective.toFixed(2) + '<span class="tiny-hint" style="color: #ff6b35; font-weight: 600; background: #fff3e0; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #ff6b35; margin-left: 8px; font-size: 10px;">基于原价</span>';
+          document.getElementById('safetyMargin').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('rpcPerClick').innerHTML = '—<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>';
+          document.getElementById('basisNote').textContent = '有效营收口径';
+          document.getElementById('statusIndicator').innerHTML = `请先输入${missingParams.join('、')}<span class="tiny-hint" style="color: #34c759; font-weight: 600; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border-left: 2px solid #34c759; margin-left: 8px; font-size: 10px;">基于AOV</span>`;
+          
+          console.log('⚠️ 即时诊断参数缺失:', missingParams);
+        }
+        
+        // 总是显示即时诊断结果区域
+        document.getElementById('instantDiagnosisResult').style.display = 'block';
+        
+      } catch (error) {
+        console.error('❌ 即时诊断失败:', error);
+        showToast('即时诊断失败', 2000);
+      }
+    };
+    
+    // 目标推演函数
+    window.calculateTargetAnalysis = function() {
+      try {
+        console.log('📊 开始目标推演...');
+        
+        // 获取基础参数
+        const params = {
+          sellingPrice: valNum('sellingPrice'),
+          returnRate: valRate('returnRate'),
+          costPrice: valNum('costPrice'),
+          inputTaxRate: valRate('inputTaxRate'),
+          outputTaxRate: valRate('outputTaxRate'),
+          platformRate: valRate('platformRate'),
+          shippingCost: valNum('shippingCost'),
+          shippingInsurance: valNum('shippingInsurance'),
+          otherCost: valNum('otherCost'),
+          salesTaxRate: valRate('salesTaxRate'),
+          serviceVATRate: valRate('serviceVATRate'),
+          goodsMode: document.querySelector('input[name="goodsMode"]:checked').value
+        };
+        
+        // 读取目标推演参数
+        let r = valNum('targetR');
+        r = r > 1 ? r / 100 : r; // 支持百分比输入
+        
+        let a = valNum('targetA');
+        a = a > 1 ? a / 100 : a; // 支持百分比输入
+        
+        const basis = document.getElementById('targetBasis').value;
+        const m = valNum('targetM') / 100; // 目标利润率
+        
+        if (r > 0 && a > 0) {
+          // 计算当前利润率
+          const currentResult = profitGivenAdRateAndR(params, a, 1 - params.returnRate, basis);
+          const actualMargin = currentResult.margin;
+          
+          // 反推售价
+          const targetPrice = solveSellingPrice(params, r, a, basis, m);
+          
+          // 反推进货价
+          const targetCost = solveCostPrice(params, r, a, basis, m);
+          
+          // 计算税负
+          const taxResult = taxBurdenGiven(params, a, r, basis);
+          
+          // 更新显示
+          document.getElementById('actualMarginResult').textContent = isFinite(actualMargin) ? (actualMargin * 100).toFixed(2) + '%' : '—';
+          document.getElementById('targetPriceResult').textContent = isFinite(targetPrice) ? targetPrice.toFixed(2) + ' 元' : '—';
+          document.getElementById('targetCostResult').textContent = isFinite(targetCost) ? targetCost.toFixed(2) + ' 元' : '—';
+          document.getElementById('taxResult').textContent = isFinite(taxResult.shareGMV) ? (taxResult.shareGMV * 100).toFixed(2) + '%' : '—';
+          
+          console.log('✅ 目标推演完成');
+          showToast('目标推演计算完成', 2000);
+          
+          // 自动调用即时诊断，让诊断模块自动显示
+          if (shouldAutoCalculate()) {
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
+          }
+        } else {
+          showToast('请输入有效率和广告占比', 2000);
+        }
+        
+      } catch (error) {
+        console.error('❌ 目标推演失败:', error);
+        showToast('目标推演失败', 2000);
+      }
+    };
+    
+    // 添加实时计算功能
+    function setupRealTimeCalculation() {
+      // 投放决策条实时计算
+      const decisionInputs = [
+        'decBasis', 'decCVR', 'decBuyMode', 'decCPC', 'decCPM', 'decCTR', 'decAOV', 'decBundleRate'
+      ];
+      
+      decisionInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          // 移除之前的事件监听器（避免重复绑定）
+          element.removeEventListener('input', element._inputHandler);
+          element.removeEventListener('change', element._changeHandler);
+          
+          // 创建新的事件处理器
+          element._inputHandler = debounce(() => {
+            if (shouldAutoCalculate()) {
+              console.log('🔄 实时计算投放决策...');
+              window.calculateInvestmentDecision();
+            }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
+          }, 300);
+          
+          element._changeHandler = () => {
+            if (shouldAutoCalculate()) {
+              console.log('🔄 实时计算投放决策...');
+              window.calculateInvestmentDecision();
+            }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
+          };
+          
+          // 绑定事件
+          element.addEventListener('input', element._inputHandler);
+          element.addEventListener('change', element._changeHandler);
+        }
+      });
+      
+      // 目标推演实时计算
+      const targetInputs = ['targetR', 'targetA', 'targetBasis', 'targetM'];
+      
+      targetInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          // 移除之前的事件监听器（避免重复绑定）
+          element.removeEventListener('input', element._inputHandler);
+          element.removeEventListener('change', element._changeHandler);
+          
+          // 创建新的事件处理器
+          element._inputHandler = debounce(() => {
+            if (shouldAutoCalculateTarget()) {
+              console.log('🔄 实时计算目标推演...');
+              window.calculateTargetAnalysis();
+            }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
+          }, 300);
+          
+          element._changeHandler = () => {
+            if (shouldAutoCalculateTarget()) {
+              console.log('🔄 实时计算目标推演...');
+              window.calculateTargetAnalysis();
+            }
+            // 同时更新即时诊断
+            setTimeout(() => {
+              window.calculateInstantDiagnosis();
+            }, 100);
+          };
+          
+          // 绑定事件
+          element.addEventListener('input', element._inputHandler);
+          element.addEventListener('change', element._changeHandler);
+        }
+      });
+    }
+    
+    // 使用已存在的debounce函数，无需重复定义
+    
+    // 判断是否应该自动计算投放决策 - 只要有基本参数就计算
+    function shouldAutoCalculate() {
+      const cvr = valNum('decCVR');
+      const aov = valNum('decAOV');
+      const mode = document.getElementById('decBuyMode').value;
+      
+      // 只要有CVR和AOV就可以开始计算
+      if (cvr <= 0 || aov <= 0) return false;
+      
+      // 根据买量方式判断是否需要额外参数
+      if (mode === 'cpc') {
+        // CPC模式：只要有CPC就计算，没有CPC时显示提示
+        const cpc = valNum('decCPC');
+        return true; // 总是允许计算，在计算函数中处理缺失参数
+      } else {
+        // CPM模式：只要有CPM和CTR就计算
+        const cpm = valNum('decCPM');
+        const ctr = valNum('decCTR');
+        return true; // 总是允许计算，在计算函数中处理缺失参数
+      }
+    }
+    
+    // 判断是否应该自动计算目标推演
+    function shouldAutoCalculateTarget() {
+      const r = valNum('targetR');
+      const a = valNum('targetA');
+      return r > 0 && a > 0;
+    }
+    
+    // 添加Escape键关闭模态框
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape') {
+        closeInvestment();
+      }
+    });
+</script>
+</body>
+</html>

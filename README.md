@@ -17,13 +17,15 @@
 
 ```
 breakeven/
-├── engine.js              # 纯函数计算引擎（核心）
-├── index.html             # 主界面（基础计算和推演，自动跳转到metro.html）
-├── metro.html             # 费用可视化墙（默认首页）
-├── product_analysis.html  # 商品分析页面（批量分析）
-├── list_price.html        # 标价计算页面（到手价↔页面标价）
-├── product_examples.js    # 示例商品数据和系统参数
-└── README.md              # 项目说明文档
+├── engine.js               # 纯函数计算引擎（核心）
+├── index.html              # 站点根入口：默认跳转 navigation.html；?noRedirect=true → legacy_calculator.html
+├── navigation.html         # 工具箱导航（从根入口进入后的聚合页）
+├── legacy_calculator.html  # 经典单页全功能计算器（原嵌在 index 内的大表单，已拆出）
+├── metro.html              # 费用可视化墙（工具箱内主推可视化页）
+├── product_analysis.html   # 商品分析页面（批量分析）
+├── list_price.html         # 标价计算页面（到手价↔页面标价）
+├── product_examples.js     # 示例商品数据和系统参数
+└── README.md               # 项目说明文档
 ```
 
 ## 🏗️ 系统架构
@@ -129,7 +131,12 @@ interface Product {
 
 ## 🎯 功能模块
 
-### 1. 主界面 (index.html)
+### 1. 站点入口 (index.html)
+- **默认行为**：立即重定向到 `navigation.html`（工具箱导航，与「先看到巨型计算器」的旧体验解耦）
+- **兼容旧书签**：访问 `index.html?noRedirect=true` 时重定向到 `legacy_calculator.html`（原 `index` 内嵌的全功能单页）
+- **无脚本降级**：页面内提供指向导航与经典页的静态链接
+
+### 2. 经典单页全功能计算器 (legacy_calculator.html)
 - **基础计算**：输入商品参数，计算保本广告费、ROI、利润率等
 - **利润率推演**：模拟不同广告占比和退货率下的利润率变化
 - **售价反推**：根据目标利润率反推所需售价
@@ -138,7 +145,7 @@ interface Product {
 - **数值分析**：CPC/CVR/客单价临界值计算和投放建议
 - **投放决策**：ROI安全边际分析、投放阈值计算
 
-### 2. Metro页面 (metro.html) - 默认首页
+### 3. Metro页面 (metro.html) - 工具箱内主推可视化页
 - **可视化展示**：默认显示流程图、饼图分析、传统墙体等可视化内容
 - **多Tab切换**：支持可视化展示、投放决策、利润推演、到手价推演、税费推演、成本价推演
 - **智能重置**：重置时自动恢复到可视化展示tab
@@ -146,7 +153,7 @@ interface Product {
 - **数据合并**：自动合并示例数据和用户本地数据
 - **响应式设计**：支持桌面端和移动端自适应布局
 
-### 3. 商品分析页面 (product_analysis.html)
+### 4. 商品分析页面 (product_analysis.html)
 - **批量商品管理**：支持添加、编辑、删除商品
 - **多价格模式**：单一价格、多档价格、单一售价+多档进货价
 - **Excel导入导出**：支持CSV格式数据导入导出
@@ -155,7 +162,7 @@ interface Product {
 - **投放决策条**：基于商品参数的投放决策支持
 - **CVR-CPC可视化**：边界曲线图表展示
 
-### 3. 标价计算页面 (list_price.html)
+### 5. 标价计算页面 (list_price.html)
 - **到手价反推**：输入目标到手价，计算所需页面标价
 - **优惠设置**：支持立减百分比和满减档位设置
 - **毛利率换算**：不同折扣方案下的毛利率对比分析
@@ -399,36 +406,36 @@ adCostBreakEven = (1 + serviceVATRate) × A
 - `snapshotAt(p, opts)` - 在给定参数下的指标快照
 - `deltaForAdRateDown1pp(p, opts)` - 广告占比降低1pp的敏感度分析
 
-这些函数现在可以在 `metro.html`、`index.html`、`useless/single.html`（历史单页，已归档）等多个页面中复用，确保计算逻辑的一致性和可维护性。
+这些函数现在可以在 `metro.html`、`legacy_calculator.html`、`useless/single.html`（历史单页，已归档）等多个页面中复用，确保计算逻辑的一致性和可维护性。
 
 ## 🚀 部署和使用
 
-### 首页跳转功能
+### 首页与入口跳转
 
-系统已配置自动跳转功能，将metro.html设置为默认首页：
+根路径 `index.html` 仅负责分流，不再内嵌巨型计算器：
 
 #### 跳转机制
-- **默认行为**：访问index.html时自动跳转到metro.html
-- **禁用跳转**：可通过URL参数`?noRedirect=true`禁用自动跳转
-- **直接访问**：可直接访问metro.html作为首页
+- **默认行为**：访问 `index.html` 时重定向到 `navigation.html`（工具箱导航）
+- **兼容旧书签**：`index.html?noRedirect=true` 会重定向到 `legacy_calculator.html`（经典单页全功能计算器）
+- **直接访问**：可从导航进入 `metro.html`，或直接打开 `metro.html`、`legacy_calculator.html`
 
 #### 使用方式
 ```bash
-# 默认跳转到metro页面
+# 默认进入工具箱导航
 http://localhost:8000/index.html
 
-# 禁用自动跳转，停留在index页面
+# 兼容旧书签：进入经典单页全功能计算器
 http://localhost:8000/index.html?noRedirect=true
 
-# 直接访问metro页面
+# 直接打开费用可视化墙或经典计算器
 http://localhost:8000/metro.html
+http://localhost:8000/legacy_calculator.html
 ```
 
 #### 跳转验证
-可以通过以下方式验证跳转功能：
-- 直接访问index.html，观察是否自动跳转到metro.html
-- 访问index.html?noRedirect=true，确认不会自动跳转
-- 直接访问metro.html，确认页面正常加载
+- 访问 `index.html`，应进入 `navigation.html`
+- 访问 `index.html?noRedirect=true`，应进入 `legacy_calculator.html`
+- 从导航点击「费用可视化墙」或直接打开 `metro.html`，页面应正常加载
 
 ### 本地开发
 ```bash
